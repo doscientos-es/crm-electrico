@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Printer } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
@@ -12,6 +12,8 @@ import { money } from '../lib/formatters'
 import { proposalSchema, type ProposalFormValues } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
+const defaultValidUntil = '2026-05-12'
+
 export function ProposalsRoute() {
   const store = useDemoStore()
   const form = useForm<ProposalFormValues>({
@@ -22,11 +24,16 @@ export function ProposalsRoute() {
       title: 'Propuesta de ahorro energetico',
       services: 'Optimizacion de potencia\nCambio de tarifa\nSeguimiento trimestral',
       estimated_price_eur: 1200,
-      valid_until: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
+      valid_until: defaultValidUntil,
     },
   })
-  const selectedSimulation = store.simulations.find((item) => item.id === form.watch('simulation_id'))
-  const selectedCustomer = store.customers.find((item) => item.id === form.watch('customer_id'))
+  const watchedSimulationId = useWatch({ control: form.control, name: 'simulation_id' })
+  const watchedCustomerId = useWatch({ control: form.control, name: 'customer_id' })
+  const watchedTitle = useWatch({ control: form.control, name: 'title' })
+  const watchedServices = useWatch({ control: form.control, name: 'services' })
+  const watchedPrice = useWatch({ control: form.control, name: 'estimated_price_eur' })
+  const selectedSimulation = store.simulations.find((item) => item.id === watchedSimulationId)
+  const selectedCustomer = store.customers.find((item) => item.id === watchedCustomerId)
 
   function onSubmit(values: ProposalFormValues) {
     store.createProposal({
@@ -96,7 +103,7 @@ export function ProposalsRoute() {
               <div className="flex justify-between gap-6 border-b border-slate-200 pb-6">
                 <div>
                   <p className="text-sm font-semibold uppercase text-emerald-700">Propuesta comercial</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">{form.watch('title')}</h2>
+                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">{watchedTitle}</h2>
                   <p className="mt-2 text-slate-500">Cliente: {selectedCustomer?.name ?? 'Selecciona cliente'}</p>
                 </div>
                 <div className="text-right text-sm text-slate-500">
@@ -112,11 +119,11 @@ export function ProposalsRoute() {
               </div>
               <h3 className="font-semibold text-slate-950">Servicios recomendados</h3>
               <ul className="mt-3 grid gap-2 text-sm text-slate-700">
-                {form.watch('services')?.split('\n').filter(Boolean).map((service) => <li key={service}>- {service}</li>)}
+                {watchedServices?.split('\n').filter(Boolean).map((service) => <li key={service}>- {service}</li>)}
               </ul>
               <div className="mt-6 rounded-md bg-emerald-50 p-4">
                 <p className="text-sm text-emerald-700">Precio estimado</p>
-                <p className="text-2xl font-semibold text-emerald-950">{money.format(Number(form.watch('estimated_price_eur') || 0))}</p>
+                <p className="text-2xl font-semibold text-emerald-950">{money.format(Number(watchedPrice || 0))}</p>
               </div>
             </CardContent>
           </Card>

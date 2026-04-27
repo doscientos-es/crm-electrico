@@ -1,9 +1,9 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('card', className)} {...props} />
-}
+export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function Card({ className, ...props }, ref) {
+  return <div ref={ref} className={cn('card', className)} {...props} />
+})
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('border-b border-slate-100 p-4', className)} {...props} />

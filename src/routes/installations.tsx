@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Camera, MapPin } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
@@ -26,6 +26,7 @@ export function InstallationsRoute() {
       assigned_technician: 'user-tech',
     },
   })
+  const watchedCustomerId = useWatch({ control: form.control, name: 'customer_id' })
 
   function selectCustomer(customerId: string) {
     const customer = store.customers.find((item) => item.id === customerId)
@@ -81,7 +82,7 @@ export function InstallationsRoute() {
           <CardContent>
             <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
               <Field label="Cliente" error={form.formState.errors.customer_id?.message}>
-                <Select value={form.watch('customer_id')} onChange={(event) => selectCustomer(event.target.value)}>
+                <Select value={watchedCustomerId} onChange={(event) => selectCustomer(event.target.value)}>
                   {store.customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}

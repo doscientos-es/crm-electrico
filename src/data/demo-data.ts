@@ -158,7 +158,7 @@ const customerSamples = [
   ['customer-010', 'Restaurante El Puerto', 'business', 860, '3.0TD', 5600, true, 'Valencia'],
 ] as const
 
-const customers: Customer[] = customerSamples.map(([id, name, type, _cost, _tariff, _consumption, _solar, city], index) => ({
+const customers: Customer[] = customerSamples.map(([id, name, type, , , , , city], index) => ({
   id,
   organization_id: orgId,
   type,
@@ -180,7 +180,7 @@ const customers: Customer[] = customerSamples.map(([id, name, type, _cost, _tari
   created_by: 'user-sales',
 }))
 
-const energyProfiles: CustomerEnergyProfile[] = customerSamples.map(([customerId, _name, _type, cost, tariff, consumption, solar], index) => ({
+const energyProfiles: CustomerEnergyProfile[] = customerSamples.map(([customerId, , , cost, tariff, consumption, solar], index) => ({
   id: `energy-${String(index + 1).padStart(3, '0')}`,
   organization_id: orgId,
   customer_id: customerId,

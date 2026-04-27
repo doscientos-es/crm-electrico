@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -15,8 +15,9 @@ export function SimulationsRoute() {
     resolver: zodResolver(simulationSchema) as never,
     defaultValues: { customer_id: store.customers[0]?.id, estimated_saving_percent: 18, current_monthly_cost_eur: 500 },
   })
-  const currentCost = Number(form.watch('current_monthly_cost_eur') || 0)
-  const percent = Number(form.watch('estimated_saving_percent') || 0)
+  const currentCost = Number(useWatch({ control: form.control, name: 'current_monthly_cost_eur' }) || 0)
+  const percent = Number(useWatch({ control: form.control, name: 'estimated_saving_percent' }) || 0)
+  const watchedCustomerId = useWatch({ control: form.control, name: 'customer_id' })
   const monthlySaving = currentCost * (percent / 100)
 
   function selectCustomer(customerId: string) {
@@ -46,7 +47,7 @@ export function SimulationsRoute() {
           <CardContent>
             <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
               <Field label="Cliente" error={form.formState.errors.customer_id?.message}>
-                <Select value={form.watch('customer_id')} onChange={(event) => selectCustomer(event.target.value)}>
+                <Select value={watchedCustomerId} onChange={(event) => selectCustomer(event.target.value)}>
                   {store.customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}

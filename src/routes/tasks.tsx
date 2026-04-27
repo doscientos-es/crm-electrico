@@ -12,6 +12,8 @@ import { formatDateTime } from '../lib/formatters'
 import { taskSchema, type TaskFormValues } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
+const defaultDueAt = '2026-04-28T09:00'
+
 export function TasksRoute() {
   const store = useDemoStore()
   const form = useForm<TaskFormValues>({
@@ -21,7 +23,7 @@ export function TasksRoute() {
       priority: 'medium',
       status: 'pending',
       assigned_to: 'user-sales',
-      due_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+      due_at: defaultDueAt,
     },
   })
 
