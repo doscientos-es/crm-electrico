@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured } from './supabase'
+
 export const storageBuckets = {
   invoices: {
     bucket: 'invoices',
@@ -29,4 +31,20 @@ export const storageBuckets = {
 export function buildStoragePath(organizationId: string, customerId: string, entityId: string, fileName: string) {
   const safeName = fileName.toLowerCase().replace(/[^a-z0-9.]+/g, '-')
   return `${organizationId}/${customerId}/${entityId}/${safeName}`
+}
+
+export function isPdfDocument(fileName?: string, mimeType?: string) {
+  return mimeType === 'application/pdf' || fileName?.toLowerCase().endsWith('.pdf') || false
+}
+
+export function getStoragePublicUrl(bucket: string, filePath: string) {
+  if (/^https?:\/\//i.test(filePath)) {
+    return filePath
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    return null
+  }
+
+  return supabase.storage.from(bucket).getPublicUrl(filePath).data.publicUrl
 }

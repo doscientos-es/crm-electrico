@@ -38,7 +38,7 @@ export function RenewalsRoute() {
         }
       />
 
-      <div className="mb-5 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3">
+      <div className="mb-5 grid gap-4 rounded-lg border border-border bg-card p-4 md:grid-cols-3">
         <Field label="Estado de aviso">
           <Select value={stage} onChange={(event) => setStage(event.target.value as StageFilter)}>
             <option value="all">Todos</option>
@@ -57,16 +57,16 @@ export function RenewalsRoute() {
           return (
             <tr key={customer.id}>
               <td className="px-4 py-3">
-                <p className="font-medium text-slate-950">{customer.name}</p>
-                <p className="text-xs text-slate-500">{customer.products_services.join(', ') || 'Sin servicios'}</p>
+                <p className="font-medium text-foreground">{customer.name}</p>
+                <p className="text-xs text-muted-foreground">{customer.products_services.join(', ') || 'Sin servicios'}</p>
               </td>
               <td className="px-4 py-3">
                 <StatusBadge value={customerStatusLabels[customer.status]} />
               </td>
-              <td className="px-4 py-3 text-slate-600">{alertDate ? formatDate(alertDate.toISOString()) : '-'}</td>
-              <td className="px-4 py-3 text-slate-600">{formatDate(customer.renewal_date)}</td>
-              <td className="px-4 py-3 text-slate-600">{typeof days === 'number' ? days : '-'}</td>
-              <td className="px-4 py-3 text-slate-600">{store.profiles.find((profile) => profile.id === customer.assigned_to)?.full_name ?? '-'}</td>
+              <td className="px-4 py-3 text-muted-foreground">{alertDate ? formatDate(alertDate.toISOString()) : '-'}</td>
+              <td className="px-4 py-3 text-muted-foreground">{formatDate(customer.renewal_date)}</td>
+              <td className="px-4 py-3 text-muted-foreground">{typeof days === 'number' ? days : '-'}</td>
+              <td className="px-4 py-3 text-muted-foreground">{store.profiles.find((profile) => profile.id === customer.assigned_to)?.full_name ?? '-'}</td>
               <td className="px-4 py-3">
                 <Button asChild size="sm" variant="secondary">
                   <Link to={`/customers/${customer.id}`}>Abrir ficha</Link>

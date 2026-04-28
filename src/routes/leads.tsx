@@ -5,7 +5,7 @@ import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { Dialog } from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
+import { Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState } from '../components/ui/table'
 import { leadStatusLabels } from '../config/constants'
 import { LeadFormDialog } from '../features/leads/LeadFormDialog'
@@ -14,12 +14,14 @@ import { useDemoStore } from '../store/demo-store'
 import type { Lead } from '../types/domain'
 
 export function LeadsRoute() {
-  const { leads, profiles, convertLead } = useDemoStore()
+  const { leads, profiles, convertLead, currentUser } = useDemoStore()
   const [pendingConvert, setPendingConvert] = useState<Lead | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  const filtered = leads.filter((lead) => {
+  const visibleLeads = currentUser.role === 'owner' || currentUser.role === 'admin' ? leads : leads.filter((lead) => lead.assigned_to === currentUser.id)
+
+  const filtered = visibleLeads.filter((lead) => {
     const name = (lead.company_name ?? lead.contact_name ?? '').toLowerCase()
     const matchesSearch = name.includes(search.toLowerCase())
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
@@ -43,18 +45,17 @@ export function LeadsRoute() {
             className="pl-9"
           />
         </div>
-        <select
+        <Select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="focus-ring min-h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
         >
           <option value="all">Todos los estados</option>
           {Object.entries(leadStatusLabels).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
-        </select>
+        </Select>
       </div>
-      {leads.length === 0 ? (
+      {visibleLeads.length === 0 ? (
         <EmptyState
           title="Sin leads todavía"
           description="Captura tu primer lead para empezar el proceso comercial."
@@ -65,19 +66,19 @@ export function LeadsRoute() {
       ) : (
         <DataTable headers={['Lead', 'Origen', 'Estado', 'Factura estimada', 'Asignado', 'Acciones']}>
           {filtered.map((lead) => (
-            <tr key={lead.id} className="hover:bg-slate-50">
+            <tr key={lead.id} className="hover:bg-accent">
               <td className="px-4 py-3">
-                <p className="font-medium text-slate-950">{lead.company_name ?? lead.contact_name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="font-medium text-foreground">{lead.company_name ?? lead.contact_name}</p>
+                <p className="text-xs text-muted-foreground">
                   {lead.contact_name} · {lead.phone ?? lead.email}
                 </p>
               </td>
-              <td className="px-4 py-3 text-slate-600">{lead.source}</td>
+              <td className="px-4 py-3 text-muted-foreground">{lead.source}</td>
               <td className="px-4 py-3">
                 <StatusBadge value={leadStatusLabels[lead.status]} />
               </td>
-              <td className="px-4 py-3 text-slate-700">{lead.estimated_monthly_bill ? money.format(lead.estimated_monthly_bill) : '-'}</td>
-              <td className="px-4 py-3 text-slate-600">{profiles.find((profile) => profile.id === lead.assigned_to)?.full_name ?? '-'}</td>
+              <td className="px-4 py-3 text-foreground">{lead.estimated_monthly_bill ? money.format(lead.estimated_monthly_bill) : '-'}</td>
+              <td className="px-4 py-3 text-muted-foreground">{profiles.find((profile) => profile.id === lead.assigned_to)?.full_name ?? '-'}</td>
               <td className="px-4 py-3">
                 <div className="flex gap-2">
                   <LeadFormDialog lead={lead} />
@@ -103,8 +104,8 @@ export function LeadsRoute() {
         onOpenChange={(open) => { if (!open) setPendingConvert(null) }}
         title="Convertir lead en cliente"
       >
-        <p className="text-sm text-slate-600">
-          ¿Confirmas convertir <strong>{pendingConvert?.company_name ?? pendingConvert?.contact_name}</strong> en cliente?
+        <p className="text-sm text-muted-foreground">
+          ¿Confirmas convertir <strong className="text-foreground">{pendingConvert?.company_name ?? pendingConvert?.contact_name}</strong> en cliente?
           Esta acción creará un cliente y no se puede deshacer.
         </p>
         <div className="mt-5 flex justify-end gap-2">

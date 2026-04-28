@@ -2,7 +2,7 @@ import { cn } from '../../lib/utils'
 
 /* ── Primitive ── */
 function Bone({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-slate-200', className)} />
+  return <div className={cn('animate-pulse rounded-md bg-muted', className)} />
 }
 
 /* ── Text lines ── */
@@ -19,7 +19,7 @@ export function SkeletonText({ lines = 1, className }: { lines?: number; classNa
 /* ── KPI Card ── */
 export function SkeletonKpi() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <div className="flex-1 space-y-3">
           <Bone className="h-3.5 w-28" />
@@ -72,8 +72,8 @@ export function PageSkeleton({ kpis = 4, tableRows = 6, tableCols = 5 }: { kpis?
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="px-4 py-3 border-b border-slate-100">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="px-4 py-3 border-b border-border">
           <Bone className="h-4 w-40" />
         </div>
         <table className="w-full">

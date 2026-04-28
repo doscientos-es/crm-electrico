@@ -1,22 +1,19 @@
-import { Dialog as DialogPrimitive } from 'radix-ui'
 import {
+  ArrowRight,
   Building2,
+  CircleUser,
   FileArchive,
   Hash,
   Home,
   Search,
-  Settings,
-  ShieldCheck,
-  UserCircle,
-  Users,
-  CheckSquare,
-  ArrowRight,
+  SquareCheck,
   Zap,
 } from 'lucide-react'
+import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDemoStore } from '../../store/demo-store'
 import { navItems } from '../../config/nav'
+import { useDemoStore } from '../../store/demo-store'
 
 type ResultItem = {
   id: string
@@ -35,7 +32,7 @@ function highlight(text: string, query: string) {
   return (
     <span>
       {text.slice(0, idx)}
-      <mark className="bg-emerald-100 text-emerald-800 rounded px-0.5 not-italic font-semibold">
+      <mark className="bg-primary/15 text-primary rounded px-0.5 not-italic font-semibold">
         {text.slice(idx, idx + query.length)}
       </mark>
       {text.slice(idx + query.length)}
@@ -46,8 +43,8 @@ function highlight(text: string, query: string) {
 const categoryIconMap: Record<string, React.ElementType> = {
   'Páginas': Home,
   'Clientes': Building2,
-  'Leads': UserCircle,
-  'Tareas': CheckSquare,
+  'Leads': CircleUser,
+  'Tareas': SquareCheck,
   'Documentos': FileArchive,
 }
 
@@ -90,12 +87,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     const ls: ResultItem[] = leads
       .filter((l) => l.contact_name.toLowerCase().includes(q) || l.company_name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q))
       .slice(0, 4)
-      .map((l) => ({ id: `lead-${l.id}`, category: 'Leads', categoryIcon: UserCircle, label: l.company_name ?? l.contact_name, sublabel: l.contact_name, href: '/customers', icon: UserCircle }))
+      .map((l) => ({ id: `lead-${l.id}`, category: 'Leads', categoryIcon: CircleUser, label: l.company_name ?? l.contact_name, sublabel: l.contact_name, href: '/customers', icon: CircleUser }))
 
     const ts: ResultItem[] = tasks
       .filter((t) => t.title.toLowerCase().includes(q) && t.status !== 'done')
       .slice(0, 4)
-      .map((t) => ({ id: `task-${t.id}`, category: 'Tareas', categoryIcon: CheckSquare, label: t.title, sublabel: t.priority, href: '/customers', icon: CheckSquare }))
+      .map((t) => ({ id: `task-${t.id}`, category: 'Tareas', categoryIcon: SquareCheck, label: t.title, sublabel: t.priority, href: '/customers', icon: SquareCheck }))
 
     const docs: ResultItem[] = documents
       .filter((d) => d.file_name.toLowerCase().includes(q))
@@ -141,30 +138,30 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm animate-in fade-in duration-150" />
+        <DialogPrimitive.Overlay className="animate-fade-in fixed inset-0 z-40 bg-foreground/50 backdrop-blur-sm" />
         <DialogPrimitive.Content
           aria-label="Búsqueda global"
           onKeyDown={onKeyDown}
-          className="fixed left-1/2 top-[12vh] z-50 w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 rounded-xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
+          className="animate-fade-in fixed left-1/2 top-[12vh] z-50 w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 rounded-xl border border-border bg-popover shadow-2xl overflow-hidden"
         >
           {/* Search input */}
-          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar clientes, leads, tareas, páginas…"
-              className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
-            <kbd className="hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:block">ESC</kbd>
+            <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd>
           </div>
 
           {/* Results */}
           <div ref={listRef} className="max-h-[60vh] overflow-y-auto overscroll-contain p-2">
             {flat.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-sm text-slate-400">
-                <Zap className="h-7 w-7 text-slate-300" />
+              <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
+                <Zap className="h-7 w-7 text-muted-foreground/40" />
                 Sin resultados para «{query}»
               </div>
             ) : (
@@ -173,8 +170,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 return (
                   <div key={category} className="mb-1">
                     <div className="flex items-center gap-1.5 px-2 py-1.5">
-                      <CatIcon className="h-3 w-3 text-slate-400" />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{category}</span>
+                      <CatIcon className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{category}</span>
                     </div>
                     {items.map((item) => {
                       const globalIdx = flat.indexOf(item)
@@ -189,17 +186,17 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                           onClick={() => select(item)}
                           className={[
                             'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-                            isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-50',
+                            isActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent hover:text-accent-foreground',
                           ].join(' ')}
                         >
-                          <div className={['grid h-8 w-8 shrink-0 place-items-center rounded-md', isActive ? 'bg-emerald-100' : 'bg-slate-100'].join(' ')}>
+                          <div className={['grid h-8 w-8 shrink-0 place-items-center rounded-md', isActive ? 'bg-primary/20' : 'bg-muted'].join(' ')}>
                             <Icon className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{highlight(item.label, query)}</p>
-                            {item.sublabel && <p className="truncate text-xs text-slate-400">{item.sublabel}</p>}
+                            {item.sublabel && <p className="truncate text-xs text-muted-foreground">{item.sublabel}</p>}
                           </div>
-                          {isActive && <ArrowRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
+                          {isActive && <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />}
                         </button>
                       )
                     })}
@@ -210,13 +207,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
+          <div className="flex items-center justify-between border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
             <div className="flex items-center gap-3">
               <span><kbd className="font-mono">↑↓</kbd> navegar</span>
               <span><kbd className="font-mono">↵</kbd> abrir</span>
             </div>
             <div className="flex items-center gap-1">
-              <Zap className="h-3 w-3 text-emerald-500" />
+              <Zap className="h-3 w-3 text-primary" />
               <span>Renovaciones CRM</span>
             </div>
           </div>

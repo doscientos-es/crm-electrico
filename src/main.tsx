@@ -4,9 +4,18 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './app/App'
 import { AppProviders } from './app/providers'
 import { ErrorBoundary } from './components/feedback/ErrorBoundary'
+import { initializeTheme } from './lib/theme'
 import './index.css'
 
-createRoot(document.getElementById('root')!).render(
+initializeTheme()
+
+const root = document.getElementById('root')
+
+if (!root) {
+  throw new Error('No se encontró el elemento root')
+}
+
+createRoot(root).render(
   <StrictMode>
     <ErrorBoundary level="root">
       <BrowserRouter>

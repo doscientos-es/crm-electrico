@@ -4,6 +4,15 @@ import type { ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 import { Button } from './button'
 
+const sizeClasses: Record<DialogSize, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'w-[min(96vw,1100px)] max-w-none',
+}
+
+export type DialogSize = 'sm' | 'md' | 'lg' | 'xl'
+
 export function Dialog({
   open,
   onOpenChange,
@@ -11,6 +20,7 @@ export function Dialog({
   description,
   trigger,
   children,
+  size = 'md',
   className,
 }: {
   open?: boolean
@@ -19,6 +29,7 @@ export function Dialog({
   description?: string
   trigger?: ReactNode
   children: ReactNode
+  size?: DialogSize
   className?: string
 }) {
   return (
@@ -28,7 +39,8 @@ export function Dialog({
         <DialogPrimitive.Overlay className="animate-fade-in fixed inset-0 z-40 bg-black/50" />
         <DialogPrimitive.Content
           className={cn(
-            'animate-zoom-in fixed left-1/2 top-1/2 z-50 grid max-h-[90dvh] w-[calc(100vw-32px)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background shadow-xl',
+            'animate-zoom-in fixed left-1/2 top-1/2 z-50 grid max-h-[90dvh] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background shadow-xl',
+            sizeClasses[size],
             className,
           )}
         >

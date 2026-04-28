@@ -13,13 +13,13 @@ export function LoginRoute() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-slate-50 p-4">
+    <main className="grid min-h-dvh place-items-center bg-muted p-4">
       <Card className="w-full max-w-lg">
         <CardContent className="p-8">
           <div className="mb-8">
-            <div className="mb-4 grid h-12 w-12 place-items-center rounded-lg bg-emerald-600 text-xl font-bold text-white">E</div>
-            <h1 className="text-2xl font-semibold text-slate-950">Renovaciones CRM</h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-lg bg-primary text-xl font-bold text-primary-foreground">E</div>
+            <h1 className="text-2xl font-semibold text-foreground">Renovaciones CRM</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
               Demo centrada en cartera de clientes, contratos y avisos de renovacion.
             </p>
           </div>
@@ -30,7 +30,7 @@ export function LoginRoute() {
               </Button>
             ))}
           </div>
-          <p className="mt-6 rounded-md bg-slate-100 p-3 text-xs text-slate-600">
+          <p className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
             Supabase: {isSupabaseConfigured ? 'configurado por variables de entorno' : 'modo demo local activo hasta configurar .env'}.
           </p>
         </CardContent>

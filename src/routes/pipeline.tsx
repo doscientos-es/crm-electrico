@@ -26,19 +26,19 @@ export function PipelineRoute() {
               <PipelineColumn key={stage.id} id={stage.id}>
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-slate-950">{stage.name}</h3>
-                    <p className="text-xs text-slate-500">{stageDeals.length} oportunidades</p>
+                    <h3 className="font-semibold text-foreground">{stage.name}</h3>
+                    <p className="text-xs text-muted-foreground">{stageDeals.length} oportunidades</p>
                   </div>
                   <span className="h-3 w-3 rounded-full" style={{ background: stage.color }} />
                 </div>
                 <div className="grid gap-3">
                   {stageDeals.map((deal) => (
                     <DealCard key={deal.id} id={deal.id}>
-                      <p className="font-medium text-slate-950">{deal.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{customers.find((customer) => customer.id === deal.customer_id)?.name}</p>
+                      <p className="font-medium text-foreground">{deal.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{customers.find((customer) => customer.id === deal.customer_id)?.name}</p>
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-900">{money.format(deal.value_eur)}</span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                        <span className="text-sm font-semibold text-foreground">{money.format(deal.value_eur)}</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           {deal.probability}%
                         </span>
                       </div>
@@ -59,8 +59,7 @@ function PipelineColumn({ id, children }: { id: string; children: React.ReactNod
   return (
     <Card
       ref={setNodeRef}
-      className={`min-h-40 min-w-0 p-3 transition-shadow xl:min-h-80 xl:w-80 xl:shrink-0 ${isOver ? 'ring-2 ring-emerald-500' : ''
-        }`}
+      className={`min-h-40 min-w-0 p-3 transition-shadow xl:min-h-80 xl:w-80 xl:shrink-0 ${isOver ? 'ring-2 ring-primary' : ''}`}
     >
       {children}
     </Card>
@@ -79,8 +78,7 @@ function DealCard({ id, children }: { id: string; children: React.ReactNode }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`min-w-0 touch-pan-y rounded-md border border-slate-200 bg-white p-3 shadow-sm ${isDragging ? 'z-10 opacity-70 ring-2 ring-sky-500' : ''
-        }`}
+      className={`min-w-0 touch-pan-y rounded-md border border-border bg-card p-3 shadow-sm ${isDragging ? 'z-10 opacity-70 ring-2 ring-primary' : ''}`}
     >
       {children}
     </article>

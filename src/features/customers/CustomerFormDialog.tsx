@@ -1,56 +1,31 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { addMonths } from 'date-fns'
 import { Plus } from 'lucide-react'
-import { type FormEvent, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../../components/ui/input'
+import { type CustomerFormValues, customerSchema } from '../../schemas/customer.schema'
 import { useDemoStore } from '../../store/demo-store'
 import type { Customer } from '../../types/domain'
-
-type FormState = {
-  name: string
-  company: string
-  dni: string
-  status: Customer['status']
-  contract_signed_at: string
-  renewal_date: string
-  assigned_to: string
-  products_services: string
-  email: string
-  phone: string
-  city: string
-  notes: string
-}
 
 export function CustomerFormDialog() {
   const [open, setOpen] = useState(false)
   const { createCustomer, profiles, currentUser } = useDemoStore()
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const defaultRenewal = useMemo(() => addMonths(new Date(), 12).toISOString().slice(0, 10), [])
-  const [form, setForm] = useState<FormState>({
-    name: '',
-    company: '',
-    dni: '',
-    status: 'active',
-    contract_signed_at: today,
-    renewal_date: defaultRenewal,
-    assigned_to: currentUser.id,
-    products_services: '',
-    email: '',
-    phone: '',
-    city: '',
-    notes: '',
-  })
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((current) => ({ ...current, [key]: value }))
-  }
-
-  function reset() {
-    setForm({
-      name: '',
-      company: '',
-      dni: '',
+  const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<CustomerFormValues & {
+    status: Customer['status']
+    contract_signed_at: string
+    renewal_date: string
+    assigned_to: string
+    products_services: string
+  }>({
+    resolver: zodResolver(customerSchema) as never,
+    defaultValues: {
+      type: 'residential',
       status: 'active',
       contract_signed_at: today,
       renewal_date: defaultRenewal,
@@ -58,33 +33,32 @@ export function CustomerFormDialog() {
       products_services: '',
       email: '',
       phone: '',
-      city: '',
-      notes: '',
-    })
-  }
+    },
+  })
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  type FullFormValues = CustomerFormValues & { status: Customer['status']; contract_signed_at: string; renewal_date: string; assigned_to: string; products_services: string }
+
+  function onSubmit(values: FullFormValues) {
     createCustomer({
-      type: form.company ? 'business' : 'residential',
-      name: form.name,
-      company: form.company || undefined,
-      legal_name: form.company || undefined,
-      dni: form.dni || undefined,
-      status: form.status,
-      contact_name: form.name,
-      email: form.email || undefined,
-      phone: form.phone || undefined,
-      city: form.city || undefined,
-      contract_signed_at: form.contract_signed_at,
-      renewal_date: form.renewal_date,
+      type: values.legal_name ? 'business' : 'residential',
+      name: values.name,
+      company: values.legal_name || undefined,
+      legal_name: values.legal_name || undefined,
+      dni: values.tax_id || undefined,
+      status: values.status,
+      contact_name: values.contact_name || values.name,
+      email: values.email || undefined,
+      phone: values.phone || undefined,
+      city: values.city || undefined,
+      contract_signed_at: values.contract_signed_at,
+      renewal_date: values.renewal_date,
       renewal_alert_months: 10,
-      assigned_to: form.assigned_to,
-      products_services: form.products_services
+      assigned_to: values.assigned_to,
+      products_services: (values.products_services ?? '')
         .split(',')
-        .map((item) => item.trim())
+        .map((item: string) => item.trim())
         .filter(Boolean),
-      notes: form.notes || undefined,
+      notes: values.notes || undefined,
     })
     reset()
     setOpen(false)
@@ -102,19 +76,19 @@ export function CustomerFormDialog() {
         </Button>
       }
     >
-      <form className="grid gap-4" onSubmit={onSubmit}>
+      <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Nombre">
-            <Input value={form.name} onChange={(event) => update('name', event.target.value)} required />
+          <Field label="Nombre" error={errors.name?.message}>
+            <Input {...register('name')} />
           </Field>
-          <Field label="Empresa">
-            <Input value={form.company} onChange={(event) => update('company', event.target.value)} />
+          <Field label="Empresa" error={errors.legal_name?.message}>
+            <Input {...register('legal_name')} />
           </Field>
-          <Field label="DNI">
-            <Input value={form.dni} onChange={(event) => update('dni', event.target.value)} />
+          <Field label="DNI / NIF" error={errors.tax_id?.message}>
+            <Input {...register('tax_id')} />
           </Field>
-          <Field label="Estado">
-            <Select value={form.status} onChange={(event) => update('status', event.target.value as Customer['status'])}>
+          <Field label="Estado" error={(errors as Record<string, { message?: string }>).status?.message}>
+            <Select {...register('status')}>
               <option value="active">Activo</option>
               <option value="renewal_due">Renovacion pendiente</option>
               <option value="renewed">Renovado</option>
@@ -122,55 +96,46 @@ export function CustomerFormDialog() {
               <option value="lost">Perdido</option>
             </Select>
           </Field>
-          <Field label="Fecha contrato">
+          <Field label="Fecha contrato" error={(errors as Record<string, { message?: string }>).contract_signed_at?.message}>
             <Input
               type="date"
-              value={form.contract_signed_at}
-              onChange={(event) => {
-                const contractSignedAt = event.target.value
-                update('contract_signed_at', contractSignedAt)
-                if (contractSignedAt) {
-                  update('renewal_date', addMonths(new Date(contractSignedAt), 12).toISOString().slice(0, 10))
-                }
-              }}
-              required
+              {...register('contract_signed_at', {
+                onChange: (e) => {
+                  const val = e.target.value
+                  if (val) setValue('renewal_date', addMonths(new Date(val), 12).toISOString().slice(0, 10))
+                },
+              })}
             />
           </Field>
-          <Field label="Fecha renovacion">
-            <Input type="date" value={form.renewal_date} onChange={(event) => update('renewal_date', event.target.value)} required />
+          <Field label="Fecha renovacion" error={(errors as Record<string, { message?: string }>).renewal_date?.message}>
+            <Input type="date" {...register('renewal_date')} />
           </Field>
-          <Field label="Comercial responsable">
-            <Select value={form.assigned_to} onChange={(event) => update('assigned_to', event.target.value)}>
+          <Field label="Comercial responsable" error={(errors as Record<string, { message?: string }>).assigned_to?.message}>
+            <Select {...register('assigned_to')}>
               {profiles
-                .filter((profile) => profile.role === 'owner' || profile.role === 'admin' || profile.role === 'sales')
-                .map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.full_name}
-                  </option>
+                .filter((p) => ['owner', 'admin', 'sales'].includes(p.role))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>{p.full_name}</option>
                 ))}
             </Select>
           </Field>
-          <Field label="Ciudad">
-            <Input value={form.city} onChange={(event) => update('city', event.target.value)} />
+          <Field label="Ciudad" error={errors.city?.message}>
+            <Input {...register('city')} />
           </Field>
-          <Field label="Email">
-            <Input type="email" value={form.email} onChange={(event) => update('email', event.target.value)} />
+          <Field label="Email" error={errors.email?.message}>
+            <Input type="email" autoComplete="email" {...register('email')} />
           </Field>
-          <Field label="Telefono">
-            <Input type="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} />
+          <Field label="Telefono" error={errors.phone?.message}>
+            <Input type="tel" inputMode="tel" autoComplete="tel" {...register('phone')} />
           </Field>
         </div>
-        <Field label="Productos y servicios">
-          <Textarea
-            value={form.products_services}
-            onChange={(event) => update('products_services', event.target.value)}
-            placeholder="Luz pyme, Gas, Mantenimiento anual"
-          />
+        <Field label="Productos y servicios" error={(errors as Record<string, { message?: string }>).products_services?.message}>
+          <Textarea {...register('products_services')} placeholder="Luz pyme, Gas, Mantenimiento anual" />
         </Field>
-        <Field label="Notas">
-          <Textarea value={form.notes} onChange={(event) => update('notes', event.target.value)} />
+        <Field label="Notas" error={errors.notes?.message}>
+          <Textarea {...register('notes')} />
         </Field>
-        <Button type="submit">Guardar cliente</Button>
+        <Button type="submit" disabled={isSubmitting}>Guardar cliente</Button>
       </form>
     </Dialog>
   )

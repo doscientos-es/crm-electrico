@@ -1,6 +1,6 @@
-import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
 import { Check, ChevronRight, Circle } from 'lucide-react'
-import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react'
+import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
+import { type ComponentPropsWithoutRef, type ElementRef, type ReactNode, forwardRef } from 'react'
 import { cn } from '../../lib/utils'
 
 const itemBase =
@@ -33,15 +33,27 @@ DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
 export const DropdownMenuItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Item>,
-  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { inset?: boolean }
->(({ className, inset, ...props }, ref) => (
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { inset?: boolean; destructive?: boolean }
+>(({ className, inset, destructive, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
-    className={cn(itemBase, inset && 'pl-8', className)}
+    className={cn(
+      itemBase,
+      inset && 'pl-8',
+      destructive && 'text-destructive focus:bg-destructive/10 focus:text-destructive',
+      className,
+    )}
     {...props}
   />
 ))
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName
+
+/** Renders a keyboard shortcut hint aligned to the right of a menu item */
+export function DropdownMenuShortcut({ children }: { children: ReactNode }) {
+  return (
+    <span className="ml-auto text-xs tracking-widest text-muted-foreground opacity-60">{children}</span>
+  )
+}
 
 export const DropdownMenuCheckboxItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,

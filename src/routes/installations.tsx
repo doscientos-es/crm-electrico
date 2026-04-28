@@ -11,7 +11,7 @@ import { installationStatusLabels } from '../config/constants'
 import { useGeolocation } from '../hooks/use-geolocation'
 import { formatDateTime } from '../lib/formatters'
 import { buildStoragePath } from '../lib/storage'
-import { installationSchema, type InstallationFormValues } from '../schemas/forms.schema'
+import { type InstallationFormValues, installationSchema } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
 export function InstallationsRoute() {
@@ -129,14 +129,14 @@ export function InstallationsRoute() {
         <DataTable headers={['Instalacion', 'Cliente', 'Tecnico', 'Fecha', 'Estado', 'Ubicacion', 'Acciones']}>
           {store.installations.map((installation) => (
             <tr key={installation.id}>
-              <td className="px-4 py-3 font-medium text-slate-950">{installation.type}</td>
-              <td className="px-4 py-3 text-slate-600">{store.customers.find((customer) => customer.id === installation.customer_id)?.name}</td>
-              <td className="px-4 py-3 text-slate-600">{store.profiles.find((profile) => profile.id === installation.assigned_technician)?.full_name}</td>
-              <td className="px-4 py-3 text-slate-600">{formatDateTime(installation.scheduled_at)}</td>
+              <td className="px-4 py-3 font-medium text-foreground">{installation.type}</td>
+              <td className="px-4 py-3 text-muted-foreground">{store.customers.find((customer) => customer.id === installation.customer_id)?.name}</td>
+              <td className="px-4 py-3 text-muted-foreground">{store.profiles.find((profile) => profile.id === installation.assigned_technician)?.full_name}</td>
+              <td className="px-4 py-3 text-muted-foreground">{formatDateTime(installation.scheduled_at)}</td>
               <td className="px-4 py-3">
                 <StatusBadge value={installationStatusLabels[installation.status]} />
               </td>
-              <td className="px-4 py-3 text-xs text-slate-500">
+              <td className="px-4 py-3 text-xs text-muted-foreground">
                 {installation.latitude && installation.longitude ? `${installation.latitude.toFixed(4)}, ${installation.longitude.toFixed(4)}` : 'Pendiente'}
               </td>
               <td className="px-4 py-3">

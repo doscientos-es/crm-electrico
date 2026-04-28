@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { DataTable } from '../components/ui/table'
 import { money } from '../lib/formatters'
-import { simulationSchema, type SimulationFormValues } from '../schemas/simulation.schema'
+import { type SimulationFormValues, simulationSchema } from '../schemas/simulation.schema'
 import { useDemoStore } from '../store/demo-store'
 
 export function SimulationsRoute() {
@@ -75,14 +75,14 @@ export function SimulationsRoute() {
               <Field label="Notas" error={form.formState.errors.notes?.message}>
                 <Textarea {...form.register('notes')} />
               </Field>
-              <div className="grid grid-cols-2 gap-3 rounded-md bg-emerald-50 p-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 rounded-md bg-primary/10 p-3 text-sm">
                 <div>
-                  <p className="text-emerald-700">Coste propuesto</p>
-                  <p className="font-semibold text-emerald-950">{money.format(currentCost - monthlySaving)}</p>
+                  <p className="text-primary">Coste propuesto</p>
+                  <p className="font-semibold text-foreground">{money.format(currentCost - monthlySaving)}</p>
                 </div>
                 <div>
-                  <p className="text-emerald-700">Ahorro anual</p>
-                  <p className="font-semibold text-emerald-950">{money.format(monthlySaving * 12)}</p>
+                  <p className="text-primary">Ahorro anual</p>
+                  <p className="font-semibold text-foreground">{money.format(monthlySaving * 12)}</p>
                 </div>
               </div>
               <Button type="submit">Guardar simulacion</Button>
@@ -92,7 +92,7 @@ export function SimulationsRoute() {
         <DataTable headers={['Cliente', 'Actual', 'Propuesto', 'Ahorro mensual', 'Ahorro anual', 'ROI']}>
           {store.simulations.map((simulation) => (
             <tr key={simulation.id}>
-              <td className="px-4 py-3 font-medium text-slate-950">{store.customers.find((customer) => customer.id === simulation.customer_id)?.name}</td>
+              <td className="px-4 py-3 font-medium text-foreground">{store.customers.find((customer) => customer.id === simulation.customer_id)?.name}</td>
               <td className="px-4 py-3">{money.format(simulation.current_monthly_cost_eur)}</td>
               <td className="px-4 py-3">{money.format(simulation.proposed_monthly_cost_eur)}</td>
               <td className="px-4 py-3">{money.format(simulation.monthly_saving_eur)}</td>

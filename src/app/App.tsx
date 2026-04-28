@@ -39,7 +39,8 @@ export function App() {
         <Route path="/customers/:id" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={4} tableCols={3} />}><ErrorBoundary level="page"><CustomerDetailRoute /></ErrorBoundary></Suspense>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
-        <Route path="/settings" element={<Suspense fallback={<PageSkeleton kpis={0} tableRows={4} />}><ErrorBoundary level="page"><SettingsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
+        <Route path="/settings/:tab" element={<Suspense fallback={<PageSkeleton kpis={0} tableRows={4} />}><ErrorBoundary level="page"><SettingsRoute /></ErrorBoundary></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

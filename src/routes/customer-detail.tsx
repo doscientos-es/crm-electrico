@@ -1,13 +1,15 @@
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
+import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { DataTable } from '../components/ui/table'
+import { DataTable, TruncatePath } from '../components/ui/table'
 import { customerStatusLabels } from '../config/constants'
 import { getDaysToRenewal, getRenewalAlertDate, getVisibleCustomers } from '../lib/customer-workflow'
 import { formatDate } from '../lib/formatters'
+import { isPdfDocument } from '../lib/storage'
 import { useDemoStore } from '../store/demo-store'
 
 export function CustomerDetailRoute() {
@@ -29,7 +31,7 @@ export function CustomerDetailRoute() {
     return (
       <Card>
         <CardContent className="p-5">
-          <p className="text-slate-600">Cliente no encontrado o sin permisos para verlo.</p>
+          <p className="text-muted-foreground">Cliente no encontrado o sin permisos para verlo.</p>
           <Button asChild className="mt-4">
             <Link to="/customers">Volver a clientes</Link>
           </Button>
@@ -57,7 +59,7 @@ export function CustomerDetailRoute() {
           <CardHeader>
             <CardTitle>Ficha del cliente</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-slate-700">
+          <CardContent className="grid gap-3 text-sm text-foreground">
             <Detail label="DNI" value={customer.dni ?? '-'} />
             <Detail label="Empresa" value={customer.company ?? '-'} />
             <Detail label="Fecha de renovacion" value={formatDate(customer.renewal_date)} />
@@ -71,7 +73,7 @@ export function CustomerDetailRoute() {
           <CardHeader>
             <CardTitle>Contrato y documentacion</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-slate-700">
+          <CardContent className="grid gap-3 text-sm text-foreground">
             <Detail label="Numero de contrato" value={contract?.contract_number ?? '-'} />
             <Detail label="Vigencia" value={`${formatDate(contract?.starts_at)} - ${formatDate(contract?.ends_at)}`} />
             <Detail label="Importe" value={contract ? `${contract.amount_eur.toLocaleString('es-ES')} EUR` : '-'} />
@@ -85,13 +87,20 @@ export function CustomerDetailRoute() {
           <CardTitle>Documentos del cliente</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable headers={['Archivo', 'Tipo', 'Fecha', 'Ruta']}>
+          <DataTable headers={['Archivo', 'Tipo', 'Fecha', 'Ruta', 'Vista']}>
             {documents.map((document) => (
               <tr key={document.id}>
-                <td className="px-4 py-3 font-medium text-slate-950">{document.file_name}</td>
-                <td className="px-4 py-3 text-slate-600">{document.type}</td>
-                <td className="px-4 py-3 text-slate-600">{formatDate(document.created_at)}</td>
-                <td className="px-4 py-3 text-xs text-slate-500">{document.file_path}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{document.file_name}</td>
+                <td className="px-4 py-3 text-muted-foreground">{document.type}</td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDate(document.created_at)}</td>
+                <td className="px-4 py-3 text-muted-foreground max-w-48"><TruncatePath path={document.file_path} /></td>
+                <td className="px-4 py-3">
+                  {isPdfDocument(document.file_name, document.mime_type) ? (
+                    <PdfViewerDialog source={document} title={document.file_name} description={`Archivo asociado a ${customer.name}`} />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No PDF</span>
+                  )}
+                </td>
               </tr>
             ))}
           </DataTable>
@@ -105,8 +114,8 @@ function SummaryCard({ title, value }: { title: string; value: ReactNode }) {
   return (
     <Card>
       <CardContent className="p-5">
-        <p className="text-sm text-slate-500">{title}</p>
-        <div className="mt-2 text-lg font-semibold text-slate-950">{value}</div>
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <div className="mt-2 text-lg font-semibold text-foreground">{value}</div>
       </CardContent>
     </Card>
   )
@@ -114,9 +123,9 @@ function SummaryCard({ title, value }: { title: string; value: ReactNode }) {
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1 rounded-md border border-slate-100 p-3">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="text-sm text-slate-700">{value}</p>
+    <div className="grid gap-1 rounded-md border border-border p-3">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-sm text-foreground">{value}</p>
     </div>
   )
 }

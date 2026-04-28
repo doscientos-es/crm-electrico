@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '../components/data-table/Toolbar'
+import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Field, Input, Select } from '../components/ui/input'
-import { DataTable } from '../components/ui/table'
+import { DataTable, Td, Tr, TruncatePath } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { money } from '../lib/formatters'
 import { buildStoragePath } from '../lib/storage'
-import { contractSchema, type ContractFormValues } from '../schemas/forms.schema'
+import { type ContractFormValues, contractSchema } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
 export function ContractsRoute() {
@@ -68,17 +69,22 @@ export function ContractsRoute() {
             </form>
           </CardContent>
         </Card>
-        <DataTable headers={['Contrato', 'Cliente', 'Importe', 'Estado', 'Archivo']}>
+        <DataTable headers={['Contrato', 'Cliente', 'Importe', 'Estado', 'Archivo', 'Vista']}>
           {store.contracts.map((contract) => (
-            <tr key={contract.id}>
-              <td className="px-4 py-3 font-medium text-slate-950">{contract.contract_number}</td>
-              <td className="px-4 py-3 text-slate-600">{store.customers.find((customer) => customer.id === contract.customer_id)?.name}</td>
-              <td className="px-4 py-3">{money.format(contract.amount_eur)}</td>
-              <td className="px-4 py-3">
-                <StatusBadge value={contractStatusLabels[contract.status]} />
-              </td>
-              <td className="px-4 py-3 text-xs text-slate-500">{contract.file_path}</td>
-            </tr>
+            <Tr key={contract.id} hover>
+              <Td variant="primary">{contract.contract_number}</Td>
+              <Td variant="muted">{store.customers.find((customer) => customer.id === contract.customer_id)?.name}</Td>
+              <Td>{money.format(contract.amount_eur)}</Td>
+              <Td><StatusBadge value={contractStatusLabels[contract.status]} /></Td>
+              <Td className="max-w-48"><TruncatePath path={contract.file_path ?? ''} /></Td>
+              <Td>
+                <PdfViewerDialog
+                  source={{ bucket: 'contracts', file_path: contract.file_path ?? '', file_name: `${contract.contract_number}.pdf`, mime_type: 'application/pdf' }}
+                  title={contract.contract_number}
+                  description={`Contrato de ${store.customers.find((customer) => customer.id === contract.customer_id)?.name ?? '-'}`}
+                />
+              </Td>
+            </Tr>
           ))}
         </DataTable>
       </div>

@@ -9,13 +9,14 @@ import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { DataTable } from '../components/ui/table'
 import { priorityLabels, taskStatusLabels } from '../config/constants'
 import { formatDateTime } from '../lib/formatters'
-import { taskSchema, type TaskFormValues } from '../schemas/forms.schema'
+import { type TaskFormValues, taskSchema } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
 const defaultDueAt = '2026-04-28T09:00'
 
 export function TasksRoute() {
   const store = useDemoStore()
+  const visibleTasks = store.currentUser.role === 'owner' || store.currentUser.role === 'admin' ? store.tasks : store.tasks.filter((task) => task.assigned_to === store.currentUser.id)
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema) as never,
     defaultValues: {
@@ -85,18 +86,18 @@ export function TasksRoute() {
           </CardContent>
         </Card>
         <DataTable headers={['Tarea', 'Cliente', 'Prioridad', 'Estado', 'Vence', 'Asignado', 'Acciones']}>
-          {store.tasks.map((task) => (
-            <tr key={task.id}>
-              <td className="px-4 py-3 font-medium text-slate-950">{task.title}</td>
-              <td className="px-4 py-3 text-slate-600">{store.customers.find((customer) => customer.id === task.customer_id)?.name ?? '-'}</td>
+          {visibleTasks.map((task) => (
+            <tr key={task.id} className="hover:bg-accent">
+              <td className="px-4 py-3 font-medium text-foreground">{task.title}</td>
+              <td className="px-4 py-3 text-muted-foreground">{store.customers.find((customer) => customer.id === task.customer_id)?.name ?? '-'}</td>
               <td className="px-4 py-3">
                 <StatusBadge value={priorityLabels[task.priority]} />
               </td>
               <td className="px-4 py-3">
                 <StatusBadge value={taskStatusLabels[task.status]} />
               </td>
-              <td className="px-4 py-3 text-slate-600">{formatDateTime(task.due_at)}</td>
-              <td className="px-4 py-3 text-slate-600">{store.profiles.find((profile) => profile.id === task.assigned_to)?.full_name}</td>
+              <td className="px-4 py-3 text-muted-foreground">{formatDateTime(task.due_at)}</td>
+              <td className="px-4 py-3 text-muted-foreground">{store.profiles.find((profile) => profile.id === task.assigned_to)?.full_name}</td>
               <td className="px-4 py-3">
                 {task.status !== 'done' ? (
                   <Button size="sm" variant="secondary" onClick={() => store.completeTask(task.id)}>

@@ -9,7 +9,7 @@ import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { DataTable } from '../components/ui/table'
 import { proposalStatusLabels } from '../config/constants'
 import { money } from '../lib/formatters'
-import { proposalSchema, type ProposalFormValues } from '../schemas/forms.schema'
+import { type ProposalFormValues, proposalSchema } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
 const defaultValidUntil = '2026-05-12'
@@ -100,14 +100,14 @@ export function ProposalsRoute() {
         <div className="grid gap-4">
           <Card className="print-page">
             <CardContent className="p-8">
-              <div className="flex justify-between gap-6 border-b border-slate-200 pb-6">
+              <div className="flex justify-between gap-6 border-b border-border pb-6">
                 <div>
-                  <p className="text-sm font-semibold uppercase text-emerald-700">Propuesta comercial</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">{watchedTitle}</h2>
-                  <p className="mt-2 text-slate-500">Cliente: {selectedCustomer?.name ?? 'Selecciona cliente'}</p>
+                  <p className="text-sm font-semibold uppercase text-primary">Propuesta comercial</p>
+                  <h2 className="mt-2 text-3xl font-semibold text-foreground">{watchedTitle}</h2>
+                  <p className="mt-2 text-muted-foreground">Cliente: {selectedCustomer?.name ?? 'Selecciona cliente'}</p>
                 </div>
-                <div className="text-right text-sm text-slate-500">
-                  <p className="font-semibold text-slate-950">{store.organization.name}</p>
+                <div className="text-right text-sm text-muted-foreground">
+                  <p className="font-semibold text-foreground">{store.organization.name}</p>
                   <p>{store.organization.tax_id}</p>
                   <p>{store.organization.city}</p>
                 </div>
@@ -117,28 +117,28 @@ export function ProposalsRoute() {
                 <ProposalMetric label="Coste propuesto" value={selectedSimulation ? money.format(selectedSimulation.proposed_monthly_cost_eur) : '-'} />
                 <ProposalMetric label="Ahorro anual" value={selectedSimulation ? money.format(selectedSimulation.annual_saving_eur) : '-'} />
               </div>
-              <h3 className="font-semibold text-slate-950">Servicios recomendados</h3>
-              <ul className="mt-3 grid gap-2 text-sm text-slate-700">
+              <h3 className="font-semibold text-foreground">Servicios recomendados</h3>
+              <ul className="mt-3 grid gap-2 text-sm text-foreground">
                 {watchedServices?.split('\n').filter(Boolean).map((service) => <li key={service}>- {service}</li>)}
               </ul>
-              <div className="mt-6 rounded-md bg-emerald-50 p-4">
-                <p className="text-sm text-emerald-700">Precio estimado</p>
-                <p className="text-2xl font-semibold text-emerald-950">{money.format(Number(watchedPrice || 0))}</p>
+              <div className="mt-6 rounded-md bg-primary/10 p-4">
+                <p className="text-sm text-primary">Precio estimado</p>
+                <p className="text-2xl font-semibold text-foreground">{money.format(Number(watchedPrice || 0))}</p>
               </div>
             </CardContent>
           </Card>
           <DataTable headers={['Propuesta', 'Cliente', 'Importe', 'Validez', 'Estado', 'Acciones']} className="no-print">
             {store.proposals.map((proposal) => (
               <tr key={proposal.id}>
-                <td className="px-4 py-3 font-medium text-slate-950">{proposal.title}</td>
-                <td className="px-4 py-3 text-slate-600">{store.customers.find((customer) => customer.id === proposal.customer_id)?.name}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{proposal.title}</td>
+                <td className="px-4 py-3 text-muted-foreground">{store.customers.find((customer) => customer.id === proposal.customer_id)?.name}</td>
                 <td className="px-4 py-3">{money.format(proposal.estimated_price_eur)}</td>
                 <td className="px-4 py-3">{proposal.valid_until}</td>
                 <td className="px-4 py-3">
                   <StatusBadge value={proposalStatusLabels[proposal.status]} />
                 </td>
                 <td className="px-4 py-3">
-                  <select className="min-h-10 rounded-md border border-slate-200 px-2" value={proposal.status} onChange={(event) => store.updateProposalStatus(proposal.id, event.target.value as typeof proposal.status)}>
+                  <select className="min-h-10 rounded-md border border-border bg-background px-2" value={proposal.status} onChange={(event) => store.updateProposalStatus(proposal.id, event.target.value as typeof proposal.status)}>
                     <option value="draft">Borrador</option>
                     <option value="sent">Enviada</option>
                     <option value="accepted">Aceptada</option>
@@ -156,9 +156,9 @@ export function ProposalsRoute() {
 
 function ProposalMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-slate-200 p-4">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+    <div className="rounded-md border border-border p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
     </div>
   )
 }

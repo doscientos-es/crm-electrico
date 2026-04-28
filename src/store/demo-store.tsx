@@ -62,6 +62,7 @@ type DemoStore = DemoState & {
   createVisit: (input: CreateInput<InstallationVisit>) => InstallationVisit
   updateVisitLocation: (visitId: string, latitude: number, longitude: number) => void
   createDocument: (input: CreateInput<Document>) => Document
+  updateProfileRole: (id: string, role: DemoState['profiles'][number]['role']) => void
   updateOrganization: (patch: Partial<DemoState['organization']>) => void
   exportCustomersCsv: () => void
   exportBackupJson: () => void
@@ -413,6 +414,15 @@ export function DemoStoreProvider({ children }: { children: ReactNode }) {
           'Documento registrado',
         )
         return entity
+      },
+      updateProfileRole: (id, role) => {
+        mutate(
+          (draft) => ({
+            ...draft,
+            profiles: draft.profiles.map((profile) => (profile.id === id ? { ...profile, role, updated_at: new Date().toISOString() } : profile)),
+          }),
+          'Permisos actualizados',
+        )
       },
       updateOrganization: (patch) => {
         mutate(

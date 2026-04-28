@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../../components/ui/input'
-import { leadSchema, type LeadFormValues } from '../../schemas/lead.schema'
+import { type LeadFormValues, leadSchema } from '../../schemas/lead.schema'
 import { useDemoStore } from '../../store/demo-store'
 import type { Lead } from '../../types/domain'
 
@@ -35,7 +35,7 @@ export function LeadFormDialog({ lead }: { lead?: Lead }) {
       onOpenChange={setOpen}
       title={lead ? 'Editar lead' : 'Nuevo lead'}
       trigger={
-        <Button size={lead ? 'sm' : 'md'} variant={lead ? 'secondary' : 'primary'}>
+        <Button size={lead ? 'sm' : 'default'} variant={lead ? 'secondary' : 'default'}>
           {!lead ? <Plus className="h-4 w-4" /> : null}
           {lead ? 'Editar' : 'Nuevo lead'}
         </Button>

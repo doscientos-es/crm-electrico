@@ -2,13 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Upload } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '../components/data-table/Toolbar'
+import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Field, Input, Select } from '../components/ui/input'
-import { DataTable } from '../components/ui/table'
+import { DataTable, Td, Tr } from '../components/ui/table'
 import { formatDate, money } from '../lib/formatters'
 import { buildStoragePath } from '../lib/storage'
-import { invoiceSchema, type InvoiceFormValues } from '../schemas/forms.schema'
+import { type InvoiceFormValues, invoiceSchema } from '../schemas/forms.schema'
 import { useDemoStore } from '../store/demo-store'
 
 export function InvoicesRoute() {
@@ -80,16 +81,23 @@ export function InvoicesRoute() {
             </form>
           </CardContent>
         </Card>
-        <DataTable headers={['Factura', 'Cliente', 'Periodo', 'Importe', 'kWh', 'Proveedor']}>
+        <DataTable headers={['Factura', 'Cliente', 'Periodo', 'Importe', 'kWh', 'Proveedor', 'Vista']}>
           {store.invoices.map((invoice) => (
-            <tr key={invoice.id}>
-              <td className="px-4 py-3 font-medium text-slate-950">{invoice.file_name}</td>
-              <td className="px-4 py-3 text-slate-600">{store.customers.find((customer) => customer.id === invoice.customer_id)?.name}</td>
-              <td className="px-4 py-3 text-slate-600">{formatDate(invoice.period_start)}</td>
-              <td className="px-4 py-3 text-slate-700">{money.format(invoice.total_amount_eur)}</td>
-              <td className="px-4 py-3 text-slate-600">{invoice.consumption_kwh?.toLocaleString('es-ES') ?? '-'}</td>
-              <td className="px-4 py-3 text-slate-600">{invoice.provider ?? '-'}</td>
-            </tr>
+            <Tr key={invoice.id} hover>
+              <Td variant="primary">{invoice.file_name}</Td>
+              <Td variant="muted">{store.customers.find((customer) => customer.id === invoice.customer_id)?.name}</Td>
+              <Td variant="muted">{formatDate(invoice.period_start)}</Td>
+              <Td>{money.format(invoice.total_amount_eur)}</Td>
+              <Td variant="muted">{invoice.consumption_kwh?.toLocaleString('es-ES') ?? '-'}</Td>
+              <Td variant="muted">{invoice.provider ?? '-'}</Td>
+              <Td>
+                <PdfViewerDialog
+                  source={{ bucket: 'invoices', file_path: invoice.file_path, file_name: invoice.file_name, mime_type: 'application/pdf' }}
+                  title={invoice.file_name}
+                  description={`Factura de ${store.customers.find((customer) => customer.id === invoice.customer_id)?.name ?? '-'}`}
+                />
+              </Td>
+            </Tr>
           ))}
         </DataTable>
       </div>
