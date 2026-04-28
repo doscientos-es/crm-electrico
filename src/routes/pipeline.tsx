@@ -1,7 +1,6 @@
-import { DndContext, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, type DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { PageHeader } from '../components/data-table/Toolbar'
-import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Card } from '../components/ui/card'
 import { DealFormDialog } from '../features/deals/DealFormDialog'
 import { money } from '../lib/formatters'
@@ -39,19 +38,10 @@ export function PipelineRoute() {
                       <p className="mt-1 text-xs text-slate-500">{customers.find((customer) => customer.id === deal.customer_id)?.name}</p>
                       <div className="mt-3 flex items-center justify-between">
                         <span className="text-sm font-semibold text-slate-900">{money.format(deal.value_eur)}</span>
-                        <StatusBadge value={`${deal.probability}%`} />
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                          {deal.probability}%
+                        </span>
                       </div>
-                      <select
-                        className="mt-3 min-h-10 w-full rounded-md border border-slate-200 px-2 text-sm"
-                        value={deal.stage_id}
-                        onChange={(event) => moveDeal(deal.id, event.target.value)}
-                      >
-                        {pipelineStages.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))}
-                      </select>
                     </DealCard>
                   ))}
                 </div>
@@ -69,9 +59,8 @@ function PipelineColumn({ id, children }: { id: string; children: React.ReactNod
   return (
     <Card
       ref={setNodeRef}
-      className={`min-h-40 min-w-0 p-3 transition-shadow xl:min-h-80 xl:w-80 xl:shrink-0 ${
-        isOver ? 'ring-2 ring-emerald-500' : ''
-      }`}
+      className={`min-h-40 min-w-0 p-3 transition-shadow xl:min-h-80 xl:w-80 xl:shrink-0 ${isOver ? 'ring-2 ring-emerald-500' : ''
+        }`}
     >
       {children}
     </Card>
@@ -90,9 +79,8 @@ function DealCard({ id, children }: { id: string; children: React.ReactNode }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`min-w-0 touch-pan-y rounded-md border border-slate-200 bg-white p-3 shadow-sm ${
-        isDragging ? 'z-10 opacity-70 ring-2 ring-sky-500' : ''
-      }`}
+      className={`min-w-0 touch-pan-y rounded-md border border-slate-200 bg-white p-3 shadow-sm ${isDragging ? 'z-10 opacity-70 ring-2 ring-sky-500' : ''
+        }`}
     >
       {children}
     </article>
