@@ -18,14 +18,14 @@ export function LoginRoute() {
         <CardContent className="p-8">
           <div className="mb-8">
             <div className="mb-4 grid h-12 w-12 place-items-center rounded-lg bg-emerald-600 text-xl font-bold text-white">E</div>
-            <h1 className="text-2xl font-semibold text-slate-950">Energiza CRM</h1>
+            <h1 className="text-2xl font-semibold text-slate-950">Renovaciones CRM</h1>
             <p className="mt-2 text-sm text-slate-500">
-              Demo operativa para asesorias energeticas, empresas electricas e instaladores solares.
+              Demo centrada en cartera de clientes, contratos y avisos de renovacion.
             </p>
           </div>
           <div className="grid gap-3">
             {profiles.map((profile) => (
-              <Button key={profile.id} variant={profile.role === 'owner' ? 'primary' : 'secondary'} onClick={() => loginDemo(profile.id)}>
+              <Button key={profile.id} variant={profile.role === 'admin' ? 'primary' : 'secondary'} onClick={() => loginDemo(profile.id)}>
                 Entrar como {profile.full_name} · {profile.role}
               </Button>
             ))}

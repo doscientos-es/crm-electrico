@@ -13,6 +13,14 @@ export const customerTypeLabels = {
   industrial: 'Industrial',
 }
 
+export const customerStatusLabels = {
+  active: 'Activo',
+  renewal_due: 'Renovacion pendiente',
+  renewed: 'Renovado',
+  inactive: 'Baja',
+  lost: 'Perdido',
+}
+
 export const proposalStatusLabels = {
   draft: 'Borrador',
   sent: 'Enviada',

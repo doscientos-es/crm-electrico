@@ -10,7 +10,7 @@ export function StatusBadge({ value }: { value: string }) {
       ? 'emerald'
       : value.includes('Perd') || value.includes('Rechaz') || value.includes('Cancel')
         ? 'red'
-        : value.includes('Urgente') || value.includes('Alta') || value.includes('Envi')
+        : value.includes('Urgente') || value.includes('Alta') || value.includes('Envi') || value.includes('Renovacion')
           ? 'amber'
           : value.includes('curso') || value.includes('Program')
             ? 'sky'

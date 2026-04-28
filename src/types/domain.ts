@@ -1,4 +1,5 @@
 export type AppRole = 'owner' | 'admin' | 'sales' | 'technician' | 'viewer'
+export type CustomerStatus = 'active' | 'renewal_due' | 'renewed' | 'inactive' | 'lost'
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'lost' | 'converted'
 export type CustomerType = 'residential' | 'business' | 'community' | 'industrial'
 export type DealStatus = 'open' | 'won' | 'lost'
@@ -67,8 +68,11 @@ export type Customer = EntityBase & {
   lead_id?: string
   type: CustomerType
   name: string
+  company?: string
+  dni?: string
   legal_name?: string
   tax_id?: string
+  status: CustomerStatus
   contact_name?: string
   email?: string
   phone?: string
@@ -78,6 +82,12 @@ export type Customer = EntityBase & {
   postal_code?: string
   latitude?: number
   longitude?: number
+  contract_signed_at?: string
+  renewal_date?: string
+  renewal_alert_months?: number
+  products_services: string[]
+  assigned_to?: string
+  last_contact_at?: string
   notes?: string
   deleted_at?: string
 }

@@ -76,13 +76,13 @@ export function AppShell() {
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Energiza Gestion Demo</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Cartera centralizada</p>
               <h1 className="text-lg font-semibold text-slate-950">{currentNav?.label ?? 'Dashboard'}</h1>
             </div>
           </div>
           <div className="hidden min-h-10 w-full max-w-md items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500 md:flex">
             <Search className="h-4 w-4" />
-            Buscar clientes, CUPS, propuestas
+            Buscar clientes, DNI, empresa o renovacion
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
