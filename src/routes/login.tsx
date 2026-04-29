@@ -2,7 +2,6 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { appBrand } from '../config/nav'
-import { isSupabaseConfigured } from '../lib/supabase'
 import { useDemoStore } from '../store/demo-store'
 
 export function LoginRoute() {
@@ -36,7 +35,7 @@ export function LoginRoute() {
             ))}
           </div>
           <p className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
-            Supabase: {isSupabaseConfigured ? 'configurado por variables de entorno' : 'modo demo local activo hasta configurar .env'}.
+            Modo demo local activo con datos de prueba listos para la presentación.
           </p>
         </CardContent>
       </Card>
