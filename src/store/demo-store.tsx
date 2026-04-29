@@ -92,10 +92,21 @@ function downloadFile(filename: string, content: string, mimeType: string) {
   URL.revokeObjectURL(url)
 }
 
+function isValidState(state: DemoState): boolean {
+  return (
+    Array.isArray(state.customers) &&
+    Array.isArray(state.profiles) &&
+    state.profiles.length > 0 &&
+    typeof state.organization?.id === 'string'
+  )
+}
+
 function loadState(): DemoState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as DemoState) : initialDemoState
+    if (!raw) return initialDemoState
+    const parsed = JSON.parse(raw) as DemoState
+    return isValidState(parsed) ? parsed : initialDemoState
   } catch {
     return initialDemoState
   }
