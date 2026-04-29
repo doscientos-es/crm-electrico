@@ -281,37 +281,37 @@ function TeamTab() {
                 </Td>
                 <Td>
                   {canEditRoles && !isMe && (
-                    <>
-                      {confirmDeleteId === profile.id ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">¿Eliminar?</span>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(profile.id) }}
-                          >
-                            Sí
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}
-                          >
-                            No
-                          </Button>
-                        </div>
-                      ) : (
+
+                    confirmDeleteId === profile.id ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">¿Eliminar?</span>
                         <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(profile.id) }}
-                          aria-label="Eliminar miembro"
+                          size="sm"
+                          variant="destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(profile.id) }}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          Sí
                         </Button>
-                      )}
-                    </>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(profile.id) }}
+                        aria-label="Eliminar miembro"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )
+
                   )}
                 </Td>
               </Tr>
