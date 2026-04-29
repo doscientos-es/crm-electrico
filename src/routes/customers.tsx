@@ -76,14 +76,16 @@ export function CustomersRoute() {
             <option value="lost">Perdidos</option>
           </Select>
         </Field>
-        <Field label="Comercial" className="w-44">
-          <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
-            <option value="all">Todos</option>
-            {store.profiles
-              .filter((p) => p.role === 'owner' || p.role === 'admin' || p.role === 'sales')
-              .map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-          </Select>
-        </Field>
+        {store.currentUser.role !== 'sales' && (
+          <Field label="Comercial" className="w-44">
+            <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
+              <option value="all">Todos</option>
+              {store.profiles
+                .filter((p) => p.role === 'owner' || p.role === 'admin' || p.role === 'sales')
+                .map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+            </Select>
+          </Field>
+        )}
       </div>
 
       {filteredCustomers.length === 0 ? (

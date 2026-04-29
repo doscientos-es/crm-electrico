@@ -3,8 +3,8 @@ import { type FormEvent, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
-import { Dialog } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
+import { Dialog } from '../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { customerStatusLabels } from '../config/constants'
@@ -146,7 +146,7 @@ export function RenewalsRoute() {
                   <div className="flex gap-1">
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
                       onClick={(e) => { e.stopPropagation(); openContactDialog(customer.id) }}>
-                      <Phone className="h-3 w-3" />Contactado
+                      <Phone className="h-3 w-3" />Contactar
                     </Button>
                     {customer.status !== 'renewed' && (
                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"

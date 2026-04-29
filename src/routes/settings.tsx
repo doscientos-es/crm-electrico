@@ -1,10 +1,14 @@
-import { Building2, Download, Monitor, Moon, RotateCcw, Sun, Users } from 'lucide-react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Building2, Download, Monitor, Moon, Plus, RotateCcw, Sun, Trash2, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
+import { z } from 'zod'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { Avatar, AvatarFallback } from '../components/ui/avatar'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Dialog } from '../components/ui/dialog'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, Td, Tr } from '../components/ui/table'
 import { Tabs } from '../components/ui/tabs'
@@ -134,36 +138,106 @@ function OrganizationTab() {
 
 // ─── Team Tab ─────────────────────────────────────────────────────────────────
 
+const memberSchema = z.object({
+  full_name: z.string().min(2, 'Nombre obligatorio'),
+  email: z.string().email('Email inválido'),
+  role: z.enum(['owner', 'admin', 'sales'] as const),
+  phone: z.string().optional(),
+})
+type MemberFormValues = z.infer<typeof memberSchema>
+
+function MemberFormDialog() {
+  const [open, setOpen] = useState(false)
+  const { createProfile } = useDemoStore()
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<MemberFormValues>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: { role: 'sales', phone: '' },
+  })
+
+  function onSubmit(values: MemberFormValues) {
+    createProfile(values)
+    reset()
+    setOpen(false)
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Añadir miembro"
+      description="El nuevo miembro tendrá acceso según el rol asignado."
+      size="sm"
+      trigger={
+        <Button size="sm">
+          <Plus className="h-3.5 w-3.5" />
+          Añadir miembro
+        </Button>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 pt-2">
+        <Field label="Nombre completo" error={errors.full_name?.message}>
+          <Input {...register('full_name')} placeholder="Ana García" autoFocus />
+        </Field>
+        <Field label="Email" error={errors.email?.message}>
+          <Input type="email" {...register('email')} placeholder="ana@empresa.com" />
+        </Field>
+        <Field label="Teléfono" error={errors.phone?.message}>
+          <Input type="tel" {...register('phone')} placeholder="+34 600 000 000" />
+        </Field>
+        <Field label="Rol" error={errors.role?.message}>
+          <Select {...register('role')}>
+            {ROLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button type="submit" disabled={isSubmitting}>Añadir</Button>
+        </div>
+      </form>
+    </Dialog>
+  )
+}
+
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Propietario',
   admin: 'Administrador',
   sales: 'Comercial',
-  technician: 'Técnico',
-  viewer: 'Visor',
 }
 
 const ROLE_OPTIONS: Array<{ value: AppRole; label: string; description: string }> = [
   { value: 'owner', label: 'Propietario', description: 'Acceso total, configuración y seguridad' },
   { value: 'admin', label: 'Administrador', description: 'Gestión de equipo y cartera completa' },
   { value: 'sales', label: 'Comercial', description: 'Solo su cartera asignada' },
-  { value: 'technician', label: 'Técnico', description: 'Instalaciones y visitas técnicas' },
-  { value: 'viewer', label: 'Visor', description: 'Acceso de solo lectura' },
 ]
 
 function TeamTab() {
-  const { profiles, customers, currentUser, updateProfileRole } = useDemoStore()
+  const { profiles, customers, currentUser, updateProfileRole, deleteProfile } = useDemoStore()
   const canEditRoles = currentUser.role === 'owner' || currentUser.role === 'admin'
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  function handleDelete(id: string) {
+    deleteProfile(id)
+    setConfirmDeleteId(null)
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Equipo</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Los administradores pueden cambiar roles y privilegios. Los comerciales solo ven su cartera asignada.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>Equipo</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Los administradores pueden cambiar roles y privilegios. Los comerciales solo ven su cartera asignada.
+            </p>
+          </div>
+          {canEditRoles && <MemberFormDialog />}
+        </div>
       </CardHeader>
       <CardContent>
-        <DataTable headers={['Miembro', 'Rol', 'Acceso', 'Clientes', 'Gestión']}>
+        <DataTable headers={['Miembro', 'Rol', 'Acceso', 'Clientes', 'Gestión', '']}>
           {profiles.map((profile) => {
             const assigned = customers.filter((c) => c.assigned_to === profile.id).length
             const fullAccess = profile.role === 'owner' || profile.role === 'admin'
@@ -203,6 +277,41 @@ function TeamTab() {
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">Solo lectura</p>
+                  )}
+                </Td>
+                <Td>
+                  {canEditRoles && !isMe && (
+                    <>
+                      {confirmDeleteId === profile.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">¿Eliminar?</span>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(profile.id) }}
+                          >
+                            Sí
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}
+                          >
+                            No
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(profile.id) }}
+                          aria-label="Eliminar miembro"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </>
                   )}
                 </Td>
               </Tr>

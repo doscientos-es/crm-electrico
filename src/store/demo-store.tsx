@@ -6,6 +6,7 @@ import { initialDemoState } from '../data/demo-data'
 import { getRenewalAlertDate } from '../lib/customer-workflow'
 import type {
   ActivityLog,
+  AppRole,
   Contract,
   Customer,
   CustomerEnergyProfile,
@@ -16,6 +17,7 @@ import type {
   InstallationVisit,
   Invoice,
   Lead,
+  Profile,
   Proposal,
   SavingSimulation,
   Task,
@@ -65,6 +67,8 @@ type DemoStore = DemoState & {
   updateVisitLocation: (visitId: string, latitude: number, longitude: number) => void
   createDocument: (input: CreateInput<Document>) => Document
   updateProfileRole: (id: string, role: DemoState['profiles'][number]['role']) => void
+  createProfile: (input: { full_name: string; email: string; role: AppRole; phone?: string }) => Profile
+  deleteProfile: (id: string) => void
   updateOrganization: (patch: Partial<DemoState['organization']>) => void
   exportCustomersCsv: () => void
   exportBackupJson: () => void
@@ -460,6 +464,41 @@ function makeActions(get: () => DemoStore, set: (fn: (s: DemoStore) => Partial<D
         'Documento registrado',
       )
       return entity
+    },
+    createProfile: (input) => {
+      const s = get()
+      const entity: Profile = {
+        id: crypto.randomUUID(),
+        organization_id: s.organization.id,
+        full_name: input.full_name,
+        email: input.email,
+        role: input.role,
+        phone: input.phone,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      mutate(
+        (draft) => ({
+          ...draft,
+          profiles: [...draft.profiles, entity],
+          activityLogs: [activity(draft, 'profile_created', 'profile', entity.id, `Miembro añadido: ${entity.full_name}`), ...draft.activityLogs],
+        }),
+        'Miembro añadido',
+      )
+      return entity
+    },
+    deleteProfile: (id) => {
+      mutate(
+        (draft) => {
+          const profile = draft.profiles.find((p) => p.id === id)
+          return {
+            ...draft,
+            profiles: draft.profiles.filter((p) => p.id !== id),
+            activityLogs: [activity(draft, 'profile_deleted', 'profile', id, `Miembro eliminado: ${profile?.full_name ?? id}`), ...draft.activityLogs],
+          }
+        },
+        'Miembro eliminado',
+      )
     },
     updateProfileRole: (id, role) => {
       mutate(
