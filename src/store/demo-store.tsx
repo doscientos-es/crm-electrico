@@ -202,7 +202,7 @@ function makeActions(get: () => DemoStore, set: (fn: (s: DemoStore) => Partial<D
   }
 
   return {
-    loginDemo: (userId = 'user-owner') => {
+    loginDemo: (userId = 'user-admin') => {
       mutate((draft) => ({ ...draft, currentUserId: userId, isAuthenticated: true }), 'Sesion iniciada')
       toast.success('Sesión iniciada')
     },

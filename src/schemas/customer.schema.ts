@@ -5,6 +5,7 @@ export const customerSchema = z
   .object({
     name: z.string().min(1, 'Este campo es obligatorio'),
     type: z.enum(['residential', 'business', 'community', 'industrial']),
+    status: z.enum(['active', 'renewal_due', 'renewed', 'inactive', 'lost']),
     legal_name: z.string().optional(),
     tax_id: z.string().optional(),
     contact_name: z.string().optional(),
@@ -14,6 +15,10 @@ export const customerSchema = z
     city: z.string().optional(),
     province: z.string().optional(),
     postal_code: z.string().regex(/^\d{5}$/, 'El codigo postal debe tener 5 digitos').optional().or(z.literal('')),
+    contract_signed_at: z.string().min(1, 'La fecha de contrato es obligatoria'),
+    renewal_date: z.string().min(1, 'La fecha de renovacion es obligatoria'),
+    assigned_to: z.string().min(1, 'Selecciona un comercial responsable'),
+    products_services: z.string(),
     notes: z.string().optional(),
   })
   .refine((data) => Boolean(data.email || data.phone), contactRefinement)

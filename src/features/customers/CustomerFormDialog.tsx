@@ -26,7 +26,7 @@ export function CustomerFormDialog({ customer }: { customer?: Customer }) {
   const defaultRenewal = useMemo(() => addMonths(new Date(), 12).toISOString().slice(0, 10), [])
 
   const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FullFormValues>({
-    resolver: zodResolver(customerSchema) as never,
+    resolver: zodResolver(customerSchema),
     defaultValues: customer
       ? {
           name: customer.name,
