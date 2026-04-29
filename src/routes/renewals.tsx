@@ -1,6 +1,6 @@
 import { Phone, RefreshCw, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
@@ -33,9 +33,18 @@ function DaysBadge({ days }: { days: number | undefined }) {
 export function RenewalsRoute() {
   const store = useDemoStore()
   const navigate = useNavigate()
-  const [stage, setStage] = useState<StageFilter>('all')
-  const [search, setSearch] = useState('')
+  const [params, setParams] = useSearchParams()
+
+  const stage = (params.get('stage') ?? 'all') as StageFilter
+  const search = params.get('q') ?? ''
   const debouncedSearch = useDebounce(search, 250)
+
+  function setStage(value: StageFilter) {
+    setParams((p) => { const n = new URLSearchParams(p); value === 'all' ? n.delete('stage') : n.set('stage', value); n.delete('page'); return n })
+  }
+  function setSearch(value: string) {
+    setParams((p) => { const n = new URLSearchParams(p); value ? n.set('q', value) : n.delete('q'); n.delete('page'); return n })
+  }
 
   const profilesById = useMemo(
     () => Object.fromEntries(store.profiles.map((p) => [p.id, p.full_name])),

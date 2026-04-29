@@ -1,6 +1,6 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+﻿import { zodResolver } from '@hookform/resolvers/zod'
 import { addMonths } from 'date-fns'
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button } from '../../components/ui/button'
@@ -10,37 +10,55 @@ import { type CustomerFormValues, customerSchema } from '../../schemas/customer.
 import { useDemoStore } from '../../store/demo-store'
 import type { Customer } from '../../types/domain'
 
-export function CustomerFormDialog() {
+type FullFormValues = CustomerFormValues & {
+  status: Customer['status']
+  contract_signed_at: string
+  renewal_date: string
+  assigned_to: string
+  products_services: string
+}
+
+export function CustomerFormDialog({ customer }: { customer?: Customer }) {
+  const isEditing = Boolean(customer)
   const [open, setOpen] = useState(false)
-  const { createCustomer, profiles, currentUser } = useDemoStore()
+  const { createCustomer, updateCustomer, profiles, currentUser } = useDemoStore()
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const defaultRenewal = useMemo(() => addMonths(new Date(), 12).toISOString().slice(0, 10), [])
 
-  const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<CustomerFormValues & {
-    status: Customer['status']
-    contract_signed_at: string
-    renewal_date: string
-    assigned_to: string
-    products_services: string
-  }>({
+  const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FullFormValues>({
     resolver: zodResolver(customerSchema) as never,
-    defaultValues: {
-      type: 'residential',
-      status: 'active',
-      contract_signed_at: today,
-      renewal_date: defaultRenewal,
-      assigned_to: currentUser.id,
-      products_services: '',
-      email: '',
-      phone: '',
-    },
+    defaultValues: customer
+      ? {
+          name: customer.name,
+          type: customer.type,
+          legal_name: customer.legal_name ?? '',
+          tax_id: customer.dni ?? '',
+          contact_name: customer.contact_name ?? '',
+          email: customer.email ?? '',
+          phone: customer.phone ?? '',
+          city: customer.city ?? '',
+          notes: customer.notes ?? '',
+          status: customer.status,
+          contract_signed_at: customer.contract_signed_at?.slice(0, 10) ?? today,
+          renewal_date: customer.renewal_date?.slice(0, 10) ?? defaultRenewal,
+          assigned_to: customer.assigned_to ?? currentUser.id,
+          products_services: customer.products_services.join(', '),
+        }
+      : {
+          type: 'residential',
+          status: 'active',
+          contract_signed_at: today,
+          renewal_date: defaultRenewal,
+          assigned_to: currentUser.id,
+          products_services: '',
+          email: '',
+          phone: '',
+        },
   })
 
-  type FullFormValues = CustomerFormValues & { status: Customer['status']; contract_signed_at: string; renewal_date: string; assigned_to: string; products_services: string }
-
   function onSubmit(values: FullFormValues) {
-    createCustomer({
-      type: values.legal_name ? 'business' : 'residential',
+    const patch = {
+      type: (values.legal_name ? 'business' : 'residential') as Customer['type'],
       name: values.name,
       company: values.legal_name || undefined,
       legal_name: values.legal_name || undefined,
@@ -59,7 +77,12 @@ export function CustomerFormDialog() {
         .map((item: string) => item.trim())
         .filter(Boolean),
       notes: values.notes || undefined,
-    })
+    }
+    if (isEditing && customer) {
+      updateCustomer(customer.id, patch)
+    } else {
+      createCustomer(patch)
+    }
     reset()
     setOpen(false)
   }
@@ -68,12 +91,19 @@ export function CustomerFormDialog() {
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Nuevo cliente"
+      title={isEditing ? 'Editar cliente' : 'Nuevo cliente'}
       trigger={
-        <Button>
-          <Plus className="h-4 w-4" />
-          Nuevo cliente
-        </Button>
+        isEditing ? (
+          <Button variant="secondary" size="sm">
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="h-4 w-4" />
+            Nuevo cliente
+          </Button>
+        )
       }
     >
       <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
@@ -135,7 +165,7 @@ export function CustomerFormDialog() {
         <Field label="Notas" error={errors.notes?.message}>
           <Textarea {...register('notes')} />
         </Field>
-        <Button type="submit" disabled={isSubmitting}>Guardar cliente</Button>
+        <Button type="submit" disabled={isSubmitting}>{isEditing ? 'Guardar cambios' : 'Guardar cliente'}</Button>
       </form>
     </Dialog>
   )

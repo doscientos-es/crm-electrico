@@ -39,7 +39,7 @@ export function DocumentsRoute() {
     return allDocuments.filter(
       (d) =>
         d.file_name.toLowerCase().includes(q) ||
-        (customerById[d.customer_id] ?? '').toLowerCase().includes(q),
+        (customerById[d.customer_id ?? ''] ?? '').toLowerCase().includes(q),
     )
   }, [allDocuments, debouncedSearch, customerById])
 
@@ -111,7 +111,7 @@ export function DocumentsRoute() {
               {pagination.items.map((document) => (
                 <Tr key={document.id} hover>
                   <Td variant="primary">{document.file_name}</Td>
-                  <Td variant="muted">{customerById[document.customer_id] ?? '-'}</Td>
+                  <Td variant="muted">{customerById[document.customer_id ?? ''] ?? '-'}</Td>
                   <Td variant="muted">{document.type}</Td>
                   <Td variant="muted">{formatDate(document.created_at)}</Td>
                   <Td className="max-w-48"><TruncatePath path={document.file_path} /></Td>
@@ -120,7 +120,7 @@ export function DocumentsRoute() {
                       <PdfViewerDialog
                         source={document}
                         title={document.file_name}
-                        description={`Documento asociado a ${customerById[document.customer_id] ?? '-'}`}
+                        description={`Documento asociado a ${customerById[document.customer_id ?? ''] ?? '-'}`}
                       />
                     ) : (
                       <span className="text-xs text-muted-foreground">No PDF</span>

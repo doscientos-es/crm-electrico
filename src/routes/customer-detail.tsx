@@ -1,3 +1,4 @@
+import { Clock, FileText, Phone, RefreshCw, UserCheck } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -6,8 +7,9 @@ import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { DataTable, Td, Tr, TruncatePath } from '../components/ui/table'
 import { customerStatusLabels } from '../config/constants'
+import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
 import { getDaysToRenewal, getRenewalAlertDate, getVisibleCustomers } from '../lib/customer-workflow'
-import { formatDate } from '../lib/formatters'
+import { formatDate, relativeTime } from '../lib/formatters'
 import { isPdfDocument } from '../lib/storage'
 import { useDemoStore } from '../store/demo-store'
 
@@ -60,6 +62,7 @@ export function CustomerDetailRoute() {
             )}
           </span>
         }
+        action={<CustomerFormDialog customer={customer} />}
       />
 
       {/* KPI strip — flat, no individual card boxes */}
@@ -120,6 +123,9 @@ export function CustomerDetailRoute() {
           ))}
         </DataTable>
       </section>
+
+      {/* Activity Log */}
+      <ActivityLog customerId={customer.id} />
     </div>
   )
 }
@@ -139,6 +145,48 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <dt className="shrink-0 text-xs text-muted-foreground">{label}</dt>
       <dd className="text-right text-sm text-foreground">{value}</dd>
     </div>
+  )
+}
+
+const actionIcons: Record<string, ReactNode> = {
+  contacted: <Phone className="h-3.5 w-3.5" />,
+  renewed: <RefreshCw className="h-3.5 w-3.5" />,
+  created: <UserCheck className="h-3.5 w-3.5" />,
+  updated: <FileText className="h-3.5 w-3.5" />,
+}
+
+function ActivityLog({ customerId }: { customerId: string }) {
+  const store = useDemoStore()
+  const logs = useMemo(
+    () =>
+      store.activityLogs
+        .filter((log) => log.entity_id === customerId || log.metadata?.customer_id === customerId)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 20),
+    [customerId, store.activityLogs],
+  )
+
+  return (
+    <section className="mt-8">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Actividad</h3>
+      {logs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sin actividad registrada.</p>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
+          {logs.map((log) => (
+            <div key={log.id} className="flex items-start gap-3 px-4 py-3">
+              <div className="mt-0.5 shrink-0 text-muted-foreground">
+                {actionIcons[log.action] ?? <Clock className="h-3.5 w-3.5" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-foreground">{String(log.metadata?.label ?? log.action)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{relativeTime(log.created_at)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

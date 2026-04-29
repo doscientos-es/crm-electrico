@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { addMonths } from 'date-fns'
-import { type ReactNode, createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { create } from 'zustand'
 import { initialDemoState } from '../data/demo-data'
 import { getRenewalAlertDate } from '../lib/customer-workflow'
 import type {
@@ -70,7 +70,11 @@ type DemoStore = DemoState & {
   exportBackupJson: () => void
 }
 
-const DemoStoreContext = createContext<DemoStore | null>(null)
+type DemoActions = Omit<DemoStore, keyof DemoState | 'currentUser' | 'backupSnapshots'>
+
+// ---------------------------------------------------------------------------
+// Zustand store
+// ---------------------------------------------------------------------------
 
 function downloadFile(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType })
@@ -164,343 +168,349 @@ function normalizeCustomerInput(state: DemoState, input: CreateInput<Customer> |
   }
 }
 
-export function DemoStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<DemoState>(loadState)
-  const [backupSnapshots, setBackupSnapshots] = useState<BackupSnapshot[]>(loadBackups)
-
-  const mutate = useCallback((recipe: (draft: DemoState) => DemoState, message?: string, backupLabel?: string) => {
-    setState((current) => {
+function makeActions(get: () => DemoStore, set: (fn: (s: DemoStore) => Partial<DemoStore>) => void): DemoActions {
+  function mutate(recipe: (draft: DemoState) => DemoState, message?: string, backupLabel?: string) {
+    set((current) => {
       const next = recipe(current)
       persist(next, backupLabel ?? message ?? 'Backup automatico')
-      setBackupSnapshots(loadBackups())
-      return next
+      return { ...next, backupSnapshots: loadBackups() }
     })
     if (message) toast.success(message)
-  }, [])
+  }
 
-  const value = useMemo<DemoStore>(() => {
-    const currentUser = state.profiles.find((profile) => profile.id === state.currentUserId) ?? state.profiles[0]
+  return {
+    loginDemo: (userId = 'user-owner') => {
+      mutate((draft) => ({ ...draft, currentUserId: userId, isAuthenticated: true }), 'Sesion iniciada')
+    },
+    logout: () => {
+      mutate((draft) => ({ ...draft, isAuthenticated: false }), 'Sesion cerrada')
+    },
+    resetDemo: () => {
+      persist(initialDemoState, 'Restauracion demo')
+      set(() => ({ ...initialDemoState, backupSnapshots: loadBackups() }))
+      toast.success('Datos demo restaurados')
+    },
+    createLead: (input) => {
+      const entity = stamp(get(), { ...input, status: input.status ?? 'new' }) as Lead
+      mutate(
+        (draft) => ({
+          ...draft,
+          leads: [entity, ...draft.leads],
+          activityLogs: [
+            activity(draft, 'lead_created', 'lead', entity.id, `Lead creado: ${entity.company_name ?? entity.contact_name}`),
+            ...draft.activityLogs,
+          ],
+        }),
+        'Lead creado',
+      )
+      return entity
+    },
+    updateLead: (id, patch) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          leads: draft.leads.map((lead) => (lead.id === id ? { ...lead, ...patch, updated_at: new Date().toISOString() } : lead)),
+        }),
+        'Lead actualizado',
+      )
+    },
+    convertLead: (id) => {
+      const s = get()
+      const lead = s.leads.find((item) => item.id === id)
+      if (!lead) throw new Error('Lead no encontrado')
+      const customer = stamp(
+        s,
+        normalizeCustomerInput(s, {
+          lead_id: lead.id,
+          type: 'business',
+          name: lead.company_name ?? lead.contact_name,
+          company: lead.company_name,
+          contact_name: lead.contact_name,
+          email: lead.email,
+          phone: lead.phone,
+          address: lead.address,
+          city: lead.city,
+          province: lead.province,
+          postal_code: lead.postal_code,
+          notes: lead.notes,
+          products_services: [],
+        }),
+      ) as Customer
 
-    return {
-      ...state,
-      currentUser,
-      backupSnapshots,
-      loginDemo: (userId = 'user-owner') => {
-        mutate((draft) => ({ ...draft, currentUserId: userId, isAuthenticated: true }), 'Sesion iniciada')
-      },
-      logout: () => {
-        mutate((draft) => ({ ...draft, isAuthenticated: false }), 'Sesion cerrada')
-      },
-      resetDemo: () => {
-        persist(initialDemoState, 'Restauracion demo')
-        setState(initialDemoState)
-        setBackupSnapshots(loadBackups())
-        toast.success('Datos demo restaurados')
-      },
-      createLead: (input) => {
-        const entity = stamp(state, { ...input, status: input.status ?? 'new' }) as Lead
-        mutate(
-          (draft) => ({
-            ...draft,
-            leads: [entity, ...draft.leads],
-            activityLogs: [
-              activity(draft, 'lead_created', 'lead', entity.id, `Lead creado: ${entity.company_name ?? entity.contact_name}`),
-              ...draft.activityLogs,
-            ],
+      mutate(
+        (draft) => ({
+          ...draft,
+          customers: [customer, ...draft.customers],
+          leads: draft.leads.map((item) =>
+            item.id === id
+              ? { ...item, status: 'converted', converted_customer_id: customer.id, updated_at: new Date().toISOString() }
+              : item,
+          ),
+          activityLogs: [
+            activity(draft, 'lead_converted', 'customer', customer.id, `Lead convertido en cliente: ${customer.name}`),
+            ...draft.activityLogs,
+          ],
+        }),
+        'Cliente creado desde lead',
+      )
+      return customer
+    },
+    createCustomer: (input) => {
+      const s = get()
+      const entity = stamp(s, normalizeCustomerInput(s, input)) as Customer
+      mutate(
+        (draft) => ({
+          ...draft,
+          customers: [entity, ...draft.customers],
+          activityLogs: [activity(draft, 'customer_created', 'customer', entity.id, `Cliente creado: ${entity.name}`), ...draft.activityLogs],
+        }),
+        'Cliente creado',
+      )
+      return entity
+    },
+    updateCustomer: (id, patch) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          customers: draft.customers.map((customer) => {
+            if (customer.id !== id) return customer
+            const next = { ...customer, ...normalizeCustomerInput(draft, patch), updated_at: new Date().toISOString() }
+            return next
           }),
-          'Lead creado',
-        )
-        return entity
-      },
-      updateLead: (id, patch) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            leads: draft.leads.map((lead) => (lead.id === id ? { ...lead, ...patch, updated_at: new Date().toISOString() } : lead)),
+          activityLogs: [activity(draft, 'customer_updated', 'customer', id, 'Ficha de cliente actualizada'), ...draft.activityLogs],
+        }),
+        'Cliente actualizado',
+      )
+    },
+    touchCustomer: (id) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          customers: draft.customers.map((customer) =>
+            customer.id === id ? { ...customer, last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() } : customer,
+          ),
+          activityLogs: [activity(draft, 'customer_contacted', 'customer', id, 'Contacto registrado'), ...draft.activityLogs],
+        }),
+        'Contacto registrado',
+      )
+    },
+    renewCustomer: (id) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          customers: draft.customers.map((customer) => {
+            if (customer.id !== id) return customer
+            const newSigned = new Date().toISOString().slice(0, 10)
+            const newRenewal = addMonths(new Date(), 12).toISOString().slice(0, 10)
+            return { ...customer, status: 'renewed', contract_signed_at: newSigned, renewal_date: newRenewal, updated_at: new Date().toISOString() }
           }),
-          'Lead actualizado',
-        )
-      },
-      convertLead: (id) => {
-        const lead = state.leads.find((item) => item.id === id)
-        if (!lead) throw new Error('Lead no encontrado')
-        const customer = stamp(
-          state,
-          normalizeCustomerInput(state, {
-            lead_id: lead.id,
-            type: 'business',
-            name: lead.company_name ?? lead.contact_name,
-            company: lead.company_name,
-            contact_name: lead.contact_name,
-            email: lead.email,
-            phone: lead.phone,
-            address: lead.address,
-            city: lead.city,
-            province: lead.province,
-            postal_code: lead.postal_code,
-            notes: lead.notes,
-            products_services: [],
-          }),
-        ) as Customer
-
-        mutate(
-          (draft) => ({
-            ...draft,
-            customers: [customer, ...draft.customers],
-            leads: draft.leads.map((item) =>
-              item.id === id
-                ? { ...item, status: 'converted', converted_customer_id: customer.id, updated_at: new Date().toISOString() }
-                : item,
-            ),
-            activityLogs: [
-              activity(draft, 'lead_converted', 'customer', customer.id, `Lead convertido en cliente: ${customer.name}`),
-              ...draft.activityLogs,
-            ],
-          }),
-          'Cliente creado desde lead',
-        )
-        return customer
-      },
-      createCustomer: (input) => {
-        const entity = stamp(state, normalizeCustomerInput(state, input)) as Customer
-        mutate(
-          (draft) => ({
-            ...draft,
-            customers: [entity, ...draft.customers],
-            activityLogs: [activity(draft, 'customer_created', 'customer', entity.id, `Cliente creado: ${entity.name}`), ...draft.activityLogs],
-          }),
-          'Cliente creado',
-        )
-        return entity
-      },
-      updateCustomer: (id, patch) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            customers: draft.customers.map((customer) => {
-              if (customer.id !== id) return customer
-              const next = { ...customer, ...normalizeCustomerInput(draft, patch), updated_at: new Date().toISOString() }
-              return next
-            }),
-            activityLogs: [activity(draft, 'customer_updated', 'customer', id, 'Ficha de cliente actualizada'), ...draft.activityLogs],
-          }),
-          'Cliente actualizado',
-        )
-      },
-      touchCustomer: (id) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            customers: draft.customers.map((customer) =>
-              customer.id === id ? { ...customer, last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() } : customer,
-            ),
-            activityLogs: [activity(draft, 'customer_contacted', 'customer', id, 'Contacto registrado'), ...draft.activityLogs],
-          }),
-          'Contacto registrado',
-        )
-      },
-      renewCustomer: (id) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            customers: draft.customers.map((customer) => {
-              if (customer.id !== id) return customer
-              const newSigned = new Date().toISOString().slice(0, 10)
-              const newRenewal = addMonths(new Date(), 12).toISOString().slice(0, 10)
-              return { ...customer, status: 'renewed', contract_signed_at: newSigned, renewal_date: newRenewal, updated_at: new Date().toISOString() }
-            }),
-            activityLogs: [activity(draft, 'customer_renewed', 'customer', id, 'Contrato renovado'), ...draft.activityLogs],
-          }),
-          'Contrato renovado',
-        )
-      },
-      upsertEnergyProfile: (input) => {
-        const existing = state.energyProfiles.find((profile) => profile.customer_id === input.customer_id)
-        const entity = existing
-          ? ({ ...existing, ...input, has_solar: input.has_solar ?? false, updated_at: new Date().toISOString() } as CustomerEnergyProfile)
-          : (stamp(state, { ...input, has_solar: input.has_solar ?? false }) as CustomerEnergyProfile)
-        mutate(
-          (draft) => ({
-            ...draft,
-            energyProfiles: existing
-              ? draft.energyProfiles.map((profile) => (profile.id === existing.id ? entity : profile))
-              : [entity, ...draft.energyProfiles],
-          }),
-          'Ficha energetica guardada',
-        )
-        return entity
-      },
-      createInvoice: (input) => {
-        const entity = stamp(state, input) as Invoice
-        mutate((draft) => ({ ...draft, invoices: [entity, ...draft.invoices] }), 'Factura registrada')
-        return entity
-      },
-      createSimulation: (input) => {
-        const monthlySaving = Number((input.current_monthly_cost_eur * (input.estimated_saving_percent / 100)).toFixed(2))
-        const annualSaving = Number((monthlySaving * 12).toFixed(2))
-        const entity = stamp(state, {
-          ...input,
-          monthly_saving_eur: monthlySaving,
-          annual_saving_eur: annualSaving,
-          proposed_monthly_cost_eur: Number((input.current_monthly_cost_eur - monthlySaving).toFixed(2)),
-          roi_years:
-            input.solar_investment_eur && annualSaving > 0 ? Number((input.solar_investment_eur / annualSaving).toFixed(2)) : undefined,
-        }) as SavingSimulation
-        mutate((draft) => ({ ...draft, simulations: [entity, ...draft.simulations] }), 'Simulacion guardada')
-        return entity
-      },
-      createProposal: (input) => {
-        const entity = stamp(state, input) as Proposal
-        mutate((draft) => ({ ...draft, proposals: [entity, ...draft.proposals] }), 'Propuesta creada')
-        return entity
-      },
-      updateProposalStatus: (id, status) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            proposals: draft.proposals.map((proposal) =>
-              proposal.id === id ? { ...proposal, status, updated_at: new Date().toISOString() } : proposal,
-            ),
-          }),
-          'Estado de propuesta actualizado',
-        )
-      },
-      createDeal: (input) => {
-        const entity = stamp(state, { ...input, status: input.status ?? 'open' }) as Deal
-        mutate((draft) => ({ ...draft, deals: [entity, ...draft.deals] }), 'Oportunidad creada')
-        return entity
-      },
-      moveDeal: (dealId, stageId) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            deals: draft.deals.map((deal) => (deal.id === dealId ? { ...deal, stage_id: stageId, updated_at: new Date().toISOString() } : deal)),
-          }),
-          'Pipeline actualizado',
-        )
-      },
-      createTask: (input) => {
-        const entity = stamp(state, { ...input, status: input.status ?? 'pending', priority: input.priority ?? 'medium' }) as Task
-        mutate((draft) => ({ ...draft, tasks: [entity, ...draft.tasks] }), 'Tarea creada')
-        return entity
-      },
-      completeTask: (id) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            tasks: draft.tasks.map((task) =>
-              task.id === id ? { ...task, status: 'done', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() } : task,
-            ),
-          }),
-          'Tarea completada',
-        )
-      },
-      createContract: (input) => {
-        const entity = stamp(state, input) as Contract
-        mutate((draft) => ({ ...draft, contracts: [entity, ...draft.contracts] }), 'Contrato creado')
-        return entity
-      },
-      createInstallation: (input) => {
-        const entity = stamp(state, input) as Installation
-        mutate((draft) => ({ ...draft, installations: [entity, ...draft.installations] }), 'Instalacion creada')
-        return entity
-      },
-      updateInstallation: (id, patch) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            installations: draft.installations.map((installation) =>
-              installation.id === id ? { ...installation, ...patch, updated_at: new Date().toISOString() } : installation,
-            ),
-          }),
-          'Instalacion actualizada',
-        )
-      },
-      createVisit: (input) => {
-        const entity = stamp(state, { ...input, photo_paths: input.photo_paths ?? [] }) as InstallationVisit
-        mutate((draft) => ({ ...draft, installationVisits: [entity, ...draft.installationVisits] }), 'Visita creada')
-        return entity
-      },
-      updateVisitLocation: (visitId, latitude, longitude) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            installationVisits: draft.installationVisits.map((visit) =>
-              visit.id === visitId ? { ...visit, latitude, longitude, started_at: visit.started_at ?? new Date().toISOString() } : visit,
-            ),
-          }),
-          'Ubicacion guardada',
-        )
-      },
-      createDocument: (input) => {
-        const entity = stamp(state, input) as Document
-        mutate(
-          (draft) => ({
-            ...draft,
-            documents: [entity, ...draft.documents],
-            activityLogs: [activity(draft, 'document_uploaded', 'document', entity.id, `Documento subido: ${entity.file_name}`), ...draft.activityLogs],
-          }),
-          'Documento registrado',
-        )
-        return entity
-      },
-      updateProfileRole: (id, role) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            profiles: draft.profiles.map((profile) => (profile.id === id ? { ...profile, role, updated_at: new Date().toISOString() } : profile)),
-          }),
-          'Permisos actualizados',
-        )
-      },
-      updateOrganization: (patch) => {
-        mutate(
-          (draft) => ({
-            ...draft,
-            organization: { ...draft.organization, ...patch, updated_at: new Date().toISOString() },
-          }),
-          'Empresa actualizada',
-        )
-      },
-      exportCustomersCsv: () => {
-        const rows = state.customers.map((customer) => [
-          customer.name,
-          customer.dni ?? '',
-          customer.company ?? '',
-          customer.status,
-          customer.contract_signed_at ?? '',
-          customer.renewal_date ?? '',
-          customer.products_services.join(' | '),
-          state.profiles.find((profile) => profile.id === customer.assigned_to)?.full_name ?? '',
-        ])
-        const header = ['Nombre', 'DNI', 'Empresa', 'Estado', 'Fecha contrato', 'Fecha renovacion', 'Productos/Servicios', 'Comercial']
-        const csv = [header, ...rows]
-          .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
-          .join('\n')
-        downloadFile(`clientes-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv;charset=utf-8')
-        toast.success('Exportacion CSV generada')
-      },
-      exportBackupJson: () => {
-        const payload = {
-          exported_at: new Date().toISOString(),
-          organization: state.organization,
-          customers: state.customers,
-          documents: state.documents,
-          contracts: state.contracts,
-        }
-        downloadFile(`backup-crm-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json')
-        toast.success('Backup JSON generado')
-      },
-    }
-  }, [backupSnapshots, mutate, state])
-
-  return <DemoStoreContext.Provider value={value}>{children}</DemoStoreContext.Provider>
+          activityLogs: [activity(draft, 'customer_renewed', 'customer', id, 'Contrato renovado'), ...draft.activityLogs],
+        }),
+        'Contrato renovado',
+      )
+    },
+    upsertEnergyProfile: (input) => {
+      const s = get()
+      const existing = s.energyProfiles.find((profile) => profile.customer_id === input.customer_id)
+      const entity = existing
+        ? ({ ...existing, ...input, has_solar: input.has_solar ?? false, updated_at: new Date().toISOString() } as CustomerEnergyProfile)
+        : (stamp(s, { ...input, has_solar: input.has_solar ?? false }) as CustomerEnergyProfile)
+      mutate(
+        (draft) => ({
+          ...draft,
+          energyProfiles: existing
+            ? draft.energyProfiles.map((profile) => (profile.id === existing.id ? entity : profile))
+            : [entity, ...draft.energyProfiles],
+        }),
+        'Ficha energetica guardada',
+      )
+      return entity
+    },
+    createInvoice: (input) => {
+      const entity = stamp(get(), input) as Invoice
+      mutate((draft) => ({ ...draft, invoices: [entity, ...draft.invoices] }), 'Factura registrada')
+      return entity
+    },
+    createSimulation: (input) => {
+      const monthlySaving = Number((input.current_monthly_cost_eur * (input.estimated_saving_percent / 100)).toFixed(2))
+      const annualSaving = Number((monthlySaving * 12).toFixed(2))
+      const entity = stamp(get(), {
+        ...input,
+        monthly_saving_eur: monthlySaving,
+        annual_saving_eur: annualSaving,
+        proposed_monthly_cost_eur: Number((input.current_monthly_cost_eur - monthlySaving).toFixed(2)),
+        roi_years:
+          input.solar_investment_eur && annualSaving > 0 ? Number((input.solar_investment_eur / annualSaving).toFixed(2)) : undefined,
+      }) as SavingSimulation
+      mutate((draft) => ({ ...draft, simulations: [entity, ...draft.simulations] }), 'Simulacion guardada')
+      return entity
+    },
+    createProposal: (input) => {
+      const entity = stamp(get(), input) as Proposal
+      mutate((draft) => ({ ...draft, proposals: [entity, ...draft.proposals] }), 'Propuesta creada')
+      return entity
+    },
+    updateProposalStatus: (id, status) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          proposals: draft.proposals.map((proposal) =>
+            proposal.id === id ? { ...proposal, status, updated_at: new Date().toISOString() } : proposal,
+          ),
+        }),
+        'Estado de propuesta actualizado',
+      )
+    },
+    createDeal: (input) => {
+      const entity = stamp(get(), { ...input, status: input.status ?? 'open' }) as Deal
+      mutate((draft) => ({ ...draft, deals: [entity, ...draft.deals] }), 'Oportunidad creada')
+      return entity
+    },
+    moveDeal: (dealId, stageId) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          deals: draft.deals.map((deal) => (deal.id === dealId ? { ...deal, stage_id: stageId, updated_at: new Date().toISOString() } : deal)),
+        }),
+        'Pipeline actualizado',
+      )
+    },
+    createTask: (input) => {
+      const entity = stamp(get(), { ...input, status: input.status ?? 'pending', priority: input.priority ?? 'medium' }) as Task
+      mutate((draft) => ({ ...draft, tasks: [entity, ...draft.tasks] }), 'Tarea creada')
+      return entity
+    },
+    completeTask: (id) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          tasks: draft.tasks.map((task) =>
+            task.id === id ? { ...task, status: 'done', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() } : task,
+          ),
+        }),
+        'Tarea completada',
+      )
+    },
+    createContract: (input) => {
+      const entity = stamp(get(), input) as Contract
+      mutate((draft) => ({ ...draft, contracts: [entity, ...draft.contracts] }), 'Contrato creado')
+      return entity
+    },
+    createInstallation: (input) => {
+      const entity = stamp(get(), input) as Installation
+      mutate((draft) => ({ ...draft, installations: [entity, ...draft.installations] }), 'Instalacion creada')
+      return entity
+    },
+    updateInstallation: (id, patch) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          installations: draft.installations.map((installation) =>
+            installation.id === id ? { ...installation, ...patch, updated_at: new Date().toISOString() } : installation,
+          ),
+        }),
+        'Instalacion actualizada',
+      )
+    },
+    createVisit: (input) => {
+      const entity = stamp(get(), { ...input, photo_paths: input.photo_paths ?? [] }) as InstallationVisit
+      mutate((draft) => ({ ...draft, installationVisits: [entity, ...draft.installationVisits] }), 'Visita creada')
+      return entity
+    },
+    updateVisitLocation: (visitId, latitude, longitude) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          installationVisits: draft.installationVisits.map((visit) =>
+            visit.id === visitId ? { ...visit, latitude, longitude, started_at: visit.started_at ?? new Date().toISOString() } : visit,
+          ),
+        }),
+        'Ubicacion guardada',
+      )
+    },
+    createDocument: (input) => {
+      const entity = stamp(get(), input) as Document
+      mutate(
+        (draft) => ({
+          ...draft,
+          documents: [entity, ...draft.documents],
+          activityLogs: [activity(draft, 'document_uploaded', 'document', entity.id, `Documento subido: ${entity.file_name}`), ...draft.activityLogs],
+        }),
+        'Documento registrado',
+      )
+      return entity
+    },
+    updateProfileRole: (id, role) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          profiles: draft.profiles.map((profile) => (profile.id === id ? { ...profile, role, updated_at: new Date().toISOString() } : profile)),
+        }),
+        'Permisos actualizados',
+      )
+    },
+    updateOrganization: (patch) => {
+      mutate(
+        (draft) => ({
+          ...draft,
+          organization: { ...draft.organization, ...patch, updated_at: new Date().toISOString() },
+        }),
+        'Empresa actualizada',
+      )
+    },
+    exportCustomersCsv: () => {
+      const s = get()
+      const profileNameById = Object.fromEntries(s.profiles.map((p) => [p.id, p.full_name]))
+      const rows = s.customers.map((customer) => [
+        customer.name,
+        customer.dni ?? '',
+        customer.company ?? '',
+        customer.status,
+        customer.contract_signed_at ?? '',
+        customer.renewal_date ?? '',
+        customer.products_services.join(' | '),
+        profileNameById[customer.assigned_to ?? ''] ?? '',
+      ])
+      const header = ['Nombre', 'DNI', 'Empresa', 'Estado', 'Fecha contrato', 'Fecha renovacion', 'Productos/Servicios', 'Comercial']
+      const csv = [header, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .join('\n')
+      downloadFile(`clientes-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv;charset=utf-8')
+      toast.success('Exportacion CSV generada')
+    },
+    exportBackupJson: () => {
+      const s = get()
+      const payload = {
+        exported_at: new Date().toISOString(),
+        organization: s.organization,
+        customers: s.customers,
+        documents: s.documents,
+        contracts: s.contracts,
+      }
+      downloadFile(`backup-crm-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json')
+      toast.success('Backup JSON generado')
+    },
+  }
 }
 
+const useDemoStoreBase = create<DemoStore>()((set, get) => {
+  const initial = loadState()
+  const actions = makeActions(get as () => DemoStore, set as (fn: (s: DemoStore) => Partial<DemoStore>) => void)
+  return {
+    ...initial,
+    currentUser: initial.profiles.find((p) => p.id === initial.currentUserId) ?? initial.profiles[0],
+    backupSnapshots: loadBackups(),
+    ...actions,
+  }
+})
+
 export function useDemoStore() {
-  const context = useContext(DemoStoreContext)
-  if (!context) throw new Error('useDemoStore debe usarse dentro de DemoStoreProvider')
-  return context
+  return useDemoStoreBase()
+}
+
+/** No-op provider — Zustand doesn't need a React tree wrapper */
+export function DemoStoreProvider({ children }: { children: import('react').ReactNode }) {
+  return <>{children}</>
 }
 
 export { getRenewalAlertDate }

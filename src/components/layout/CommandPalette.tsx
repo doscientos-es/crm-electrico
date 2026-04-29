@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { navItems } from '../../config/nav'
 import { useDemoStore } from '../../store/demo-store'
-import { DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogRoot } from '../ui/dialog'
+import { DialogContent, DialogOverlay, DialogPortal, DialogRoot } from '../ui/dialog'
 
 type ResultItem = {
   id: string

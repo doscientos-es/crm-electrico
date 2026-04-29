@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Field, Input, Select } from '../components/ui/input'
@@ -17,9 +17,15 @@ import type { Customer } from '../types/domain'
 export function CustomersRoute() {
   const store = useDemoStore()
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<'all' | Customer['status']>('all')
-  const [owner, setOwner] = useState<'all' | string>('all')
+  const [params, setParams] = useSearchParams()
+
+  const search = params.get('q') ?? ''
+  const status = (params.get('status') ?? 'all') as 'all' | Customer['status']
+  const owner = params.get('owner') ?? 'all'
+
+  function setSearch(v: string) { setParams((p) => { const n = new URLSearchParams(p); v ? n.set('q', v) : n.delete('q'); n.delete('page'); return n }, { replace: true }) }
+  function setStatus(v: string) { setParams((p) => { const n = new URLSearchParams(p); v !== 'all' ? n.set('status', v) : n.delete('status'); n.delete('page'); return n }, { replace: true }) }
+  function setOwner(v: string) { setParams((p) => { const n = new URLSearchParams(p); v !== 'all' ? n.set('owner', v) : n.delete('owner'); n.delete('page'); return n }, { replace: true }) }
 
   const debouncedSearch = useDebounce(search, 250)
 

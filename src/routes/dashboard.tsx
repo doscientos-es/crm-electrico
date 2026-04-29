@@ -1,11 +1,11 @@
-import { Activity, CalendarClock, CheckCircle2, Clock, Euro, FileText, TrendingDown, TrendingUp, Users, Wrench } from 'lucide-react'
+import { Activity, CalendarClock, CheckCircle2, Clock, FileText, Phone, TrendingDown, TrendingUp, Users, Wrench } from 'lucide-react'
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
-import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { getDaysToRenewal, getRenewalStage, getVisibleCustomers } from '../lib/customer-workflow'
-import { money, relativeTime } from '../lib/formatters'
+import { relativeTime } from '../lib/formatters'
 import { useDemoStore } from '../store/demo-store'
 
 const entityIcons: Record<string, ReactNode> = {
@@ -26,28 +26,31 @@ const renewalStageStyle: Record<string, { label: string; className: string }> = 
 
 export function DashboardRoute() {
   const store = useDemoStore()
-  const visibleCustomers = getVisibleCustomers(store.customers, store.currentUser.id, store.currentUser.role)
-  const dueCount = visibleCustomers.filter((c) => ['due', 'urgent', 'overdue'].includes(getRenewalStage(c))).length
-  const pipelineValue = store.deals.filter((d) => d.status === 'open').reduce((sum, d) => sum + d.value_eur, 0)
-  const openTasks = store.tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress')
-  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
 
-  const urgentRenewals = visibleCustomers
-    .map((c) => ({ customer: c, stage: getRenewalStage(c), days: getDaysToRenewal(c) }))
-    .filter(({ stage }) => ['overdue', 'urgent', 'due'].includes(stage))
-    .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
-    .slice(0, 6)
+  const visibleCustomers = useMemo(
+    () => getVisibleCustomers(store.customers, store.currentUser.id, store.currentUser.role),
+    [store.customers, store.currentUser.id, store.currentUser.role],
+  )
 
-  const topTasks = [...openTasks]
-    .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-    .slice(0, 5)
+  const kpis = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const thisMonth = today.slice(0, 7) // 'YYYY-MM'
+    const activeCount = visibleCustomers.filter((c) => c.status === 'active' || c.status === 'renewed').length
+    const urgentCount = visibleCustomers.filter((c) => ['due', 'urgent', 'overdue'].includes(getRenewalStage(c))).length
+    const thisMonthCount = visibleCustomers.filter((c) => c.renewal_date?.startsWith(thisMonth)).length
+    const contactedTodayCount = visibleCustomers.filter((c) => c.last_contact_at?.startsWith(today)).length
+    return { activeCount, urgentCount, thisMonthCount, contactedTodayCount }
+  }, [visibleCustomers])
 
-  const stagesWithTotals = store.pipelineStages.map((stage) => {
-    const stageDeals = store.deals.filter((d) => d.stage_id === stage.id)
-    const total = stageDeals.reduce((sum, d) => sum + d.value_eur, 0)
-    return { stage, deals: stageDeals, total }
-  })
-  const maxTotal = Math.max(...stagesWithTotals.map((s) => s.total), 1)
+  const urgentRenewals = useMemo(
+    () =>
+      visibleCustomers
+        .map((c) => ({ customer: c, stage: getRenewalStage(c), days: getDaysToRenewal(c) }))
+        .filter(({ stage }) => ['overdue', 'urgent', 'due'].includes(stage))
+        .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
+        .slice(0, 6),
+    [visibleCustomers],
+  )
 
   return (
     <div className="space-y-8">
@@ -63,35 +66,16 @@ export function DashboardRoute() {
 
       {/* KPIs */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-4">
-        <Kpi title="Leads activos" value={store.leads.filter((l) => l.status !== 'lost').length} icon={<Users />} trend={+12} />
-        <Kpi title="Clientes activos" value={store.customers.length} icon={<Activity />} trend={+5} />
-        <Kpi title="Renovaciones urgentes" value={dueCount} icon={<CalendarClock />} />
-        <Kpi title="Pipeline abierto" value={money.format(pipelineValue)} icon={<Euro />} trend={+8} />
+        <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} />
+        <Kpi title="Renovaciones urgentes" value={kpis.urgentCount} icon={<CalendarClock />} />
+        <Kpi title="Renovaciones este mes" value={kpis.thisMonthCount} icon={<Users />} />
+        <Kpi title="Contactados hoy" value={kpis.contactedTodayCount} icon={<Phone />} />
       </section>
 
       {/* Main content */}
       <section className="grid gap-8 xl:grid-cols-[1.2fr_1fr]">
-        {/* Left column: pipeline + renewals */}
+        {/* Left column: renewals */}
         <div className="space-y-8">
-          {pipelineValue > 0 && (
-            <div>
-              <h2 className="mb-3 text-sm font-semibold text-foreground">Pipeline comercial</h2>
-              <div className="overflow-hidden rounded-lg border border-border bg-card p-4 space-y-4">
-                {stagesWithTotals.filter(({ deals }) => deals.length > 0).map(({ stage, deals, total }) => (
-                  <div key={stage.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-foreground">{stage.name}</span>
-                      <span className="tabular-nums text-muted-foreground">{deals.length} · {money.format(total)}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted">
-                      <div className="h-1.5 rounded-full bg-primary transition-all duration-500" style={{ width: `${Math.round((total / maxTotal) * 100)}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {urgentRenewals.length > 0 && (
             <div>
               <div className="mb-3 flex items-center justify-between">
@@ -121,33 +105,8 @@ export function DashboardRoute() {
           )}
         </div>
 
-        {/* Right column: tasks + activity */}
+        {/* Right column: activity */}
         <div className="space-y-8">
-          {topTasks.length > 0 && (
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Tareas abiertas</h2>
-                <Button asChild size="sm" variant="ghost">
-                  <Link to="/tasks">Ver todas</Link>
-                </Button>
-              </div>
-              <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
-                {topTasks.map((task) => (
-                  <Link key={task.id} to="/tasks" className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {store.profiles.find((p) => p.id === task.assigned_to)?.full_name ?? '-'}
-                      </p>
-                    </div>
-                    <StatusBadge value={task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'} />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
             <h2 className="mb-3 text-sm font-semibold text-foreground">Actividad reciente</h2>
             <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
