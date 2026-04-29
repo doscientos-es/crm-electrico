@@ -9,7 +9,7 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { customerStatusLabels } from '../config/constants'
 import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
-import { getDaysToRenewal, getRenewalAlertDate, getRenewalStage, getVisibleCustomers } from '../lib/customer-workflow'
+import { getDaysToRenewal, getRenewalStage, getVisibleCustomers } from '../lib/customer-workflow'
 import { formatDate } from '../lib/formatters'
 import { cn } from '../lib/utils'
 import { useDemoStore } from '../store/demo-store'
@@ -104,11 +104,10 @@ export function RenewalsRoute() {
         />
       ) : (
         <DataTable
-          headers={['Cliente', 'Estado', 'Avisar desde', 'Renovacion', 'Dias', 'Comercial', 'Acciones']}
+          headers={['Cliente', 'Estado', 'Renovacion', 'Dias', 'Comercial', 'Acciones']}
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage, onPageSizeChange: pagination.setPageSize }}
         >
           {pagination.items.map((customer) => {
-            const alertDate = getRenewalAlertDate(customer)
             const days = getDaysToRenewal(customer)
             return (
               <Tr key={customer.id} hover className="cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
@@ -117,7 +116,6 @@ export function RenewalsRoute() {
                   <p className="text-xs text-muted-foreground">{customer.products_services.join(', ') || 'Sin servicios'}</p>
                 </Td>
                 <Td><StatusBadge value={customerStatusLabels[customer.status]} /></Td>
-                <Td variant="muted">{alertDate ? formatDate(alertDate.toISOString()) : '-'}</Td>
                 <Td variant="muted">{formatDate(customer.renewal_date)}</Td>
                 <Td><DaysBadge days={days} /></Td>
                 <Td variant="muted">{profilesById[customer.assigned_to ?? ''] ?? '-'}</Td>
