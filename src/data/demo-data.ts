@@ -722,7 +722,16 @@ const contracts: Contract[] = customers.map((customer, index) => ({
 	starts_at: customer.contract_signed_at,
 	ends_at: customer.renewal_date,
 	amount_eur: 900 + index * 150,
-	file_path: `${orgId}/${customer.id}/contracts/contrato-${index + 1}.pdf`,
+	file_path:
+		customer.id === "customer-002"
+			? "/demo-pdfs/renovacion-lucia-moreno.pdf"
+			: customer.id === "customer-004"
+				? "/demo-pdfs/contrato-ceramicas-norte.pdf"
+				: customer.id === "customer-008"
+					? "/demo-pdfs/seguimiento-casa-rural-la-safor.pdf"
+					: customer.id === "customer-010"
+						? "/demo-pdfs/propuesta-frutas-navarro.pdf"
+						: `${orgId}/${customer.id}/contracts/contrato-${index + 1}.pdf`,
 	created_at: nowIso,
 	updated_at: nowIso,
 	created_by: "user-admin",
@@ -813,7 +822,7 @@ documents.push(
 		id: "doc-preview-003",
 		organization_id: orgId,
 		customer_id: "customer-008",
-		type: "other",
+		type: "contract",
 		bucket: "customer-documents",
 		file_path: "/demo-pdfs/seguimiento-casa-rural-la-safor.pdf",
 		file_name: "seguimiento-casa-rural-la-safor.pdf",
