@@ -41,12 +41,12 @@ const organization: Organization = {
 
 const profiles: Profile[] = [
 	{
-		id: "user-owner",
+		id: "user-admin",
 		organization_id: orgId,
-		full_name: "Laura Martinez",
-		email: "laura@electrico.local",
-		role: "owner",
-		phone: "+34 600 111 000",
+		full_name: "Carlos Rivas",
+		email: "carlos@electrico.local",
+		role: "admin",
+		phone: "+34 600 111 001",
 		created_at: nowIso,
 	},
 	{
@@ -431,7 +431,7 @@ const tasks: Task[] = [
 		status: "pending",
 		priority: "medium",
 		due_at: `${addMonths(now, 0).toISOString().slice(0, 10)}T16:30:00.000Z`,
-		assigned_to: "user-tech-1",
+		assigned_to: "user-admin",
 		created_at: subDays(now, 2).toISOString(),
 		updated_at: subDays(now, 2).toISOString(),
 		created_by: "user-admin",
@@ -612,7 +612,7 @@ const installations: Installation[] = [
 		city: "Castellon",
 		province: "Castellon",
 		postal_code: "12006",
-		assigned_technician: "user-tech-1",
+		assigned_technician: "user-admin",
 		scheduled_at: addMonths(now, 0).toISOString().slice(0, 10),
 		notes: "Revisar potencia contratada y cuadro general.",
 		created_at: subDays(now, 3).toISOString(),
@@ -629,7 +629,7 @@ const installations: Installation[] = [
 		city: "Alzira",
 		province: "Valencia",
 		postal_code: "46600",
-		assigned_technician: "user-tech-1",
+		assigned_technician: "user-admin",
 		notes: "Pendiente de cerrar fecha con cliente.",
 		created_at: subDays(now, 5).toISOString(),
 		updated_at: subDays(now, 2).toISOString(),
@@ -642,7 +642,7 @@ const installationVisits: InstallationVisit[] = [
 		id: "visit-001",
 		organization_id: orgId,
 		installation_id: "installation-001",
-		technician_id: "user-tech-1",
+		technician_id: "user-admin",
 		scheduled_at: addMonths(now, 0).toISOString().slice(0, 10),
 		notes: "Llevar comprobador de potencia y camara termica.",
 		photo_paths: [],
@@ -745,10 +745,10 @@ documents.push({
 	file_name: "cuadro-electrico.jpg",
 	mime_type: "image/jpeg",
 	size_bytes: 640_000,
-	uploaded_by: "user-tech-1",
+	uploaded_by: "user-admin",
 	created_at: subDays(now, 1).toISOString(),
 	updated_at: nowIso,
-	created_by: "user-tech-1",
+	created_by: "user-admin",
 });
 
 const activityLogs: ActivityLog[] = customers.map((customer, index) => {
