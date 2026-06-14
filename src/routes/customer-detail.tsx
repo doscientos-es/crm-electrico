@@ -6,7 +6,7 @@ import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { DataTable, Td, Tr, TruncatePath } from '../components/ui/table'
-import { customerStatusLabels } from '../config/constants'
+import { customerStatusLabels, customerTypeLabels } from '../config/constants'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
 import { getDaysToRenewal, getRenewalAlertDate } from '../lib/customer-workflow'
 import { formatDate, relativeTime } from '../lib/formatters'
@@ -79,6 +79,7 @@ export function CustomerDetailRoute() {
         <Stat label="Estado">
           <StatusBadge value={customerStatusLabels[customer.status as keyof typeof customerStatusLabels] ?? customer.status} />
         </Stat>
+        <Stat label="Tipo"><StatusBadge value={customerTypeLabels[customer.type]} /></Stat>
         <Stat label="Contrato firmado">{formatDate(customer.contract_signed_at ?? undefined)}</Stat>
         <Stat label="Renovación">{formatDate(customer.renewal_date ?? undefined)}</Stat>
         <Stat label="Aviso automático">{alertDate ? formatDate(alertDate.toISOString()) : '—'}</Stat>
@@ -93,6 +94,7 @@ export function CustomerDetailRoute() {
           <h3 className="mb-3 text-sm font-semibold text-foreground">Ficha del cliente</h3>
           <dl className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
             <DetailRow label="DNI" value={customer.dni ?? '—'} />
+            <DetailRow label="Tipo" value={customerTypeLabels[customer.type]} />
             <DetailRow label="Empresa" value={customer.company ?? '—'} />
             <DetailRow label="Productos y servicios" value={customer.products_services.join(', ') || '—'} />
             <DetailRow label="Comercial" value={owner?.full_name ?? '—'} />
@@ -109,6 +111,20 @@ export function CustomerDetailRoute() {
             <DetailRow label="Documentos" value={String(documents.length)} />
           </dl>
         </div>
+      </section>
+
+      <section className="mt-8">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Datos energéticos</h3>
+        <dl className="grid overflow-hidden rounded-lg border border-border bg-card divide-y divide-border md:grid-cols-2 md:divide-y-0">
+          <DetailRow label="CUPS" value={customer.energy_data?.cups || '—'} />
+          <DetailRow label="Comercializadora" value={customer.energy_data?.marketer || '—'} />
+          <DetailRow label="Producto" value={customer.energy_data?.product || '—'} />
+          <DetailRow label="Tarifa" value={customer.energy_data?.tariff || '—'} />
+          <DetailRow label="Consumo anual" value={customer.energy_data ? `${customer.energy_data.annualConsumptionKwh.toLocaleString('es-ES')} kWh` : '—'} />
+          <DetailRow label="Margen estimado" value={customer.energy_data ? `${customer.energy_data.estimatedMargin.toLocaleString('es-ES')} EUR` : '—'} />
+          <DetailRow label="Inicio" value={formatDate(customer.energy_data?.startDate)} />
+          <DetailRow label="Fin" value={formatDate(customer.energy_data?.endDate)} />
+        </dl>
       </section>
 
       {/* Documents — section heading + table, no card wrapper */}

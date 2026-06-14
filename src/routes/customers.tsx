@@ -5,7 +5,7 @@ import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
-import { customerStatusLabels } from '../config/constants'
+import { customerStatusLabels, customerTypeLabels } from '../config/constants'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
 import { useAuth } from '../features/auth/AuthContext'
 import { useDebounce } from '../hooks/use-debounce'
@@ -23,12 +23,14 @@ export function CustomersRoute() {
   const search = params.get('q') ?? ''
   const status = params.get('status') ?? 'all'
   const owner = params.get('owner') ?? 'all'
-  const page = Number(params.get('page') ?? '0')
+  const type = params.get('type') ?? 'all'
+  const page = Number(params.get('page') ?? '1')
 
   function setSearch(v: string) { setParams((p) => { const n = new URLSearchParams(p); v ? n.set('q', v) : n.delete('q'); n.delete('page'); return n }, { replace: true }) }
   function setStatus(v: string) { setParams((p) => { const n = new URLSearchParams(p); v !== 'all' ? n.set('status', v) : n.delete('status'); n.delete('page'); return n }, { replace: true }) }
   function setOwner(v: string) { setParams((p) => { const n = new URLSearchParams(p); v !== 'all' ? n.set('owner', v) : n.delete('owner'); n.delete('page'); return n }, { replace: true }) }
-  function setPage(p: number) { setParams((prev) => { const n = new URLSearchParams(prev); p > 0 ? n.set('page', String(p)) : n.delete('page'); return n }, { replace: true }) }
+  function setType(v: string) { setParams((p) => { const n = new URLSearchParams(p); v !== 'all' ? n.set('type', v) : n.delete('type'); n.delete('page'); return n }, { replace: true }) }
+  function setPage(p: number) { setParams((prev) => { const n = new URLSearchParams(prev); if (p > 1) n.set('page', String(p)); else n.delete('page'); return n }, { replace: true }) }
 
   const debouncedSearch = useDebounce(search, 250)
 
@@ -36,7 +38,8 @@ export function CustomersRoute() {
     search: debouncedSearch || undefined,
     status: status !== 'all' ? status : undefined,
     assignedTo: owner !== 'all' ? owner : undefined,
-    page,
+    type: type !== 'all' ? type : undefined,
+    page: page - 1,
     pageSize: PAGE_SIZE,
   })
 
@@ -49,7 +52,7 @@ export function CustomersRoute() {
 
   const customers = result?.data ?? []
   const total = result?.count ?? 0
-  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div>
@@ -76,6 +79,13 @@ export function CustomersRoute() {
             <option value="lost">Perdidos</option>
           </Select>
         </Field>
+        <Field label="Tipo" className="w-44">
+          <Select value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="all">Todos</option>
+            <option value="RESIDENTIAL">Residencial</option>
+            <option value="SME">Empresa / PYME</option>
+          </Select>
+        </Field>
         {currentUser?.role !== 'sales' && (
           <Field label="Comercial" className="w-44">
             <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
@@ -96,7 +106,7 @@ export function CustomersRoute() {
         />
       ) : (
         <DataTable
-          headers={['Cliente', 'Estado', 'Contrato', 'Renovacion', 'Servicios', 'Comercial']}
+          headers={['Cliente', 'Tipo', 'Estado', 'Contrato', 'Renovacion', 'Servicios', 'Comercial']}
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage, onPageSizeChange: () => { } }}
         >
           {customers.map((customer) => (
@@ -107,6 +117,7 @@ export function CustomersRoute() {
                   {customer.dni ?? 'Sin DNI'} · {customer.company ?? 'Sin empresa'}
                 </p>
               </Td>
+              <Td><StatusBadge value={customerTypeLabels[customer.type]} /></Td>
               <Td><StatusBadge value={customerStatusLabels[customer.status as keyof typeof customerStatusLabels] ?? customer.status} /></Td>
               <Td variant="muted">{formatDate(customer.contract_signed_at ?? undefined)}</Td>
               <Td variant="muted">{formatDate(customer.renewal_date ?? undefined)}</Td>

@@ -1,20 +1,23 @@
 import { Badge } from '../ui/badge'
 
-export function StatusBadge({ value }: { value: string }) {
+export function StatusBadge({ value }: { value?: string | null }) {
+  const label = value?.trim() || 'Sin estado'
   const variant =
-    value.includes('Ganado') ||
-      value.includes('Acept') ||
-      value.includes('Firm') ||
-      value.includes('Complet') ||
-      value.includes('Convert')
+    label.includes('Ganado') ||
+      label.includes('Acept') ||
+      label.includes('Firm') ||
+      label === 'Activo' ||
+      label.includes('Resuelta') ||
+      label.includes('Complet') ||
+      label.includes('Convert')
       ? 'emerald'
-      : value.includes('Perd') || value.includes('Rechaz') || value.includes('Cancel')
+      : label.includes('Perd') || label.includes('Rechaz') || label.includes('Cancel')
         ? 'destructive'
-        : value.includes('Urgente') || value.includes('Alta') || value.includes('Envi') || value.includes('Renovacion')
+        : label.includes('Urgente') || label.includes('Alta') || label.includes('Envi') || label.includes('Renovacion') || label.includes('Pendiente')
           ? 'amber'
-          : value.includes('curso') || value.includes('Program')
+          : label.includes('curso') || label.includes('Program')
             ? 'sky'
             : 'outline'
 
-  return <Badge variant={variant}>{value}</Badge>
+  return <Badge variant={variant}>{label}</Badge>
 }

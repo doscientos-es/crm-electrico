@@ -2,11 +2,13 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type AppRole = 'owner' | 'admin' | 'sales' | 'technician' | 'viewer'
 export type CustomerStatus = 'active' | 'renewal_due' | 'renewed' | 'inactive' | 'lost'
-export type CustomerType = 'residential' | 'business' | 'community' | 'industrial'
+export type CustomerType = 'RESIDENTIAL' | 'SME'
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'lost' | 'converted'
 export type DealStatus = 'open' | 'won' | 'lost'
 export type ProposalStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
-export type ContractStatus = 'draft' | 'sent' | 'signed' | 'cancelled'
+export type ContractStatus = 'PENDING_PROCESSING' | 'PROCESSING' | 'PENDING_SIGNATURE' | 'ACTIVE' | 'CANCELLED'
+export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'RESOLVED' | 'CLOSED'
+export type IncidentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type InstallationStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type TaskStatus = 'pending' | 'in_progress' | 'done' | 'cancelled'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -104,6 +106,7 @@ export type Database = {
           province: string | null
           postal_code: string | null
           notes: string | null
+          energy_data: Json | null
           estimated_monthly_bill: number | null
           assigned_to: string | null
           converted_customer_id: string | null
@@ -125,6 +128,7 @@ export type Database = {
           province?: string | null
           postal_code?: string | null
           notes?: string | null
+          energy_data?: Json | null
           estimated_monthly_bill?: number | null
           assigned_to?: string | null
           converted_customer_id?: string | null
@@ -145,6 +149,7 @@ export type Database = {
           province?: string | null
           postal_code?: string | null
           notes?: string | null
+          energy_data?: Json | null
           estimated_monthly_bill?: number | null
           assigned_to?: string | null
           converted_customer_id?: string | null
@@ -539,6 +544,8 @@ export type Database = {
           starts_at: string | null
           ends_at: string | null
           amount_eur: number
+          commission_eur: number
+          energy_data: Json | null
           file_path: string | null
           created_at: string
           updated_at: string
@@ -555,6 +562,8 @@ export type Database = {
           starts_at?: string | null
           ends_at?: string | null
           amount_eur?: number
+          commission_eur?: number
+          energy_data?: Json | null
           file_path?: string | null
           created_at?: string
           updated_at?: string
@@ -569,7 +578,51 @@ export type Database = {
           starts_at?: string | null
           ends_at?: string | null
           amount_eur?: number
+          commission_eur?: number
+          energy_data?: Json | null
           file_path?: string | null
+          updated_at?: string
+        }
+      }
+      incidents: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          status: IncidentStatus
+          priority: IncidentPriority
+          customer_id: string
+          contract_id: string | null
+          assigned_to: string | null
+          internal_notes: string
+          resolved_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string
+          status?: IncidentStatus
+          priority?: IncidentPriority
+          customer_id: string
+          contract_id?: string | null
+          assigned_to?: string | null
+          internal_notes?: string
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          description?: string
+          status?: IncidentStatus
+          priority?: IncidentPriority
+          customer_id?: string
+          contract_id?: string | null
+          assigned_to?: string | null
+          internal_notes?: string
+          resolved_at?: string | null
           updated_at?: string
         }
       }
@@ -811,6 +864,8 @@ export type Database = {
       deal_status: DealStatus
       proposal_status: ProposalStatus
       contract_status: ContractStatus
+      incident_status: IncidentStatus
+      incident_priority: IncidentPriority
       installation_status: InstallationStatus
       task_status: TaskStatus
       task_priority: TaskPriority

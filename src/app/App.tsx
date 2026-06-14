@@ -6,11 +6,15 @@ import { AppShell } from '../components/layout/AppShell'
 import { ProtectedRoute } from '../features/auth/ProtectedRoute'
 
 const LoginRoute = lazy(() => import('../routes/login').then((m) => ({ default: m.LoginRoute })))
-const ForgotPasswordRoute = lazy(() => import('../routes/forgot-password').then((m) => ({ default: m.ForgotPasswordRoute })))
-const SetPasswordRoute = lazy(() => import('../routes/set-password').then((m) => ({ default: m.SetPasswordRoute })))
 const DashboardRoute = lazy(() => import('../routes/dashboard').then((m) => ({ default: m.DashboardRoute })))
 const CustomersRoute = lazy(() => import('../routes/customers').then((m) => ({ default: m.CustomersRoute })))
 const CustomerDetailRoute = lazy(() => import('../routes/customer-detail').then((m) => ({ default: m.CustomerDetailRoute })))
+const ContractsRoute = lazy(() => import('../routes/contracts').then((m) => ({ default: m.ContractsRoute })))
+const ContractFormRoute = lazy(() => import('../routes/contract-form').then((m) => ({ default: m.ContractFormRoute })))
+const ContractDetailRoute = lazy(() => import('../routes/contract-detail').then((m) => ({ default: m.ContractDetailRoute })))
+const IncidentsRoute = lazy(() => import('../routes/incidents').then((m) => ({ default: m.IncidentsRoute })))
+const IncidentFormRoute = lazy(() => import('../routes/incident-form').then((m) => ({ default: m.IncidentFormRoute })))
+const IncidentDetailRoute = lazy(() => import('../routes/incident-detail').then((m) => ({ default: m.IncidentDetailRoute })))
 const RenewalsRoute = lazy(() => import('../routes/renewals').then((m) => ({ default: m.RenewalsRoute })))
 const DocumentsRoute = lazy(() => import('../routes/documents').then((m) => ({ default: m.DocumentsRoute })))
 const SettingsRoute = lazy(() => import('../routes/settings').then((m) => ({ default: m.SettingsRoute })))
@@ -30,22 +34,6 @@ export function App() {
         }
       />
       <Route
-        path="/forgot-password"
-        element={
-          <Suspense fallback={<PageSkeleton kpis={0} tableRows={0} />}>
-            <ForgotPasswordRoute />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/set-password"
-        element={
-          <Suspense fallback={<PageSkeleton kpis={0} tableRows={0} />}>
-            <SetPasswordRoute />
-          </Suspense>
-        }
-      />
-      <Route
         element={
           <ProtectedRoute>
             <AppShell />
@@ -56,6 +44,14 @@ export function App() {
         <Route path="/dashboard" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={6} />}><ErrorBoundary level="page"><DashboardRoute /></ErrorBoundary></Suspense>} />
         <Route path="/customers" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><CustomersRoute /></ErrorBoundary></Suspense>} />
         <Route path="/customers/:id" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={4} tableCols={3} />}><ErrorBoundary level="page"><CustomerDetailRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/contracts" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/contracts/new" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractFormRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/contracts/:id" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractDetailRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/contracts/:id/edit" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractFormRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents/new" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentFormRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents/:id" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentDetailRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents/:id/edit" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentFormRoute /></ErrorBoundary></Suspense>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
 

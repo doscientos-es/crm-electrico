@@ -7,10 +7,8 @@ export const leadStatusLabels = {
 }
 
 export const customerTypeLabels = {
-  residential: 'Residencial',
-  business: 'Empresa',
-  community: 'Comunidad',
-  industrial: 'Industrial',
+  RESIDENTIAL: 'Residencial',
+  SME: 'Empresa / PYME',
 }
 
 export const customerStatusLabels = {
@@ -29,10 +27,26 @@ export const proposalStatusLabels = {
 }
 
 export const contractStatusLabels = {
-  draft: 'Borrador',
-  sent: 'Enviado',
-  signed: 'Firmado',
-  cancelled: 'Cancelado',
+  PENDING_PROCESSING: 'Pendiente de tramitar',
+  PROCESSING: 'En tramitación',
+  PENDING_SIGNATURE: 'Pendiente de firma',
+  ACTIVE: 'Activo',
+  CANCELLED: 'Cancelado',
+}
+
+export const incidentStatusLabels = {
+  OPEN: 'Abierta',
+  IN_PROGRESS: 'En curso',
+  WAITING_CUSTOMER: 'Esperando cliente',
+  RESOLVED: 'Resuelta',
+  CLOSED: 'Cerrada',
+}
+
+export const incidentPriorityLabels = {
+  LOW: 'Baja',
+  MEDIUM: 'Media',
+  HIGH: 'Alta',
+  URGENT: 'Urgente',
 }
 
 export const installationStatusLabels = {

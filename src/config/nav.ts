@@ -1,6 +1,8 @@
 import {
 	Building2,
+	CircleAlert,
 	FileArchive,
+	FileText,
 	Home,
 	Settings,
 	ShieldCheck,
@@ -10,6 +12,8 @@ import {
 export const navItems = [
 	{ href: "/dashboard", label: "Dashboard", icon: Home },
 	{ href: "/customers", label: "Clientes", icon: Building2 },
+	{ href: "/contracts", label: "Contratos", icon: FileText },
+	{ href: "/incidents", label: "Incidencias", icon: CircleAlert },
 	{ href: "/renewals", label: "Renovaciones", icon: ShieldCheck },
 	{ href: "/documents", label: "Documentos", icon: FileArchive },
 	{ href: "/settings", label: "Ajustes", icon: Settings },

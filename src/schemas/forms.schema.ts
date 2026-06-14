@@ -51,7 +51,7 @@ export const contractSchema = z.object({
   customer_id: z.string().min(1, 'Este campo es obligatorio'),
   deal_id: z.string().optional(),
   proposal_id: z.string().optional(),
-  status: z.enum(['draft', 'sent', 'signed', 'cancelled']),
+  status: z.enum(['PENDING_PROCESSING', 'PROCESSING', 'PENDING_SIGNATURE', 'ACTIVE', 'CANCELLED']),
   contract_number: z.string().min(1, 'Este campo es obligatorio'),
   starts_at: z.string().optional(),
   ends_at: z.string().optional(),

@@ -10,15 +10,8 @@ import { type CustomerFormValues, customerSchema } from '../../schemas/customer.
 import { useAuth } from '../../features/auth/AuthContext'
 import { type CustomerRow, useCreateCustomer, useUpdateCustomer } from '../../services/customers.service'
 import { useProfiles } from '../../services/profiles.service'
-import type { CustomerStatus } from '../../types/database.types'
 
-type FullFormValues = CustomerFormValues & {
-  status: CustomerStatus
-  contract_signed_at: string
-  renewal_date: string
-  assigned_to: string
-  products_services: string
-}
+type FullFormValues = CustomerFormValues
 
 export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
   const isEditing = Boolean(customer)
@@ -31,7 +24,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
   const defaultRenewal = useMemo(() => addMonths(new Date(), 12).toISOString().slice(0, 10), [])
 
   const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FullFormValues>({
-    resolver: zodResolver(customerSchema),
+    resolver: zodResolver(customerSchema) as never,
     defaultValues: customer
       ? {
         name: customer.name,
@@ -48,9 +41,21 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         renewal_date: customer.renewal_date?.slice(0, 10) ?? defaultRenewal,
         assigned_to: customer.assigned_to ?? currentUser.id,
         products_services: customer.products_services.join(', '),
+        cups: customer.energy_data?.cups ?? '',
+        marketer: customer.energy_data?.marketer ?? '',
+        product: customer.energy_data?.product ?? '',
+        annual_consumption_kwh: customer.energy_data?.annualConsumptionKwh ?? 0,
+        tariff: customer.energy_data?.tariff ?? '',
+        energy_price: customer.energy_data?.energyPrice ?? 0,
+        power_price: customer.energy_data?.powerPrice ?? 0,
+        commission: customer.energy_data?.commission ?? 0,
+        estimated_margin: customer.energy_data?.estimatedMargin ?? 0,
+        energy_start_date: customer.energy_data?.startDate ?? '',
+        energy_end_date: customer.energy_data?.endDate ?? '',
+        energy_notes: customer.energy_data?.notes ?? '',
       }
       : {
-        type: 'residential',
+        type: 'RESIDENTIAL',
         status: 'active',
         contract_signed_at: today,
         renewal_date: defaultRenewal,
@@ -58,15 +63,46 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         products_services: '',
         email: '',
         phone: '',
+        cups: '',
+        marketer: '',
+        product: '',
+        annual_consumption_kwh: 0,
+        tariff: '',
+        energy_price: 0,
+        power_price: 0,
+        commission: 0,
+        estimated_margin: 0,
+        energy_start_date: '',
+        energy_end_date: '',
+        energy_notes: '',
       },
   })
 
   function onSubmit(values: FullFormValues) {
     const products = (values.products_services ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+    const hasEnergyData = Boolean(values.cups || values.marketer || values.product || values.tariff)
+    if (hasEnergyData && !values.cups.trim()) {
+      setValue('cups', '')
+      return
+    }
+    const energy_data = hasEnergyData ? {
+      cups: values.cups,
+      marketer: values.marketer,
+      product: values.product,
+      annualConsumptionKwh: Number(values.annual_consumption_kwh || 0),
+      tariff: values.tariff,
+      energyPrice: Number(values.energy_price || 0),
+      powerPrice: Number(values.power_price || 0),
+      commission: Number(values.commission || 0),
+      estimatedMargin: Number(values.estimated_margin || 0),
+      startDate: values.energy_start_date,
+      endDate: values.energy_end_date,
+      notes: values.energy_notes,
+    } : null
     if (isEditing && customer) {
       updateCustomer.mutate({
         id: customer.id,
-        type: values.legal_name ? 'business' : 'residential',
+        type: values.type,
         name: values.name,
         company: values.legal_name || null,
         legal_name: values.legal_name || null,
@@ -82,10 +118,11 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         assigned_to: values.assigned_to || null,
         products_services: products,
         notes: values.notes || null,
+        energy_data,
       }, { onSuccess: () => { reset(); setOpen(false) } })
     } else {
       createCustomer.mutate({
-        type: values.legal_name ? 'business' : 'residential',
+        type: values.type,
         name: values.name,
         company: values.legal_name || null,
         legal_name: values.legal_name || null,
@@ -101,6 +138,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         assigned_to: values.assigned_to || null,
         products_services: products,
         notes: values.notes || null,
+        energy_data,
       }, { onSuccess: () => { reset(); setOpen(false) } })
     }
   }
@@ -126,6 +164,12 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
     >
       <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Tipo de cliente" error={errors.type?.message}>
+            <Select {...register('type')}>
+              <option value="RESIDENTIAL">Residencial</option>
+              <option value="SME">Empresa / PYME</option>
+            </Select>
+          </Field>
           <Field label="Nombre" error={errors.name?.message}>
             <Input {...register('name')} />
           </Field>
@@ -183,6 +227,23 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         <Field label="Notas" error={errors.notes?.message}>
           <Textarea {...register('notes')} />
         </Field>
+        <div className="border-t border-border pt-4">
+          <h3 className="mb-3 text-sm font-semibold">Datos energéticos</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="CUPS" hint="Obligatorio si completas datos energéticos"><Input {...register('cups')} /></Field>
+            <Field label="Comercializadora"><Input {...register('marketer')} /></Field>
+            <Field label="Producto"><Input {...register('product')} /></Field>
+            <Field label="Tarifa"><Input {...register('tariff')} /></Field>
+            <Field label="Consumo anual (kWh)"><Input type="number" min="0" step="0.01" {...register('annual_consumption_kwh')} /></Field>
+            <Field label="Precio energía"><Input type="number" min="0" step="0.0001" {...register('energy_price')} /></Field>
+            <Field label="Precio potencia"><Input type="number" min="0" step="0.01" {...register('power_price')} /></Field>
+            <Field label="Comisión"><Input type="number" min="0" step="0.01" {...register('commission')} /></Field>
+            <Field label="Margen estimado"><Input type="number" min="0" step="0.01" {...register('estimated_margin')} /></Field>
+            <Field label="Inicio"><Input type="date" {...register('energy_start_date')} /></Field>
+            <Field label="Fin"><Input type="date" {...register('energy_end_date')} /></Field>
+          </div>
+          <Field label="Observaciones" className="mt-4"><Textarea {...register('energy_notes')} /></Field>
+        </div>
         <Button type="submit" disabled={isSubmitting}>{isEditing ? 'Guardar cambios' : 'Guardar cliente'}</Button>
       </form>
     </Dialog>

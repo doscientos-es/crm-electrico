@@ -17,5 +17,6 @@ export const queryKeys = {
   tasks: (filters?: unknown) => ['tasks', filters] as const,
   documents: (filters?: unknown) => ['documents', filters] as const,
   contracts: (filters?: unknown) => ['contracts', filters] as const,
+  incidents: (filters?: unknown) => ['incidents', filters] as const,
   installations: (filters?: unknown) => ['installations', filters] as const,
 }

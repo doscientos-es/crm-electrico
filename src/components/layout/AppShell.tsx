@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils'
 import { useLeads } from '../../services/leads.service'
 import { useOrganization } from '../../services/organization.service'
 import { useTasks } from '../../services/tasks.service'
+import { useIncidents } from '../../services/incidents.service'
 import { ErrorBoundary } from '../feedback/ErrorBoundary'
 import { PageSkeleton } from '../feedback/Skeleton'
 import { Button } from '../ui/button'
@@ -107,6 +108,7 @@ function SidebarContent({ onNavigate, badges }: { onNavigate?: () => void; badge
 export function AppShell() {
   const { data: leadsData } = useLeads({ status: 'new', pageSize: 200 })
   const { data: tasksData } = useTasks()
+  const { data: incidentsData = [] } = useIncidents()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const location = useLocation()
@@ -126,6 +128,7 @@ export function AppShell() {
   const navBadges: NavBadges = {
     '/leads': leadsData?.count ?? 0,
     '/tasks': (tasksData ?? []).filter((t) => t.status !== 'done' && t.status !== 'cancelled').length,
+    '/incidents': incidentsData.filter((incident) => !['RESOLVED', 'CLOSED'].includes(incident.status)).length,
   }
 
   return (

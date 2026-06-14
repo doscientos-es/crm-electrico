@@ -6,6 +6,10 @@ import { PageHeader } from '../components/data-table/Toolbar'
 import { Button } from '../components/ui/button'
 import { useRecentActivity } from '../services/activity.service'
 import { useCustomers } from '../services/customers.service'
+import { useContracts } from '../services/contracts.service'
+import { useIncidents } from '../services/incidents.service'
+import { contractStatusLabels } from '../config/constants'
+import { StatusBadge } from '../components/feedback/StatusBadge'
 import { getDaysToRenewal, getRenewalStage } from '../lib/customer-workflow'
 import { relativeTime } from '../lib/formatters'
 
@@ -28,23 +32,36 @@ const renewalStageStyle: Record<string, { label: string; className: string }> = 
 export function DashboardRoute() {
   const { data: customersResult, isLoading: customersLoading } = useCustomers({ pageSize: 500 })
   const { data: recentActivity } = useRecentActivity(8)
+  const { data: contracts = [] } = useContracts()
+  const { data: incidents = [] } = useIncidents()
 
-  const customers = customersResult?.data ?? []
+  const customers = useMemo(() => customersResult?.data ?? [], [customersResult?.data])
 
   const kpis = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
     const thisMonth = today.slice(0, 7)
     const activeCount = customers.filter((c) => c.status === 'active' || c.status === 'renewed').length
-    const urgentCount = customers.filter((c) => ['due', 'urgent', 'overdue'].includes(getRenewalStage(c as any))).length
+    const urgentCount = customers.filter((c) => ['due', 'urgent', 'overdue'].includes(getRenewalStage(c))).length
     const thisMonthCount = customers.filter((c) => c.renewal_date?.startsWith(thisMonth)).length
     const contactedTodayCount = customers.filter((c) => c.last_contact_at?.startsWith(today)).length
-    return { activeCount, urgentCount, thisMonthCount, contactedTodayCount }
-  }, [customers])
+    const openIncidents = incidents.filter((item) => !['RESOLVED', 'CLOSED'].includes(item.status)).length
+    const urgentIncidents = incidents.filter((item) => item.priority === 'URGENT' && !['RESOLVED', 'CLOSED'].includes(item.status)).length
+    const activeContracts = contracts.filter((item) => item.status === 'ACTIVE').length
+    const pendingSignature = contracts.filter((item) => item.status === 'PENDING_SIGNATURE').length
+    const processing = contracts.filter((item) => item.status === 'PROCESSING').length
+    const pendingProcessing = contracts.filter((item) => item.status === 'PENDING_PROCESSING').length
+    return { activeCount, urgentCount, thisMonthCount, contactedTodayCount, openIncidents, urgentIncidents, activeContracts, pendingSignature, processing, pendingProcessing }
+  }, [customers, contracts, incidents])
+
+  const contractsByStatus = useMemo(
+    () => Object.fromEntries(Object.keys(contractStatusLabels).map((status) => [status, contracts.filter((item) => item.status === status).length])),
+    [contracts],
+  )
 
   const urgentRenewals = useMemo(
     () =>
       customers
-        .map((c) => ({ customer: c, stage: getRenewalStage(c as any), days: getDaysToRenewal(c as any) }))
+        .map((c) => ({ customer: c, stage: getRenewalStage(c), days: getDaysToRenewal(c) }))
         .filter(({ stage }) => ['overdue', 'urgent', 'due'].includes(stage))
         .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
         .slice(0, 6),
@@ -69,6 +86,21 @@ export function DashboardRoute() {
         <Kpi title="Renovaciones urgentes" value={kpis.urgentCount} icon={<CalendarClock />} />
         <Kpi title="Renovaciones este mes" value={kpis.thisMonthCount} icon={<Users />} />
         <Kpi title="Contactados hoy" value={kpis.contactedTodayCount} icon={<Phone />} />
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Contratos por estado</h2>
+          <Button asChild size="sm" variant="ghost"><Link to="/contracts">Ver contratos</Link></Button>
+        </div>
+        <div className="grid overflow-hidden rounded-lg border border-border bg-card divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-5">
+          {Object.entries(contractStatusLabels).map(([status, label]) => (
+            <Link key={status} to={`/contracts?status=${status}`} className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-muted/50">
+              <StatusBadge value={label} />
+              <span className="text-xl font-semibold tabular-nums">{contractsByStatus[status] ?? 0}</span>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* Main content */}
@@ -115,7 +147,7 @@ export function DashboardRoute() {
                     {entityIcons[log.entity_type] ?? <Clock className="h-3.5 w-3.5" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-foreground">{String((log.metadata as any)?.label ?? log.action)}</p>
+                    <p className="truncate text-sm text-foreground">{String(log.metadata.label ?? log.action)}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{relativeTime(log.created_at)}</p>
                   </div>
                 </div>

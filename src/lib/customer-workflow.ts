@@ -4,9 +4,15 @@ import {
 	isAfter,
 	startOfDay,
 } from "date-fns";
-import type { AppRole, Tables } from "../types/database.types";
+import type { AppRole, CustomerStatus } from "../types/database.types";
 
-type Customer = Tables<'customers'>
+type Customer = {
+	assigned_to?: string | null;
+	renewal_alert_months?: number | null;
+	contract_signed_at?: string | null;
+	renewal_date?: string | null;
+	status: CustomerStatus;
+}
 
 export function canViewAllCustomers(role: AppRole) {
 	return role === "owner" || role === "admin";
