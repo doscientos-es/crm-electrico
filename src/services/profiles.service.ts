@@ -72,11 +72,24 @@ export function useInviteProfile() {
 			email,
 			fullName,
 			role,
-		}: { email: string; fullName: string; role: string }) => {
+			phone,
+		}: { email: string; fullName: string; role: string; phone?: string }) => {
 			const { error } = await supabase.functions.invoke("invite-member", {
-				body: { email, full_name: fullName, role },
+				body: { email, full_name: fullName, role, phone },
 			});
-			if (error) throw error;
+			if (error) {
+				// FunctionsHttpError carries the response body in error.context
+				const ctx = (error as { context?: Response }).context;
+				if (ctx) {
+					try {
+						const body = await ctx.json();
+						throw new Error(body?.error ?? error.message);
+					} catch (parseErr) {
+						if (parseErr instanceof Error && parseErr !== error) throw parseErr;
+					}
+				}
+				throw error;
+			}
 		},
 	});
 }

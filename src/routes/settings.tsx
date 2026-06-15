@@ -194,7 +194,7 @@ function MemberFormDialog() {
 
   async function onSubmit(values: MemberFormValues) {
     inviteProfile.mutate(
-      { fullName: values.full_name, email: values.email, role: values.role },
+      { fullName: values.full_name, email: values.email, role: values.role, phone: values.phone },
       {
         onSuccess: () => {
           setInviteSent(values.email)
@@ -301,7 +301,9 @@ function MemberFormDialog() {
         </fieldset>
         {inviteProfile.isError && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            Error al enviar la invitación. Inténtalo de nuevo.
+            {inviteProfile.error instanceof Error
+              ? inviteProfile.error.message
+              : 'Error al enviar la invitación. Inténtalo de nuevo.'}
           </p>
         )}
         {inviteSent && (
