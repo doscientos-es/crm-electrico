@@ -222,7 +222,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               <span><kbd className="font-mono">↵</kbd> abrir</span>
             </div>
             <div className="flex items-center gap-1">
-              <Zap className="h-3 w-3 text-primary" />
+              <img src={logo} alt="" className="h-3 w-3 object-contain" />
               <span>Renovaciones CRM</span>
             </div>
           </div>
