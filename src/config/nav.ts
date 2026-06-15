@@ -1,6 +1,7 @@
 import {
 	Building2,
 	FileArchive,
+	FileText,
 	Home,
 	Settings,
 	ShieldCheck,
@@ -21,6 +22,13 @@ export const navItems = [
 		icon: Building2,
 		description:
 			"Gestión completa de clientes: contratos, documentos y seguimiento comercial.",
+	},
+	{
+		href: "/contracts",
+		label: "Contratos",
+		icon: FileText,
+		description:
+			"Listado global de todos los contratos. Busca por número, CUPS, comercializadora o producto.",
 	},
 	{
 		href: "/renewals",
