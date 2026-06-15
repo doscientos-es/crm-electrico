@@ -16,6 +16,13 @@ type FullFormValues = CustomerFormValues & {
   products_services: string
 }
 
+/** Map system-managed statuses to their editable equivalent */
+function toEditableStatus(s: string): 'active' | 'inactive' | 'lost' {
+  if (s === 'inactive') return 'inactive'
+  if (s === 'lost') return 'lost'
+  return 'active' // active | renewal_due | renewed → active
+}
+
 export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
   const isEditing = Boolean(customer)
   const [open, setOpen] = useState(false)
@@ -29,7 +36,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
       ? {
         name: customer.name,
         type: customer.type,
-        status: customer.status,
+        status: toEditableStatus(customer.status),
         legal_name: customer.legal_name ?? '',
         tax_id: customer.dni ?? '',
         contact_name: customer.contact_name ?? '',
@@ -93,7 +100,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         )
       }
     >
-      <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+      <form className="grid gap-4" onSubmit={handleSubmit(onSubmit as never)}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Nombre" error={errors.name?.message}>
             <Input {...register('name')} />

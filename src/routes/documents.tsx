@@ -57,7 +57,7 @@ export function DocumentsRoute() {
   function handleUpload() {
     if (!selectedFile || !customerId || !currentUser) return
     uploadDocument.mutate(
-      { file: selectedFile, customerId, type, uploadedBy: currentUser.id },
+      { file: selectedFile, organizationId: currentUser.organization_id, customerId, type, uploadedBy: currentUser.id },
       {
         onSuccess: () => {
           toast.success('Documento subido')

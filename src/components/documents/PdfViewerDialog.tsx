@@ -1,6 +1,6 @@
 import { AlertTriangle, Copy, ExternalLink, Eye, FileText } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { getStoragePublicUrl, isPdfDocument } from '../../lib/storage'
+import { useEffect, useState } from 'react'
+import { getStorageSignedUrl, isPdfDocument } from '../../lib/storage'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -26,9 +26,20 @@ export function PdfViewerDialog({
   buttonLabel?: string
   buttonClassName?: string
 }) {
+  const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
-  const url = useMemo(() => getStoragePublicUrl(source.bucket, source.file_path), [source.bucket, source.file_path])
-  const canPreview = isPdfDocument(source.file_name, source.mime_type) && Boolean(url)
+  const [url, setUrl] = useState<string | null>(null)
+  const [urlError, setUrlError] = useState(false)
+  const canPreview = isPdfDocument(source.file_name, source.mime_type)
+
+  useEffect(() => {
+    if (!open || !canPreview) return
+    setUrl(null)
+    setUrlError(false)
+    getStorageSignedUrl(source.bucket, source.file_path)
+      .then(setUrl)
+      .catch(() => setUrlError(true))
+  }, [open, source.bucket, source.file_path, canPreview])
 
   async function copyPath() {
     await navigator.clipboard.writeText(source.file_path)
@@ -38,6 +49,8 @@ export function PdfViewerDialog({
 
   return (
     <Dialog
+      open={open}
+      onOpenChange={setOpen}
       title={title ?? source.file_name}
       description={description ?? source.file_path}
       size="xl"
@@ -64,13 +77,17 @@ export function PdfViewerDialog({
 
         {canPreview && url ? (
           <iframe title={source.file_name} src={url} className="h-[70dvh] w-full rounded-lg border border-border bg-background" />
+        ) : canPreview && !urlError ? (
+          <div className="grid place-items-center rounded-lg border border-dashed border-border bg-muted/30 p-10 text-center">
+            <p className="text-sm text-muted-foreground">Cargando vista previa…</p>
+          </div>
         ) : (
           <div className="grid place-items-center rounded-lg border border-dashed border-border bg-muted/30 p-10 text-center">
             <div className="max-w-md">
               <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
               <h3 className="mt-3 text-base font-semibold text-foreground">No se puede mostrar el PDF</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                El archivo necesita una URL pública de Storage para mostrarse en el visor.
+                No se pudo generar la URL firmada para este archivo.
               </p>
             </div>
           </div>

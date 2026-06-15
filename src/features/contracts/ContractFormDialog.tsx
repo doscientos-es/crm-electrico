@@ -16,12 +16,18 @@ const numOrNull = (v: number | undefined) => (v === undefined || Number.isNaN(v)
 export function ContractFormDialog({
   customerId,
   contract,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: {
   customerId: string
   contract?: ContractRow
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   const isEditing = Boolean(contract)
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = controlledOnOpenChange ?? setInternalOpen
   const createContract = useCreateContract()
   const updateContract = useUpdateContract()
   const onError = useToastError()
@@ -98,7 +104,7 @@ export function ContractFormDialog({
       size="lg"
       title={isEditing ? 'Editar contrato' : 'Nuevo contrato'}
       trigger={
-        isEditing ? (
+        controlledOpen !== undefined ? undefined : isEditing ? (
           <Button variant="secondary" size="sm"><Pencil className="h-4 w-4" />Editar</Button>
         ) : (
           <Button size="sm"><Plus className="h-4 w-4" />Nuevo contrato</Button>

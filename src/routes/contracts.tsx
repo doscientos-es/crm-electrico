@@ -1,13 +1,15 @@
 import { Search } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
+import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { useDebounce } from '../hooks/use-debounce'
 import { formatDate, money } from '../lib/formatters'
-import { useAllContracts } from '../services/contracts.service'
+import { type ContractWithCustomer, useAllContracts } from '../services/contracts.service'
 import type { ContractStatus } from '../types/database.types'
 
 const PAGE_SIZE = 25
@@ -15,6 +17,7 @@ const PAGE_SIZE = 25
 export function ContractsRoute() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
+  const [editingContract, setEditingContract] = useState<ContractWithCustomer | null>(null)
 
   const search = params.get('q') ?? ''
   const status = params.get('status') ?? 'all'
@@ -80,7 +83,7 @@ export function ContractsRoute() {
       ) : (
         <DataTable
           headers={['Cliente', 'Nº Contrato', 'Estado', 'Producto / Comercializadora', 'CUPS', 'Inicio', 'Fin', 'Importe']}
-          pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage, onPageSizeChange: () => {} }}
+          pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage, onPageSizeChange: () => { } }}
         >
           {contracts.map((contract) => (
             <Tr

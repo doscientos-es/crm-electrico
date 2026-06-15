@@ -34,8 +34,18 @@ export function CustomerDetailRoute() {
     [profiles, customer?.assigned_to],
   )
   const activeContracts = contracts.filter((c) => c.status === 'active').length
-  const daysToRenewal = customer ? getDaysToRenewal(customer) : undefined
-  const alertDate = customer ? getRenewalAlertDate(customer) : undefined
+
+  // Derive renewal stats from the latest active contract, not from customer fields
+  const latestActiveContract = contracts
+    .filter((c) => c.status === 'active' && c.ends_at)
+    .sort((a, b) => (b.ends_at ?? '').localeCompare(a.ends_at ?? ''))[0]
+
+  const renewalCustomerView = latestActiveContract && customer
+    ? { ...customer, renewal_date: latestActiveContract.ends_at, contract_signed_at: latestActiveContract.starts_at ? `${latestActiveContract.starts_at}T00:00:00Z` : null }
+    : customer
+
+  const daysToRenewal = renewalCustomerView ? getDaysToRenewal(renewalCustomerView) : undefined
+  const alertDate = renewalCustomerView ? getRenewalAlertDate(renewalCustomerView) : undefined
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>
@@ -101,8 +111,8 @@ export function CustomerDetailRoute() {
         <Stat label="Estado">
           <StatusBadge value={customerStatusLabels[customer.status as keyof typeof customerStatusLabels] ?? customer.status} />
         </Stat>
-        <Stat label="Contrato firmado">{formatDate(customer.contract_signed_at ?? undefined)}</Stat>
-        <Stat label="Renovación">{formatDate(customer.renewal_date ?? undefined)}</Stat>
+        <Stat label="Contrato firmado">{formatDate(latestActiveContract?.starts_at ?? undefined)}</Stat>
+        <Stat label="Vencimiento contrato">{formatDate(latestActiveContract?.ends_at ?? undefined)}</Stat>
         <Stat label="Aviso automático">{alertDate ? formatDate(alertDate.toISOString()) : '—'}</Stat>
         {typeof daysToRenewal === 'number' && (
           <Stat label="Días para renovar">{daysToRenewal} días</Stat>
