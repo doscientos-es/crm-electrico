@@ -192,7 +192,7 @@ function MemberFormDialog() {
 
   async function onSubmit(values: MemberFormValues) {
     inviteProfile.mutate(
-      { full_name: values.full_name, email: values.email, role: values.role, phone: values.phone ?? null, id: crypto.randomUUID() },
+      { fullName: values.full_name, email: values.email, role: values.role },
       {
         onSuccess: () => {
           setInviteSent(values.email)

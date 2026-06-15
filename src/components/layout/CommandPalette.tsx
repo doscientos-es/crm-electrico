@@ -1,12 +1,10 @@
 import {
   ArrowRight,
   Building2,
-  CircleUser,
   FileArchive,
   Hash,
   Home,
   Search,
-  SquareCheck,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -14,8 +12,6 @@ import logo from '../../assets/media/logo.png'
 import { appBrand, navItems } from '../../config/nav'
 import { useCustomers } from '../../services/customers.service'
 import { useDocuments } from '../../services/documents.service'
-import { useLeads } from '../../services/leads.service'
-import { useTasks } from '../../services/tasks.service'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot } from '../ui/dialog'
 
 type ResultItem = {
@@ -46,19 +42,13 @@ function highlight(text: string, query: string) {
 const categoryIconMap: Record<string, React.ElementType> = {
   'Páginas': Home,
   'Clientes': Building2,
-  'Leads': CircleUser,
-  'Tareas': SquareCheck,
   'Documentos': FileArchive,
 }
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { data: customersData } = useCustomers({ pageSize: 200 })
-  const { data: leadsData } = useLeads({ pageSize: 100 })
-  const { data: tasksData } = useTasks()
   const { data: documents = [] } = useDocuments()
   const customers = customersData?.data ?? []
-  const leads = leadsData?.data ?? []
-  const tasks = tasksData ?? []
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -99,23 +89,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       .slice(0, 6)
       .map((c) => ({ id: `customer-${c.id}`, category: 'Clientes', categoryIcon: Building2, label: c.name, sublabel: c.company ?? c.email ?? c.city ?? undefined, href: `/customers/${c.id}`, icon: Building2 }))
 
-    const ls: ResultItem[] = leads
-      .filter((l) => l.contact_name.toLowerCase().includes(q) || l.company_name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q))
-      .slice(0, 4)
-      .map((l) => ({ id: `lead-${l.id}`, category: 'Leads', categoryIcon: CircleUser, label: l.company_name ?? l.contact_name, sublabel: l.contact_name, href: '/customers', icon: CircleUser }))
-
-    const ts: ResultItem[] = tasks
-      .filter((t) => t.title.toLowerCase().includes(q) && t.status !== 'done')
-      .slice(0, 4)
-      .map((t) => ({ id: `task-${t.id}`, category: 'Tareas', categoryIcon: SquareCheck, label: t.title, sublabel: t.priority, href: '/customers', icon: SquareCheck }))
-
     const docs: ResultItem[] = documents
       .filter((d) => d.file_name.toLowerCase().includes(q))
       .slice(0, 4)
       .map((d) => ({ id: `doc-${d.id}`, category: 'Documentos', categoryIcon: FileArchive, label: d.file_name, sublabel: d.type, href: '/documents', icon: FileArchive }))
 
-    return [...pages, ...cust, ...ls, ...ts, ...docs]
-  }, [query, customers, leads, tasks, documents])
+    return [...pages, ...cust, ...docs]
+  }, [query, customers, documents])
 
   const grouped = useMemo(() => {
     const map = new Map<string, ResultItem[]>()
@@ -162,7 +142,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               ref={inputRef}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActiveIndex(0) }}
-              placeholder="Buscar clientes, leads, tareas, páginas…"
+              placeholder="Buscar clientes, documentos, páginas…"
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
             <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd>

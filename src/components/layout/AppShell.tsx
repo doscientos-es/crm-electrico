@@ -5,9 +5,7 @@ import logo from '../../assets/media/logo.png'
 import { appBrand, navItems } from '../../config/nav'
 import { useAuth } from '../../features/auth/AuthContext'
 import { cn } from '../../lib/utils'
-import { useLeads } from '../../services/leads.service'
 import { useOrganization } from '../../services/organization.service'
-import { useTasks } from '../../services/tasks.service'
 import { ErrorBoundary } from '../feedback/ErrorBoundary'
 import { PageSkeleton } from '../feedback/Skeleton'
 import { Button } from '../ui/button'
@@ -17,9 +15,7 @@ import { CommandPalette } from './CommandPalette'
 import { ThemeToggleButton } from './ThemeToggleButton'
 import { UserMenu } from './UserMenu'
 
-type NavBadges = Record<string, number>
-
-function SidebarContent({ onNavigate, badges }: { onNavigate?: () => void; badges?: NavBadges }) {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { profile, signOut } = useAuth()
   const { data: organization } = useOrganization()
 
@@ -44,7 +40,6 @@ function SidebarContent({ onNavigate, badges }: { onNavigate?: () => void; badge
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon
-            const count = badges?.[item.href] ?? 0
             return (
               <li key={item.href}>
                 <NavLink
@@ -68,18 +63,6 @@ function SidebarContent({ onNavigate, badges }: { onNavigate?: () => void; badge
                         )}
                       />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {count > 0 && (
-                        <span
-                          className={cn(
-                            'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums transition-colors',
-                            isActive
-                              ? 'bg-primary-foreground/20 text-primary-foreground'
-                              : 'bg-primary/10 text-primary',
-                          )}
-                        >
-                          {count > 99 ? '99+' : count}
-                        </span>
-                      )}
                     </>
                   )}
                 </NavLink>
@@ -105,8 +88,6 @@ function SidebarContent({ onNavigate, badges }: { onNavigate?: () => void; badge
 }
 
 export function AppShell() {
-  const { data: leadsData } = useLeads({ status: 'new', pageSize: 200 })
-  const { data: tasksData } = useTasks()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const location = useLocation()
@@ -123,16 +104,11 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const navBadges: NavBadges = {
-    '/leads': leadsData?.count ?? 0,
-    '/tasks': (tasksData ?? []).filter((t) => t.status !== 'done' && t.status !== 'cancelled').length,
-  }
-
   return (
     <div className="min-h-dvh bg-background">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
-        <SidebarContent badges={navBadges} />
+        <SidebarContent />
       </aside>
 
       {/* Mobile drawer via Radix Dialog */}
@@ -143,7 +119,7 @@ export function AppShell() {
             aria-label="Menu de navegacion"
             className="animate-slide-in-left fixed inset-y-0 left-0 z-50 w-64 shadow-2xl shadow-black/10 lg:hidden"
           >
-            <SidebarContent onNavigate={() => setDrawerOpen(false)} badges={navBadges} />
+            <SidebarContent onNavigate={() => setDrawerOpen(false)} />
           </div>
         </DialogPortal>
       </DialogRoot>

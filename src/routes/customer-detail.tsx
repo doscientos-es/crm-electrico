@@ -169,7 +169,7 @@ const actionIcons: Record<string, ReactNode> = {
 }
 
 function ActivityLog({ customerId }: { customerId: string }) {
-  const { data: logs = [] } = useActivityLogs('customer', customerId)
+  const { data: logs = [] } = useActivityLogs(customerId)
 
   return (
     <section className="mt-8">
