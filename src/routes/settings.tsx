@@ -19,7 +19,7 @@ import type { ThemePreference } from '../lib/theme'
 import { cn } from '../lib/utils'
 import { useCustomers } from '../services/customers.service'
 import { useOrganization, useUpdateOrganization } from '../services/organization.service'
-import { useInviteProfile, useProfiles, useUpdateProfile } from '../services/profiles.service'
+import { useDeleteProfile, useInviteProfile, useProfiles, useUpdateProfile } from '../services/profiles.service'
 import type { AppRole } from '../types/database.types'
 
 // ─── Appearance Tab ──────────────────────────────────────────────────────────
@@ -328,6 +328,7 @@ function TeamTab() {
   const { data: profiles = [] } = useProfiles()
   const { data: customersResult } = useCustomers({ pageSize: 500 })
   const updateProfile = useUpdateProfile()
+  const deleteProfile = useDeleteProfile()
   const canEditRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin'
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -395,8 +396,19 @@ function TeamTab() {
                     confirmDeleteId === profile.id ? (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">¿Eliminar?</span>
-                        <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}>
+                        <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}>
                           Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={deleteProfile.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteProfile.mutate(profile.id, { onSuccess: () => setConfirmDeleteId(null) })
+                          }}
+                        >
+                          Eliminar
                         </Button>
                       </div>
                     ) : (

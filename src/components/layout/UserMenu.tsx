@@ -30,7 +30,7 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-11 gap-3 rounded-full px-3">
+        <Button variant="ghost" size="sm" className="h-11 w-full gap-3 rounded-xl px-3">
           <Avatar size="sm">
             <AvatarFallback>{initials(fullName)}</AvatarFallback>
           </Avatar>

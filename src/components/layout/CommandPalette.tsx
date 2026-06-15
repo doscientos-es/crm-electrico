@@ -11,7 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/media/logo.png'
-import { navItems } from '../../config/nav'
+import { appBrand, navItems } from '../../config/nav'
 import { useCustomers } from '../../services/customers.service'
 import { useDocuments } from '../../services/documents.service'
 import { useLeads } from '../../services/leads.service'
@@ -223,7 +223,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </div>
             <div className="flex items-center gap-1">
               <img src={logo} alt="" className="h-3 w-3 object-contain" />
-              <span>Renovaciones CRM</span>
+              <span>{appBrand.name}</span>
             </div>
           </div>
         </DialogContent>
