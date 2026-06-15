@@ -58,11 +58,19 @@ export function DocumentsRoute() {
   function handleUpload() {
     if (!selectedFile || !customerId || !currentUser) return
     uploadDocument.mutate(
-      { file: selectedFile, organizationId: currentUser.organization_id, customerId, type, uploadedBy: currentUser.id },
+      {
+        file: selectedFile,
+        organizationId: currentUser.organization_id,
+        customerId,
+        type,
+        uploadedBy: currentUser.id,
+        onProgress: setUploadStep,
+      },
       {
         onSuccess: () => {
-          toast.success('Documento subido')
+          toast.success('Documento subido correctamente')
           setSelectedFile(null)
+          setUploadStep(null)
           if (fileInputRef.current) fileInputRef.current.value = ''
         },
         onError,
@@ -98,7 +106,13 @@ export function DocumentsRoute() {
             </Field>
             <Button onClick={handleUpload} disabled={!selectedFile || !customerId || uploadDocument.isPending}>
               <Upload className="h-4 w-4" />
-              {uploadDocument.isPending ? 'Subiendo…' : 'Subir archivo'}
+              {uploadDocument.isPending
+                ? uploadStep === 'uploading'
+                  ? 'Subiendo archivo…'
+                  : uploadStep === 'saving'
+                    ? 'Guardando registro…'
+                    : 'Preparando…'
+                : 'Subir archivo'}
             </Button>
           </CardContent>
         </Card>

@@ -129,57 +129,117 @@ export function ContractFormDialog({
       }
     >
       <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+        {/* ── Identificación ── */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Estado" error={errors.status?.message}>
+          <SectionHeader title="Identificación" />
+
+          <Field label="Estado" error={errors.status?.message} required>
             <Select {...register('status')}>
               {Object.entries(contractStatusLabels).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </Select>
           </Field>
+
           <Field label="Número de contrato" error={errors.contract_number?.message}>
-            <Input {...register('contract_number')} />
+            <Input {...register('contract_number')} placeholder="CTR-2024-001" />
           </Field>
-          <Field label="CUPS" error={errors.cups?.message}>
-            <Input {...register('cups')} placeholder="ES0000..." />
+
+          <Field
+            label="CUPS"
+            error={errors.cups?.message}
+            hint="Código Universal del Punto de Suministro — 20 caracteres alfanuméricos"
+            className="md:col-span-2"
+          >
+            <Input {...register('cups')} placeholder="ES0021000000000000AA" />
           </Field>
+        </div>
+
+        {/* ── Suministro ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <SectionHeader title="Suministro" />
+
           <Field label="Comercializadora" error={errors.provider?.message}>
-            <Input {...register('provider')} />
+            <Input {...register('provider')} placeholder="Iberdrola, Endesa, Naturgy…" />
           </Field>
-          <Field label="Producto" error={errors.product?.message}>
-            <Input {...register('product')} />
+
+          <Field label="Producto / oferta" error={errors.product?.message}>
+            <Input {...register('product')} placeholder="Tarifa Plana, Luz Fija…" />
           </Field>
-          <Field label="Tarifa de acceso" error={errors.tariff_type?.message}>
-            <Input {...register('tariff_type')} placeholder="2.0TD, 3.0TD..." />
+
+          <Field
+            label="Tarifa de acceso"
+            error={errors.tariff_type?.message}
+            hint="Determinada por la potencia y el tipo de suministro"
+          >
+            <Input {...register('tariff_type')} placeholder="2.0TD, 3.0TD, 6.1TD…" />
           </Field>
-          <Field label="Potencia (kW)" error={errors.power_kw?.message}>
-            <Input type="number" step="any" {...register('power_kw')} />
+        </div>
+
+        {/* ── Datos técnicos ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <SectionHeader title="Datos técnicos" />
+
+          <Field label="Potencia contratada" error={errors.power_kw?.message} hint="Kilovatios (kW)">
+            <EnergyInput>
+              <Input type="number" step="any" min={0} {...register('power_kw')} placeholder="4.60" />
+            </EnergyInput>
           </Field>
-          <Field label="Consumo anual (kWh)" error={errors.annual_consumption_kwh?.message}>
-            <Input type="number" step="any" {...register('annual_consumption_kwh')} />
+
+          <Field label="Consumo anual estimado" error={errors.annual_consumption_kwh?.message} hint="Kilovatios-hora (kWh)">
+            <EnergyInput>
+              <Input type="number" step="any" min={0} {...register('annual_consumption_kwh')} placeholder="3500" />
+            </EnergyInput>
           </Field>
-          <Field label="Precio energía (€/kWh)" error={errors.energy_price_eur?.message}>
-            <Input type="number" step="any" {...register('energy_price_eur')} />
+        </div>
+
+        {/* ── Precios ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <SectionHeader title="Precios y comisión" />
+
+          <Field label="Precio energía" error={errors.energy_price_eur?.message} hint="€ por kWh consumido">
+            <MoneyInput>
+              <Input type="number" step="any" min={0} {...register('energy_price_eur')} placeholder="0.1200" />
+            </MoneyInput>
           </Field>
-          <Field label="Precio potencia (€/kW)" error={errors.power_price_eur?.message}>
-            <Input type="number" step="any" {...register('power_price_eur')} />
+
+          <Field label="Precio potencia" error={errors.power_price_eur?.message} hint="€ por kW contratado al año">
+            <MoneyInput>
+              <Input type="number" step="any" min={0} {...register('power_price_eur')} placeholder="38.04" />
+            </MoneyInput>
           </Field>
-          <Field label="Comisión (€)" error={errors.commission_eur?.message}>
-            <Input type="number" step="any" {...register('commission_eur')} />
+
+          <Field label="Comisión" error={errors.commission_eur?.message}>
+            <MoneyInput>
+              <Input type="number" step="any" min={0} {...register('commission_eur')} placeholder="0.00" />
+            </MoneyInput>
           </Field>
-          <Field label="Importe (€)" error={errors.amount_eur?.message}>
-            <Input type="number" step="any" {...register('amount_eur')} />
+
+          <Field label="Importe total" error={errors.amount_eur?.message}>
+            <MoneyInput>
+              <Input type="number" step="any" min={0} {...register('amount_eur')} placeholder="0.00" />
+            </MoneyInput>
           </Field>
-          <Field label="Inicio" error={errors.starts_at?.message}>
+        </div>
+
+        {/* ── Vigencia ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <SectionHeader title="Vigencia del contrato" />
+
+          <Field label="Fecha de inicio" error={errors.starts_at?.message}>
             <Input type="date" {...register('starts_at')} />
           </Field>
-          <Field label="Fin / vencimiento" error={errors.ends_at?.message}>
+
+          <Field label="Fecha de vencimiento" error={errors.ends_at?.message}>
             <Input type="date" {...register('ends_at')} />
           </Field>
         </div>
-        <Field label="Notas" error={errors.notes?.message}>
-          <Textarea {...register('notes')} />
+
+        {/* ── Notas ── */}
+        <Field label="Notas" error={errors.notes?.message} hint="Condiciones especiales, observaciones u otras anotaciones relevantes">
+          <Textarea {...register('notes')} placeholder="Añade cualquier observación relevante sobre este contrato…" />
         </Field>
+
         <Button type="submit" size="lg" disabled={isPending}>
           {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar contrato'}

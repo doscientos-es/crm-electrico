@@ -1,4 +1,4 @@
-import { RefreshCw, Trash2, Upload } from 'lucide-react'
+import { Trash2, Upload } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -10,8 +10,7 @@ import { DataTable, EmptyState, Td, Tr, TruncatePath } from '../components/ui/ta
 import { contractStatusLabels, customerStatusLabels } from '../config/constants'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
-import { useCustomerActions } from '../hooks/use-customer-actions'
-import { getDaysToRenewal, getRenewalAlertDate } from '../lib/customer-workflow'
+import { getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate } from '../lib/formatters'
 import { isPdfDocument } from '../lib/storage'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
@@ -26,7 +25,6 @@ export function CustomerDetailRoute() {
   const { data: documents = [] } = useDocuments(id)
   const { data: contracts = [] } = useContracts(id)
   const { data: profiles = [] } = useProfiles()
-  const { renewCustomer, isPending } = useCustomerActions()
   const deleteContract = useDeleteContract()
 
   const owner = useMemo(
@@ -35,17 +33,12 @@ export function CustomerDetailRoute() {
   )
   const activeContracts = contracts.filter((c) => c.status === 'active').length
 
-  // Derive renewal stats from the latest active contract, not from customer fields
+  // Derive renewal stats from the latest active contract
   const latestActiveContract = contracts
     .filter((c) => c.status === 'active' && c.ends_at)
     .sort((a, b) => (b.ends_at ?? '').localeCompare(a.ends_at ?? ''))[0]
 
-  const renewalCustomerView = latestActiveContract && customer
-    ? { ...customer, renewal_date: latestActiveContract.ends_at, contract_signed_at: latestActiveContract.starts_at ? `${latestActiveContract.starts_at}T00:00:00Z` : null }
-    : customer
-
-  const daysToRenewal = renewalCustomerView ? getDaysToRenewal(renewalCustomerView) : undefined
-  const alertDate = renewalCustomerView ? getRenewalAlertDate(renewalCustomerView) : undefined
+  const daysToContractEnd = latestActiveContract ? getDaysToContractEnd(latestActiveContract) : undefined
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>
@@ -87,11 +80,6 @@ export function CustomerDetailRoute() {
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {customer.status !== 'renewed' && (
-              <Button size="sm" variant="outline" disabled={isPending} onClick={() => renewCustomer(customer)}>
-                <RefreshCw className="h-4 w-4" />Renovar
-              </Button>
-            )}
             <DocumentUploadDialog
               customerId={customer.id}
               customerName={customer.name}
@@ -113,9 +101,8 @@ export function CustomerDetailRoute() {
         </Stat>
         <Stat label="Contrato firmado">{formatDate(latestActiveContract?.starts_at ?? undefined)}</Stat>
         <Stat label="Vencimiento contrato">{formatDate(latestActiveContract?.ends_at ?? undefined)}</Stat>
-        <Stat label="Aviso automático">{alertDate ? formatDate(alertDate.toISOString()) : '—'}</Stat>
-        {typeof daysToRenewal === 'number' && (
-          <Stat label="Días para renovar">{daysToRenewal} días</Stat>
+        {typeof daysToContractEnd === 'number' && (
+          <Stat label="Días para renovar">{daysToContractEnd} días</Stat>
         )}
         <Stat label="Contratos activos">{activeContracts} / {contracts.length}</Stat>
       </div>
