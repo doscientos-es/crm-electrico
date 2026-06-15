@@ -178,7 +178,18 @@ export function CustomerDetailRoute() {
 
       {/* Documents — section heading + table, no card wrapper */}
       <section className="mt-8">
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Documentos del cliente</h3>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Documentos del cliente</h3>
+          <DocumentUploadDialog
+            customerId={customer.id}
+            customerName={customer.name}
+            trigger={
+              <Button size="sm" variant="outline">
+                <Upload className="h-4 w-4" />Subir documento
+              </Button>
+            }
+          />
+        </div>
         <DataTable headers={['Archivo', 'Tipo', 'Fecha', 'Ruta', 'Vista']}>
           {documents.map((document) => (
             <Tr key={document.id} hover>

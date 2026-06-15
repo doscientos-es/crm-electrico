@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { addYears, format } from 'date-fns'
 import { Euro, Loader2, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -67,6 +68,8 @@ export function ContractFormDialog({
     register,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<ContractFormValues>({
     resolver: zodResolver(contractSchema) as never,
@@ -240,7 +243,20 @@ export function ContractFormDialog({
           <SectionHeader title="Vigencia del contrato" />
 
           <Field label="Fecha de inicio" error={errors.starts_at?.message}>
-            <Input type="date" {...register('starts_at')} />
+            <Input
+              type="date"
+              {...register('starts_at', {
+                onChange: (event) => {
+                  const value = event.target.value
+                  if (value && !getValues('ends_at')) {
+                    setValue('ends_at', format(addYears(new Date(`${value}T00:00:00`), 1), 'yyyy-MM-dd'), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                },
+              })}
+            />
           </Field>
 
           <Field label="Fecha de vencimiento" error={errors.ends_at?.message}>

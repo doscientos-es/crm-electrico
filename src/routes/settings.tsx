@@ -689,10 +689,14 @@ export function SettingsRoute() {
   const { tab: rawTab } = useParams<{ tab: string }>()
   const navigate = useNavigate()
   const { profile: currentUser } = useAuth()
-  const canManageTeam = currentUser?.role === 'owner' || currentUser?.role === 'admin'
+  const canManageOrg = currentUser?.role === 'owner' || currentUser?.role === 'admin'
+  const canManageTeam = canManageOrg
 
   const tab: SettingsTab =
-    rawTab && (VALID_TABS as readonly string[]).includes(rawTab) && (rawTab !== 'team' || canManageTeam)
+    rawTab &&
+      (VALID_TABS as readonly string[]).includes(rawTab) &&
+      (rawTab !== 'team' || canManageTeam) &&
+      (rawTab !== 'organization' || canManageOrg)
       ? (rawTab as SettingsTab)
       : 'appearance'
 
@@ -703,11 +707,11 @@ export function SettingsRoute() {
   const tabs = useMemo(
     () => [
       { value: 'appearance', label: 'Apariencia', content: <AppearanceTab /> },
-      { value: 'organization', label: 'Empresa', content: <OrganizationTab /> },
+      ...(canManageOrg ? [{ value: 'organization', label: 'Empresa', content: <OrganizationTab /> }] : []),
       ...(canManageTeam ? [{ value: 'team', label: 'Equipo', content: <TeamTab /> }] : []),
       { value: 'data', label: 'Datos', content: <DataTab /> },
     ],
-    [canManageTeam],
+    [canManageOrg, canManageTeam],
   )
 
   return (
