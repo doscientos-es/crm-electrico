@@ -1,5 +1,4 @@
 import {
-	AlertTriangle,
 	Building2,
 	FileArchive,
 	Home,
@@ -21,7 +20,7 @@ export const navItems = [
 		label: "Clientes",
 		icon: Building2,
 		description:
-			"Gestión completa de clientes: contratos, incidencias, documentos y seguimiento comercial.",
+			"Gestión completa de clientes: contratos, documentos y seguimiento comercial.",
 	},
 	{
 		href: "/renewals",
@@ -29,13 +28,6 @@ export const navItems = [
 		icon: ShieldCheck,
 		description:
 			"Cola automática de clientes con contrato próximo a vencer (10–12 meses). Gestiona avisos y marca renovaciones.",
-	},
-	{
-		href: "/incidents",
-		label: "Incidencias",
-		icon: AlertTriangle,
-		description:
-			"Seguimiento de problemas técnicos y comerciales vinculados a clientes. Prioridades: baja, media, alta y urgente.",
 	},
 	{
 		href: "/documents",

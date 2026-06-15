@@ -13,7 +13,6 @@ function inferVariant(value: string): BadgeVariant {
     value.includes('Complet') ||
     value.includes('Convert') ||
     value.includes('Activo') ||
-    value.includes('Resuelt') ||
     value.includes('Renovado')
   )
     return 'emerald'
@@ -23,8 +22,7 @@ function inferVariant(value: string): BadgeVariant {
     value.includes('Urgente') ||
     value.includes('Alta') ||
     value.includes('Envi') ||
-    value.includes('Renovacion') ||
-    value.includes('Abierta')
+    value.includes('Renovacion')
   )
     return 'amber'
   if (value.includes('curso') || value.includes('Program') || value.includes('tramita'))

@@ -1,26 +1,13 @@
-import { Activity, AlertTriangle, CalendarClock, CheckCircle2, Clock, FileSignature, FileText, RefreshCcw, TrendingDown, TrendingUp, Users, Wrench } from 'lucide-react'
+import { Activity, CalendarClock, CheckCircle2, FileSignature, FileText, RefreshCcw, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useMemo } from 'react'
-import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { contractStatusLabels } from '../config/constants'
 import { getDaysToRenewal, getRenewalStage } from '../lib/customer-workflow'
-import { relativeTime } from '../lib/formatters'
-import { useRecentActivity } from '../services/activity.service'
 import { useContracts } from '../services/contracts.service'
 import { useCustomers } from '../services/customers.service'
-import { useIncidents } from '../services/incidents.service'
-
-const entityIcons: Record<string, ReactNode> = {
-  customer: <Users className="h-3.5 w-3.5" />,
-  deal: <TrendingUp className="h-3.5 w-3.5" />,
-  contract: <FileText className="h-3.5 w-3.5" />,
-  task: <CheckCircle2 className="h-3.5 w-3.5" />,
-  installation: <Wrench className="h-3.5 w-3.5" />,
-  proposal: <FileText className="h-3.5 w-3.5" />,
-}
 
 const renewalStageStyle: Record<string, { label: string; className: string }> = {
   overdue: { label: 'Vencido', className: 'text-destructive' },
@@ -30,10 +17,8 @@ const renewalStageStyle: Record<string, { label: string; className: string }> = 
 }
 
 export function DashboardRoute() {
-  const { data: customersResult, isLoading: customersLoading } = useCustomers({ pageSize: 500 })
-  const { data: recentActivity } = useRecentActivity(8)
+  const { data: customersResult } = useCustomers({ pageSize: 500 })
   const { data: contracts = [] } = useContracts()
-  const { data: incidents = [] } = useIncidents()
 
   const customers = customersResult?.data ?? []
 
@@ -45,11 +30,6 @@ export function DashboardRoute() {
     const pendingSignature = byStatus.pending_signature ?? 0
     return { total: contracts.length, active, pendingSignature, byStatus }
   }, [contracts])
-
-  const openIncidents = useMemo(
-    () => incidents.filter((i) => i.status === 'open' || i.status === 'in_progress').length,
-    [incidents],
-  )
 
   const kpis = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
@@ -91,12 +71,11 @@ export function DashboardRoute() {
         <Kpi title="Renovados este mes" value={kpis.renewedThisMonthCount} icon={<RefreshCcw />} />
       </section>
 
-      {/* Contract & incident KPIs */}
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-4">
+      {/* Contract KPIs */}
+      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-3">
         <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} />
         <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} />
         <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} />
-        <Kpi title="Incidencias abiertas" value={openIncidents} icon={<AlertTriangle />} />
       </section>
 
       {/* Contract state breakdown */}
@@ -115,60 +94,34 @@ export function DashboardRoute() {
       </section>
 
       {/* Main content */}
-      <section className="grid gap-8 xl:grid-cols-[1.2fr_1fr]">
-        {/* Left column: renewals */}
-        <div className="space-y-8">
-          {urgentRenewals.length > 0 && (
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Renovaciones urgentes</h2>
-                <Button asChild size="sm" variant="ghost">
-                  <Link to="/renewals">Ver todas</Link>
-                </Button>
-              </div>
-              <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
-                {urgentRenewals.map(({ customer, stage, days }) => {
-                  const style = renewalStageStyle[stage] ?? renewalStageStyle.due
-                  return (
-                    <Link key={customer.id} to={`/customers/${customer.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">{customer.name}</p>
-                        <p className="text-xs text-muted-foreground">{customer.products_services.join(', ') || 'Sin servicios'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xs font-semibold ${style.className}`}>{style.label}</p>
-                        <p className="text-xs text-muted-foreground">{typeof days === 'number' ? (days < 0 ? `${Math.abs(days)}d vencido` : `${days}d`) : '-'}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right column: activity */}
-        <div className="space-y-8">
+      <section>
+        {urgentRenewals.length > 0 && (
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-foreground">Actividad reciente</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Renovaciones urgentes</h2>
+              <Button asChild size="sm" variant="ghost">
+                <Link to="/renewals">Ver todas</Link>
+              </Button>
+            </div>
             <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
-              {(recentActivity ?? []).map((log) => (
-                <div key={log.id} className="flex items-start gap-3 px-4 py-3">
-                  <div className="mt-0.5 shrink-0 text-muted-foreground">
-                    {entityIcons[log.entity_type] ?? <Clock className="h-3.5 w-3.5" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-foreground">{String((log.metadata as { label?: string } | null)?.label ?? log.action)}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{relativeTime(log.created_at)}</p>
-                  </div>
-                </div>
-              ))}
-              {!recentActivity?.length && !customersLoading && (
-                <p className="px-4 py-6 text-sm text-muted-foreground text-center">Sin actividad reciente.</p>
-              )}
+              {urgentRenewals.map(({ customer, stage, days }) => {
+                const style = renewalStageStyle[stage] ?? renewalStageStyle.due
+                return (
+                  <Link key={customer.id} to={`/customers/${customer.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{customer.name}</p>
+                      <p className="text-xs text-muted-foreground">{customer.products_services.join(', ') || 'Sin servicios'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-xs font-semibold ${style.className}`}>{style.label}</p>
+                      <p className="text-xs text-muted-foreground">{typeof days === 'number' ? (days < 0 ? `${Math.abs(days)}d vencido` : `${days}d`) : '-'}</p>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
-        </div>
+        )}
       </section>
     </div>
   )

@@ -1,4 +1,4 @@
-import { Clock, FileText, Phone, RefreshCw, Trash2, Upload, UserCheck } from 'lucide-react'
+import { RefreshCw, Trash2, Upload } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -7,19 +7,16 @@ import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { DataTable, EmptyState, Td, Tr, TruncatePath } from '../components/ui/table'
-import { contractStatusLabels, customerStatusLabels, incidentStatusLabels, priorityLabels } from '../config/constants'
+import { contractStatusLabels, customerStatusLabels } from '../config/constants'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
-import { IncidentFormDialog } from '../features/incidents/IncidentFormDialog'
 import { useCustomerActions } from '../hooks/use-customer-actions'
 import { getDaysToRenewal, getRenewalAlertDate } from '../lib/customer-workflow'
-import { formatDate, relativeTime } from '../lib/formatters'
+import { formatDate } from '../lib/formatters'
 import { isPdfDocument } from '../lib/storage'
-import { useActivityLogs } from '../services/activity.service'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
 import { useCustomer } from '../services/customers.service'
 import { useDocuments } from '../services/documents.service'
-import { useIncidents } from '../services/incidents.service'
 import { useProfiles } from '../services/profiles.service'
 
 export function CustomerDetailRoute() {
@@ -28,7 +25,6 @@ export function CustomerDetailRoute() {
   const { data: customer, isLoading } = useCustomer(id)
   const { data: documents = [] } = useDocuments(id)
   const { data: contracts = [] } = useContracts(id)
-  const { data: incidents = [] } = useIncidents({ customerId: id })
   const { data: profiles = [] } = useProfiles()
   const { renewCustomer, isPending } = useCustomerActions()
   const deleteContract = useDeleteContract()
@@ -37,12 +33,7 @@ export function CustomerDetailRoute() {
     () => profiles.find((p) => p.id === customer?.assigned_to),
     [profiles, customer?.assigned_to],
   )
-  const profilesById = useMemo(
-    () => Object.fromEntries(profiles.map((p) => [p.id, p.full_name])),
-    [profiles],
-  )
   const activeContracts = contracts.filter((c) => c.status === 'active').length
-  const openIncidents = incidents.filter((i) => i.status === 'open' || i.status === 'in_progress').length
   const daysToRenewal = customer ? getDaysToRenewal(customer) : undefined
   const alertDate = customer ? getRenewalAlertDate(customer) : undefined
 
@@ -117,7 +108,6 @@ export function CustomerDetailRoute() {
           <Stat label="Días para renovar">{daysToRenewal} días</Stat>
         )}
         <Stat label="Contratos activos">{activeContracts} / {contracts.length}</Stat>
-        <Stat label="Incidencias abiertas">{openIncidents}</Stat>
       </div>
 
       {/* Detail sections — two columns, divide-y rows, no card wrappers */}
@@ -138,7 +128,6 @@ export function CustomerDetailRoute() {
           <dl className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
             <DetailRow label="Contratos" value={String(contracts.length)} />
             <DetailRow label="Contratos activos" value={String(activeContracts)} />
-            <DetailRow label="Incidencias abiertas" value={String(openIncidents)} />
             <DetailRow label="Documentos" value={String(documents.length)} />
           </dl>
         </div>
@@ -190,39 +179,6 @@ export function CustomerDetailRoute() {
         )}
       </section>
 
-      {/* Incidents — section heading + table */}
-      <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">Incidencias</h3>
-          <IncidentFormDialog customerId={customer.id} contracts={contracts} />
-        </div>
-        {incidents.length === 0 ? (
-          <EmptyState
-            title="Sin incidencias"
-            description="No hay incidencias registradas para este cliente."
-          />
-        ) : (
-          <DataTable headers={['Título', 'Prioridad', 'Asignada a', 'Fecha', 'Estado', '']}>
-            {incidents.map((incident) => (
-              <Tr key={incident.id} hover>
-                <Td variant="primary">{incident.title}</Td>
-                <Td variant="muted">{priorityLabels[incident.priority as keyof typeof priorityLabels] ?? incident.priority}</Td>
-                <Td variant="muted">{incident.assigned_to ? (profilesById[incident.assigned_to] ?? '—') : 'Sin asignar'}</Td>
-                <Td variant="muted">{formatDate(incident.created_at)}</Td>
-                <Td>
-                  <StatusBadge value={incidentStatusLabels[incident.status as keyof typeof incidentStatusLabels] ?? incident.status} />
-                </Td>
-                <Td>
-                  <div className="flex items-center justify-end">
-                    <IncidentFormDialog customerId={customer.id} contracts={contracts} incident={incident} />
-                  </div>
-                </Td>
-              </Tr>
-            ))}
-          </DataTable>
-        )}
-      </section>
-
       {/* Documents — section heading + table, no card wrapper */}
       <section className="mt-8">
         <h3 className="mb-3 text-sm font-semibold text-foreground">Documentos del cliente</h3>
@@ -245,8 +201,6 @@ export function CustomerDetailRoute() {
         </DataTable>
       </section>
 
-      {/* Activity Log */}
-      <ActivityLog customerId={customer.id} />
     </div>
   )
 }
@@ -269,40 +223,3 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-const actionIcons: Record<string, ReactNode> = {
-  customer_contacted: <Phone className="h-3.5 w-3.5" />,
-  customer_renewed: <RefreshCw className="h-3.5 w-3.5" />,
-  customer_created: <UserCheck className="h-3.5 w-3.5" />,
-  customer_updated: <FileText className="h-3.5 w-3.5" />,
-  contacted: <Phone className="h-3.5 w-3.5" />,
-  renewed: <RefreshCw className="h-3.5 w-3.5" />,
-  created: <UserCheck className="h-3.5 w-3.5" />,
-  updated: <FileText className="h-3.5 w-3.5" />,
-}
-
-function ActivityLog({ customerId }: { customerId: string }) {
-  const { data: logs = [] } = useActivityLogs(customerId)
-
-  return (
-    <section className="mt-8">
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Actividad</h3>
-      {logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin actividad registrada.</p>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
-          {logs.map((log) => (
-            <div key={log.id} className="flex items-start gap-3 px-4 py-3">
-              <div className="mt-0.5 shrink-0 text-muted-foreground">
-                {actionIcons[log.action] ?? <Clock className="h-3.5 w-3.5" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">{String((log.metadata as { label?: string } | null)?.label ?? log.action)}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{relativeTime(log.created_at)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}

@@ -12,7 +12,6 @@ const DashboardRoute = lazy(() => import('../routes/dashboard').then((m) => ({ d
 const CustomersRoute = lazy(() => import('../routes/customers').then((m) => ({ default: m.CustomersRoute })))
 const CustomerDetailRoute = lazy(() => import('../routes/customer-detail').then((m) => ({ default: m.CustomerDetailRoute })))
 const RenewalsRoute = lazy(() => import('../routes/renewals').then((m) => ({ default: m.RenewalsRoute })))
-const IncidentsRoute = lazy(() => import('../routes/incidents').then((m) => ({ default: m.IncidentsRoute })))
 const DocumentsRoute = lazy(() => import('../routes/documents').then((m) => ({ default: m.DocumentsRoute })))
 const SettingsRoute = lazy(() => import('../routes/settings').then((m) => ({ default: m.SettingsRoute })))
 
@@ -58,7 +57,6 @@ export function App() {
         <Route path="/customers" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><CustomersRoute /></ErrorBoundary></Suspense>} />
         <Route path="/customers/:id" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={4} tableCols={3} />}><ErrorBoundary level="page"><CustomerDetailRoute /></ErrorBoundary></Suspense>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
-        <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
 
         <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />

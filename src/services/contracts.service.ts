@@ -35,7 +35,8 @@ export function useCreateContract() {
 			if (error) throw error;
 			return data as ContractRow;
 		},
-		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.contracts() }),
+		onSuccess: () =>
+			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
 	});
 }
 
@@ -55,7 +56,8 @@ export function useUpdateContract() {
 			if (error) throw error;
 			return data as ContractRow;
 		},
-		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.contracts() }),
+		onSuccess: () =>
+			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
 	});
 }
 
@@ -66,6 +68,7 @@ export function useDeleteContract() {
 			const { error } = await supabase.from("contracts").delete().eq("id", id);
 			if (error) throw error;
 		},
-		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.contracts() }),
+		onSuccess: () =>
+			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
 	});
 }

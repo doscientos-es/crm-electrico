@@ -3,21 +3,10 @@ export const queryKeys = {
 	profile: ["profile"] as const,
 	organization: ["organization"] as const,
 	dashboard: (organizationId: string) => ["dashboard", organizationId] as const,
-	leads: (filters?: unknown) => ["leads", filters] as const,
-	lead: (leadId: string) => ["lead", leadId] as const,
 	customers: (filters?: unknown) => ["customers", filters] as const,
 	customer: (customerId: string) => ["customer", customerId] as const,
-	customerEnergyProfile: (customerId: string) =>
-		["customer-energy-profile", customerId] as const,
 	customerTimeline: (customerId: string) =>
 		["customer-timeline", customerId] as const,
-	invoices: (filters?: unknown) => ["invoices", filters] as const,
-	simulations: (filters?: unknown) => ["simulations", filters] as const,
-	proposals: (filters?: unknown) => ["proposals", filters] as const,
-	pipelineStages: ["pipeline-stages"] as const,
-	deals: (filters?: unknown) => ["deals", filters] as const,
 	documents: (filters?: unknown) => ["documents", filters] as const,
 	contracts: (filters?: unknown) => ["contracts", filters] as const,
-	incidents: (filters?: unknown) => ["incidents", filters] as const,
-	installations: (filters?: unknown) => ["installations", filters] as const,
 };

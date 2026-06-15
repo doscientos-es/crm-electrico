@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Pencil, Plus } from 'lucide-react'
+import { Loader2, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../../components/ui/input'
 import { contractStatusLabels } from '../../config/constants'
+import { useToastError } from '../../hooks/use-toast-error'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
 import { type ContractRow, useCreateContract, useUpdateContract } from '../../services/contracts.service'
 
@@ -22,12 +24,14 @@ export function ContractFormDialog({
   const [open, setOpen] = useState(false)
   const createContract = useCreateContract()
   const updateContract = useUpdateContract()
+  const onError = useToastError()
+  const isPending = createContract.isPending || updateContract.isPending
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<ContractFormValues>({
     resolver: zodResolver(contractSchema) as never,
     defaultValues: {
@@ -69,7 +73,14 @@ export function ContractFormDialog({
       ends_at: values.ends_at || null,
       notes: values.notes || null,
     }
-    const done = { onSuccess: () => { reset(); setOpen(false) } }
+    const done = {
+      onSuccess: () => {
+        toast.success(isEditing ? 'Contrato actualizado' : 'Contrato creado')
+        reset()
+        setOpen(false)
+      },
+      onError,
+    }
     if (isEditing && contract) {
       updateContract.mutate({ id: contract.id, ...payload }, done)
     } else {
@@ -80,7 +91,10 @@ export function ContractFormDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) reset()
+      }}
       size="lg"
       title={isEditing ? 'Editar contrato' : 'Nuevo contrato'}
       trigger={
@@ -143,8 +157,9 @@ export function ContractFormDialog({
         <Field label="Notas" error={errors.notes?.message}>
           <Textarea {...register('notes')} />
         </Field>
-        <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Guardar cambios' : 'Guardar contrato'}
+        <Button type="submit" size="lg" disabled={isPending}>
+          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar contrato'}
         </Button>
       </form>
     </Dialog>

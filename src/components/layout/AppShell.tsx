@@ -45,34 +45,38 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               <li key={item.href}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <NavLink
-                      to={item.href}
-                      onClick={onNavigate}
-                      className={({ isActive }) =>
-                        cn(
-                          'group focus-ring relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-all duration-150',
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                            : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Icon
-                            className={cn(
-                              'h-4 w-4 shrink-0 transition-transform duration-150',
-                              isActive ? 'scale-105' : 'group-hover:scale-105',
-                            )}
-                          />
-                          <span className="flex-1 truncate">{item.label}</span>
-                        </>
-                      )}
-                    </NavLink>
+                    {/* span wrapper avoids passing asChild to NavLink which has a function className
+                        — Radix Slot would stringify it, stripping all Tailwind classes */}
+                    <span className="block">
+                      <NavLink
+                        to={item.href}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          cn(
+                            'group focus-ring relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-all duration-150',
+                            isActive
+                              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                          )
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Icon
+                              className={cn(
+                                'h-4 w-4 shrink-0 transition-transform duration-150',
+                                isActive ? 'scale-105' : 'group-hover:scale-105',
+                              )}
+                            />
+                            <span className="flex-1 truncate">{item.label}</span>
+                          </>
+                        )}
+                      </NavLink>
+                    </span>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8} className="max-w-56">
+                  <TooltipContent side="right" sideOffset={8} className="flex-col items-start gap-0.5 max-w-56">
                     <p className="font-medium">{item.label}</p>
-                    <p className="mt-0.5 text-background/70">{item.description}</p>
+                    <p className="text-background/70">{item.description}</p>
                   </TooltipContent>
                 </Tooltip>
               </li>
