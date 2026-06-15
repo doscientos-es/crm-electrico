@@ -131,20 +131,19 @@ export function RenewalsRoute() {
                 <Td><DaysBadge days={days} /></Td>
                 <Td variant="muted">{profilesById[customer.assigned_to ?? ''] ?? '-'}</Td>
                 <Td>
-                  {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only stops row navigation */}
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-1">
                     <ContactLogDialog
                       customerId={customer.id}
                       customerName={customer.name}
                       trigger={
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => e.stopPropagation()}>
                           <Phone className="h-3 w-3" />Contactar
                         </Button>
                       }
                     />
                     {customer.status !== 'renewed' && (
                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
-                        onClick={() => renewCustomer(customer)}>
+                        onClick={(e) => { e.stopPropagation(); renewCustomer(customer) }}>
                         <RefreshCw className="h-3 w-3" />Renovado
                       </Button>
                     )}
