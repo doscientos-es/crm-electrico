@@ -26,6 +26,17 @@ export function useDocuments(filterOrId?: string | { customerId?: string }) {
 
 export type UploadStep = "uploading" | "saving";
 
+function uploadErrorMessage(error: { message?: string }): string {
+	const raw = error.message ?? "";
+	if (/exists|duplicate|409/i.test(raw))
+		return "Ya existe un archivo con ese nombre. Renómbralo e inténtalo de nuevo.";
+	if (/invalid key/i.test(raw))
+		return "El nombre del archivo contiene caracteres no válidos. Renómbralo e inténtalo de nuevo.";
+	if (/exceeded|too large|413|maximum/i.test(raw))
+		return "El archivo supera el tamaño máximo permitido.";
+	return "No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.";
+}
+
 export function useUploadDocument() {
 	const qc = useQueryClient();
 	return useMutation({
@@ -49,7 +60,7 @@ export function useUploadDocument() {
 			const { error: uploadError } = await supabase.storage
 				.from(bucket)
 				.upload(filePath, file);
-			if (uploadError) throw uploadError;
+			if (uploadError) throw new Error(uploadErrorMessage(uploadError));
 
 			onProgress?.("saving");
 			const { data, error } = await supabase
@@ -66,7 +77,10 @@ export function useUploadDocument() {
 				} as never)
 				.select()
 				.single();
-			if (error) throw error;
+			if (error)
+				throw new Error(
+					"El archivo se subió pero no se pudo guardar el registro. Inténtalo de nuevo.",
+				);
 			return data as DocumentRow;
 		},
 		onSuccess: () => {

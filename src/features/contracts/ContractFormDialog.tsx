@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Euro, Loader2, Pencil, Plus, Zap } from 'lucide-react'
+import { Euro, Loader2, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -9,7 +9,7 @@ import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/
 import { contractStatusLabels } from '../../config/constants'
 import { useToastError } from '../../hooks/use-toast-error'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
-import { type ContractRow, useCreateContract, useUpdateContract } from '../../services/contracts.service'
+import { type ContractRow, useCreateContract, useDeleteContract, useUpdateContract } from '../../services/contracts.service'
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -43,12 +43,25 @@ export function ContractFormDialog({
 }) {
   const isEditing = Boolean(contract)
   const [internalOpen, setInternalOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = controlledOnOpenChange ?? setInternalOpen
   const createContract = useCreateContract()
   const updateContract = useUpdateContract()
+  const deleteContract = useDeleteContract()
   const onError = useToastError()
   const isPending = createContract.isPending || updateContract.isPending
+
+  function handleDelete() {
+    if (!contract) return
+    deleteContract.mutate(contract.id, {
+      onSuccess: () => {
+        toast.success('Contrato eliminado')
+        setOpen(false)
+      },
+      onError,
+    })
+  }
 
   const {
     register,
@@ -240,10 +253,48 @@ export function ContractFormDialog({
           <Textarea {...register('notes')} placeholder="Añade cualquier observación relevante sobre este contrato…" />
         </Field>
 
-        <Button type="submit" size="lg" disabled={isPending}>
-          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar contrato'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="lg" disabled={isPending} className="flex-1">
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar contrato'}
+          </Button>
+
+          {isEditing && !confirmDelete && (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleteContract.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+
+          {isEditing && confirmDelete && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
+              <span className="text-sm text-destructive">¿Eliminar contrato?</span>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleteContract.isPending}
+              >
+                {deleteContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sí, eliminar'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleteContract.isPending}
+              >
+                Cancelar
+              </Button>
+            </div>
+          )}
+        </div>
       </form>
     </Dialog>
   )
