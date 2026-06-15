@@ -1,4 +1,4 @@
-import { Trash2, Upload } from 'lucide-react'
+import { Mail, MessageSquare, Phone, Trash2, Upload } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -12,8 +12,9 @@ import { contractStatusLabels, customerStatusLabels } from '../config/constants'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
 import { getDaysToContractEnd } from '../lib/customer-workflow'
-import { formatDate } from '../lib/formatters'
+import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
 import { isPdfDocument } from '../lib/storage'
+import { getContactChannel, getContactNotes, useCustomerInteractions } from '../services/activity.service'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
 import { useCustomer } from '../services/customers.service'
 import { useDeleteDocument, useDocuments } from '../services/documents.service'
@@ -25,6 +26,7 @@ export function CustomerDetailRoute() {
   const { data: customer, isLoading } = useCustomer(id)
   const { data: documents = [] } = useDocuments(id)
   const { data: contracts = [] } = useContracts(id)
+  const { data: interactions = [], isLoading: interactionsLoading } = useCustomerInteractions(id)
   const { data: profiles = [] } = useProfiles()
   const deleteContract = useDeleteContract()
   const deleteDocument = useDeleteDocument()
@@ -225,6 +227,69 @@ export function CustomerDetailRoute() {
         </DataTable>
       </section>
 
+      <section className="mt-8">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Últimas interacciones</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Conversaciones registradas por teléfono o correo electrónico.
+            </p>
+          </div>
+          {interactions.length > 0 && (
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {interactions.length} {interactions.length === 1 ? 'interacción' : 'interacciones'}
+            </span>
+          )}
+        </div>
+
+        {interactionsLoading ? (
+          <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+            Cargando interacciones...
+          </div>
+        ) : interactions.length === 0 ? (
+          <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-card px-4 py-8 text-center">
+            <MessageSquare className="size-5 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium text-foreground">Sin interacciones registradas</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Los contactos guardados desde Renovaciones aparecerán aquí.
+            </p>
+          </div>
+        ) : (
+          <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+            {interactions.map((interaction) => {
+              const channel = getContactChannel(interaction)
+              return (
+                <li key={interaction.id} className="grid gap-3 px-4 py-4 sm:grid-cols-[auto_1fr_auto]">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    {channel === 'email' ? <Mail className="size-4" /> : <Phone className="size-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {channel === 'email' ? 'Correo electrónico' : 'Llamada telefónica'}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        por {interaction.actor?.full_name ?? 'Usuario no disponible'}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                      {getContactNotes(interaction) || 'Sin notas de la conversación.'}
+                    </p>
+                  </div>
+                  <time
+                    className="text-xs text-muted-foreground sm:text-right"
+                    dateTime={interaction.created_at}
+                    title={formatDateTime(interaction.created_at)}
+                  >
+                    {relativeTime(interaction.created_at)}
+                  </time>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+      </section>
+
     </div>
   )
 }
@@ -246,4 +311,3 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-

@@ -6,9 +6,10 @@ import { queryKeys } from './query-keys'
 export type ActivityLogRow = Tables<'activity_logs'>
 export type ContactChannel = 'email' | 'phone'
 
-export type RenewalContactLog = ActivityLogRow & {
+export type ContactLog = ActivityLogRow & {
   actor: { full_name: string } | null
 }
+export type RenewalContactLog = ContactLog
 
 export function getContactChannel(log: ActivityLogRow): ContactChannel | null {
   if (!log.metadata || typeof log.metadata !== 'object' || Array.isArray(log.metadata)) return null
@@ -58,10 +59,30 @@ export function useCustomerActivity(customerId: string) {
 // Alias for routes that import useActivityLogs
 export const useActivityLogs = useCustomerActivity
 
+export function useCustomerInteractions(customerId: string | undefined) {
+  return useQuery<ContactLog[]>({
+    queryKey: ['activity', 'customer-interactions', customerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*, actor:profiles!activity_logs_actor_id_fkey(full_name)')
+        .eq('entity_type', 'customer')
+        .eq('entity_id', customerId!)
+        .eq('action', 'renewal_contact')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (error) throw error
+      return data as ContactLog[]
+    },
+    enabled: !!customerId,
+  })
+}
+
 export function useRenewalContacts(customerIds: string[]) {
   const ids = [...new Set(customerIds)].sort()
 
-  return useQuery<RenewalContactLog[]>({
+  return useQuery<ContactLog[]>({
     queryKey: ['activity', 'renewal-contacts', ids],
     queryFn: async () => {
       if (ids.length === 0) return []
@@ -75,7 +96,7 @@ export function useRenewalContacts(customerIds: string[]) {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data as RenewalContactLog[]
+      return data as ContactLog[]
     },
     enabled: ids.length > 0,
   })
