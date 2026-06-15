@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, fetchProfileById } from '../../lib/supabase'
@@ -19,37 +19,51 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthInitialized, setIsAuthInitialized] = useState(false)
+  const [isProfileLoading, setIsProfileLoading] = useState(false)
+  const currentUserId = useRef<string | null>(null)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      setSession(s)
-      if (s?.user) {
-        const p = await fetchProfileById(s.user.id)
-        setProfile(p)
-      }
-      setIsLoading(false)
-    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const nextUserId = nextSession?.user.id ?? null
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
-      setSession(s)
-      if (s?.user) {
-        const p = await fetchProfileById(s.user.id)
-        setProfile(p)
-      } else {
+      if (currentUserId.current !== nextUserId) {
+        currentUserId.current = nextUserId
         setProfile(null)
+        setIsProfileLoading(nextUserId !== null)
       }
-      setIsLoading(false)
+
+      setSession(nextSession)
+      setIsAuthInitialized(true)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    const userId = session?.user.id
+    if (!isAuthInitialized || !userId) return
+
+    let cancelled = false
+
+    void fetchProfileById(userId)
+      .then((nextProfile) => {
+        if (!cancelled) setProfile(nextProfile)
+      })
+      .finally(() => {
+        if (!cancelled) setIsProfileLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthInitialized, session?.user.id])
+
   async function signOut() {
     await supabase.auth.signOut()
   }
+
+  const isLoading = !isAuthInitialized || isProfileLoading
 
   return (
     <AuthContext.Provider value={{ session, profile, isAuthenticated: !!session, isLoading, signOut }}>
