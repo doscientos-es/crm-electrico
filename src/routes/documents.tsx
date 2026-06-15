@@ -131,7 +131,7 @@ export function DocumentsRoute() {
             <EmptyState title="Sin documentos" description="Sube un archivo (PDF, DNI, contrato) para un cliente y aparecera aqui." />
           ) : (
             <DataTable
-              headers={['Archivo', 'Cliente', 'Tipo', 'Fecha', 'Ruta', 'Vista', 'Acciones']}
+              headers={['Archivo', 'Cliente', 'Tipo', 'Fecha', 'Ruta', { label: 'Acciones', align: 'right' }]}
               pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage, onPageSizeChange: pagination.setPageSize }}
             >
               {pagination.items.map((document: DocumentRow) => (
