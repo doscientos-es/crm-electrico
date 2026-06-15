@@ -1,0 +1,6 @@
+# Supabase project config — managed via CLI
+# Only fields explicitly set here are pushed to remote on `supabase config push`.
+
+[auth.email.template.invite]
+subject = "Has sido invitado a OPTIENERGIA CRM"
+content_path = "./supabase/templates/invite.html"
