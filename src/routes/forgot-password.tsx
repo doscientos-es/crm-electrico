@@ -53,7 +53,7 @@ export function ForgotPasswordRoute() {
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
               <Field label="Email" error={errors.email?.message} required>
-                <Input {...register('email')} type="email" autoComplete="email" autoFocus />
+                <Input {...register('email')} type="email" autoComplete="email" placeholder="ana@empresa.com" autoFocus />
               </Field>
               {serverError && (
                 <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

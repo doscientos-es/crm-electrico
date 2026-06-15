@@ -2,6 +2,7 @@
 import { Building2, IdCard, Mail, MapPin, Pencil, Phone, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/input'
@@ -35,6 +36,7 @@ function toEditableStatus(s: string): 'active' | 'inactive' | 'lost' {
 export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
   const isEditing = Boolean(customer)
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const { profile: currentUser } = useAuth()
   const { data: profiles = [] } = useProfiles()
   const createCustomer = useCreateCustomer()
@@ -86,7 +88,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
     if (isEditing && customer) {
       updateCustomer.mutate({ id: customer.id, ...common }, { onSuccess: () => { reset(); setOpen(false) } })
     } else {
-      createCustomer.mutate(common, { onSuccess: () => { reset(); setOpen(false) } })
+      createCustomer.mutate(common, { onSuccess: (data) => { reset(); setOpen(false); navigate(`/customers/${data.id}`) } })
     }
   }
 

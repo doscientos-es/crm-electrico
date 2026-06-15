@@ -49,11 +49,11 @@ export function SetPasswordRoute() {
             <p className="mt-1 text-sm text-muted-foreground">Elige una contraseña segura para tu cuenta.</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
-            <Field label="Nueva contraseña" error={errors.password?.message} required>
-              <Input {...register('password')} type="password" autoComplete="new-password" autoFocus />
+            <Field label="Nueva contraseña" error={errors.password?.message} hint="Mínimo 8 caracteres" required>
+              <Input {...register('password')} type="password" autoComplete="new-password" placeholder="••••••••" autoFocus />
             </Field>
             <Field label="Confirmar contraseña" error={errors.confirm?.message} required>
-              <Input {...register('confirm')} type="password" autoComplete="new-password" />
+              <Input {...register('confirm')} type="password" autoComplete="new-password" placeholder="••••••••" />
             </Field>
             {serverError && (
               <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
