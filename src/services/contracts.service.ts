@@ -88,7 +88,6 @@ export function useAllContracts(params: ContractsListParams = {}) {
 			if (endsTo) q = q.lte("ends_at", endsTo);
 			if (search) {
 				const orFilters = [
-					`contract_number.ilike.%${search}%`,
 					`cups.ilike.%${search}%`,
 					`provider.ilike.%${search}%`,
 					`product.ilike.%${search}%`,
@@ -97,7 +96,9 @@ export function useAllContracts(params: ContractsListParams = {}) {
 					.from("customers")
 					.select("id")
 					.or(`name.ilike.%${search}%,company.ilike.%${search}%`);
-				const customerIds = (matchedCustomers ?? []).map((c) => c.id);
+				const customerIds = ((matchedCustomers ?? []) as { id: string }[]).map(
+					(c) => c.id,
+				);
 				if (customerIds.length > 0) {
 					orFilters.push(`customer_id.in.(${customerIds.join(",")})`);
 				}
@@ -180,7 +181,6 @@ export function useContractsDueForRenewal(alertDays = 60) {
 
 export type ContractForCalendar = {
 	id: string;
-	contract_number: string | null;
 	ends_at: string;
 	provider: string | null;
 	product: string | null;
@@ -199,7 +199,7 @@ export function useContractsByMonth(month: string) {
 			const { data, error } = await supabase
 				.from("contracts")
 				.select(
-					"id, contract_number, ends_at, provider, product, status, customer:customers(id, name, company)",
+					"id, ends_at, provider, product, status, customer:customers(id, name, company)",
 				)
 				.not("ends_at", "is", null)
 				.gte("ends_at", start)

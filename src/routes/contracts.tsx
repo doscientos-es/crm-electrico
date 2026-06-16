@@ -77,7 +77,7 @@ export function ContractsRoute() {
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nº contrato, CUPS, comercializadora, producto..."
+              placeholder="Cliente, nº contrato, CUPS, comercializadora, producto..."
             />
           </div>
         </Field>
@@ -110,7 +110,7 @@ export function ContractsRoute() {
         />
       ) : (
         <DataTable
-          headers={['Cliente', 'Nº Contrato', 'Estado', 'Producto / Comercializadora', 'CUPS', 'Inicio', 'Fin', 'Importe']}
+          headers={['Cliente', 'Estado', 'Producto / Comercializadora', 'CUPS', 'Inicio', 'Fin', 'Comisión empresa']}
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage, onPageSizeChange: () => { } }}
         >
           {contracts.map((contract) => (
@@ -131,7 +131,6 @@ export function ContractsRoute() {
                 <p className="truncate font-medium text-foreground group-hover:underline">{contract.customer?.name ?? '-'}</p>
                 <p className="truncate text-xs text-muted-foreground">{contract.customer?.company ?? ''}</p>
               </Td>
-              <Td variant="muted" className="whitespace-nowrap">{contract.contract_number ?? '-'}</Td>
               <Td className="whitespace-nowrap">
                 <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
               </Td>
@@ -142,7 +141,7 @@ export function ContractsRoute() {
               <Td variant="muted" className="whitespace-nowrap font-mono text-xs">{contract.cups ?? '-'}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
-              <Td variant="muted" className="whitespace-nowrap">{money.format(contract.amount_eur)}</Td>
+              <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
             </Tr>
           ))}
         </DataTable>

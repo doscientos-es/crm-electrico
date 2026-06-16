@@ -593,7 +593,6 @@ export type Database = {
 					deal_id: string | null;
 					proposal_id: string | null;
 					status: ContractStatus;
-					contract_number: string | null;
 					signed_at: string | null;
 					starts_at: string | null;
 					ends_at: string | null;
@@ -630,7 +629,6 @@ export type Database = {
 					deal_id?: string | null;
 					proposal_id?: string | null;
 					status?: ContractStatus;
-					contract_number?: string | null;
 					signed_at?: string | null;
 					starts_at?: string | null;
 					ends_at?: string | null;
@@ -665,7 +663,6 @@ export type Database = {
 					deal_id?: string | null;
 					proposal_id?: string | null;
 					status?: ContractStatus;
-					contract_number?: string | null;
 					signed_at?: string | null;
 					starts_at?: string | null;
 					ends_at?: string | null;

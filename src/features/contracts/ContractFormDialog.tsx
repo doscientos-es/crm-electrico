@@ -94,8 +94,7 @@ export function ContractFormDialog({
     defaultValues: {
       customer_id: customerId,
       status: contract?.status ?? 'pending_processing',
-      // contract_number and dates are never copied on renewal — they must be set fresh
-      contract_number: contract?.contract_number ?? '',
+      // dates are never copied on renewal — they must be set fresh
       cups: source?.cups ?? '',
       provider: source?.provider ?? '',
       product: source?.product ?? '',
@@ -125,7 +124,6 @@ export function ContractFormDialog({
     const payload = {
       customer_id: customerId,
       status: values.status,
-      contract_number: values.contract_number || null,
       cups: values.cups || null,
       provider: values.provider || null,
       product: values.product || null,

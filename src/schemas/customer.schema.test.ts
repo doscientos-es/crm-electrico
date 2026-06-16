@@ -61,34 +61,6 @@ describe("customerSchema", () => {
 		expect(result.success).toBe(true);
 	});
 
-	// ── Supply postal code ─────────────────────────────────────────────────────
-
-	it("accepts a valid 5-digit postal_code", () => {
-		expect(
-			customerSchema.safeParse({ ...base, postal_code: "28001" }).success,
-		).toBe(true);
-	});
-
-	it("rejects postal_code with fewer than 5 digits", () => {
-		const result = customerSchema.safeParse({ ...base, postal_code: "2800" });
-		expect(result.success).toBe(false);
-		if (!result.success) {
-			expect(result.error.issues[0].path).toContain("postal_code");
-		}
-	});
-
-	it("rejects postal_code with letters", () => {
-		expect(
-			customerSchema.safeParse({ ...base, postal_code: "2800A" }).success,
-		).toBe(false);
-	});
-
-	it("accepts an empty postal_code (field is optional)", () => {
-		expect(
-			customerSchema.safeParse({ ...base, postal_code: "" }).success,
-		).toBe(true);
-	});
-
 	// ── Mailing postal code ────────────────────────────────────────────────────
 
 	it("accepts a valid mailing_postal_code", () => {

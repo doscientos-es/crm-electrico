@@ -14,7 +14,6 @@ export const contractSchema = z.object({
 			"incident",
 		])
 		.default("pending_processing"),
-	contract_number: z.string().optional(),
 	cups: z.string().optional(),
 	provider: z.string().optional(),
 	product: z.string().optional(),

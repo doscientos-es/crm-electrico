@@ -160,10 +160,10 @@ export function CustomerDetailRoute() {
             description="Este cliente aún no tiene contratos energéticos registrados."
           />
         ) : (
-          <DataTable headers={['Nº / CUPS', 'Comercializadora', 'Producto', 'Tarifa', 'Importe', 'Comisión', 'Vigencia', 'Estado', '']}>
+          <DataTable headers={['CUPS', 'Comercializadora', 'Producto', 'Tarifa', 'Importe', 'Comisión', 'Vigencia', 'Estado', '']}>
             {contracts.map((contract) => (
               <Tr key={contract.id} hover>
-                <Td variant="primary">{contract.contract_number ?? contract.cups ?? '—'}</Td>
+                <Td variant="primary">{contract.cups ?? '—'}</Td>
                 <Td variant="muted">{contract.provider ?? '—'}</Td>
                 <Td variant="muted">{contract.product ?? '—'}</Td>
                 <Td variant="muted">{contract.tariff_type ?? '—'}</Td>

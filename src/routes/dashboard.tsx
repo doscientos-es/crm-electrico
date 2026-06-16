@@ -91,7 +91,7 @@ export function DashboardRoute() {
                 return (
                   <Link key={contract.id} to={`/customers/${contract.customer_id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{contract.contract_number ?? contract.cups ?? '—'}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{contract.cups ?? '—'}</p>
                       <p className="text-xs text-muted-foreground">{contract.provider ?? '—'}</p>
                     </div>
                     <div className="text-right">

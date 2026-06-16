@@ -179,7 +179,7 @@ export function AgendaRoute() {
                               onClick={(e) => { e.stopPropagation(); setSelected(ev) }}
                             >
                               <FileText className="mr-0.5 inline size-2.5" />
-                              {ev.data.customer?.name ?? ev.data.contract_number ?? 'Contrato'}
+                              {ev.data.customer?.name ?? 'Contrato'}
                             </button>
                           )
                         )}
@@ -458,12 +458,6 @@ function ContractExpiryDialog({
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Estado</p>
             <p className="mt-0.5">{contractStatusLabels[contract.status]}</p>
           </div>
-          {contract.contract_number && (
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nº contrato</p>
-              <p className="mt-0.5">{contract.contract_number}</p>
-            </div>
-          )}
           {contract.provider && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Comercializadora</p>

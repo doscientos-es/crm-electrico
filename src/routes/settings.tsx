@@ -601,7 +601,6 @@ function DataTab() {
       }
       exportToCSV(
         rows.map((ct) => ({
-          'Nº Contrato': ct.contract_number ?? '',
           Cliente: ct.customer?.name ?? '',
           Empresa: ct.customer?.company ?? '',
           'Comercial asignado': profilesById[ct.customer?.assigned_to ?? ''] ?? '',
