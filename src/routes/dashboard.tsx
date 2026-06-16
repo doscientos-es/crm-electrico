@@ -61,18 +61,18 @@ export function DashboardRoute() {
 
       {/* KPIs */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-3">
-        <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} />
-        <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} />
-        <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} />
+        <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} href="/customers?status=active" />
+        <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals" />
+        <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} href="/renewals" />
       </section>
 
       {/* Contract KPIs */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-5">
-        <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} />
-        <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} />
-        <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} />
-        <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} />
-        <Kpi title="Incidencias" value={contractStats.incidents} icon={<AlertTriangle />} highlight={contractStats.incidents > 0 ? 'danger' : undefined} />
+        <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} href="/contracts" />
+        <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} href="/contracts?status=active" />
+        <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} href="/contracts?status=pending_signature" />
+        <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} href="/contracts?status=pending_processing" />
+        <Kpi title="Incidencias" value={contractStats.incidents} icon={<AlertTriangle />} highlight={contractStats.incidents > 0 ? 'danger' : undefined} href="/incidents" />
       </section>
 
       {/* Urgent contract renewals */}
@@ -109,11 +109,11 @@ export function DashboardRoute() {
   )
 }
 
-function Kpi({ title, value, icon, trend, highlight }: { title: string; value: string | number; icon: React.ReactNode; trend?: number; highlight?: 'warning' | 'danger' }) {
+function Kpi({ title, value, icon, trend, highlight, href }: { title: string; value: string | number; icon: React.ReactNode; trend?: number; highlight?: 'warning' | 'danger'; href?: string }) {
   const isPositive = (trend ?? 0) >= 0
   const valueClass = highlight === 'danger' ? 'text-destructive' : highlight === 'warning' ? 'text-amber-500' : 'text-foreground'
-  return (
-    <div className="flex items-center justify-between bg-background px-5 py-5">
+  const content = (
+    <>
       <div>
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
         <p className={`mt-2 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
@@ -127,6 +127,20 @@ function Kpi({ title, value, icon, trend, highlight }: { title: string; value: s
       <div className="text-muted-foreground/40">
         <span className="[&>svg]:h-8 [&>svg]:w-8">{icon}</span>
       </div>
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link to={href} className="flex items-center justify-between bg-background px-5 py-5 transition-colors hover:bg-muted/50">
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between bg-background px-5 py-5">
+      {content}
     </div>
   )
 }

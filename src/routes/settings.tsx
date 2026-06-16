@@ -530,8 +530,6 @@ function parseCsv(text: string): string[][] {
 const VALID_CUSTOMER_STATUSES = Object.keys(customerStatusLabels)
 
 function DataTab() {
-  const { data: customersData } = useCustomers({ pageSize: 5000 })
-  const customers = customersData?.data ?? []
   const createCustomer = useCreateCustomer()
   const importInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
@@ -636,17 +634,6 @@ function DataTab() {
     }
   }
 
-  function exportJson() {
-    const payload = { exported_at: new Date().toISOString(), customers }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `backup-crm-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   async function importCsv(file: File) {
     setImporting(true)
     try {
@@ -732,7 +719,7 @@ function DataTab() {
           </div>
 
           {/* ── Botones de exportación ── */}
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-muted/30 p-4">
               <p className="mb-1 text-sm font-medium text-foreground">Clientes CSV</p>
               <p className="mb-3 text-xs text-muted-foreground">Nombre, empresa, DNI, estado, comercial, servicios y renovación.</p>
@@ -747,14 +734,6 @@ function DataTab() {
               <Button size="sm" variant="secondary" disabled={isExportingContracts} onClick={exportContractsCsv}>
                 <Download className="h-3.5 w-3.5" />
                 {isExportingContracts ? 'Exportando...' : 'Descargar CSV'}
-              </Button>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <p className="mb-1 text-sm font-medium text-foreground">Backup JSON</p>
-              <p className="mb-3 text-xs text-muted-foreground">Exporta todos los clientes en formato JSON para backup completo.</p>
-              <Button size="sm" variant="secondary" onClick={exportJson}>
-                <Download className="h-3.5 w-3.5" />
-                Descargar JSON
               </Button>
             </div>
           </div>

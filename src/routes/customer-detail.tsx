@@ -1,4 +1,4 @@
-import { CheckCircle2, Mail, MessageSquare, Phone, Trash2, Upload } from 'lucide-react'
+import { AlertTriangle, Bell, CheckCircle2, Clock, FileText, Mail, MessageSquare, Pencil, Phone, RefreshCw, Trash2, Upload, UserPlus } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -17,12 +17,40 @@ import { getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
 import { canDownloadPdf } from '../lib/permissions'
 import { isPdfDocument } from '../lib/storage'
-import { getContactChannel, getContactNotes, useCustomerInteractions } from '../services/activity.service'
+import { type ActivityLogWithActor, getActivityLabel, getContactChannel, getContactNotes, useCustomerActivity } from '../services/activity.service'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
 import { useCustomer } from '../services/customers.service'
 import { useDeleteDocument, useDocuments } from '../services/documents.service'
 import { useIncidents, useResolveIncident } from '../services/incidents.service'
 import { useProfiles } from '../services/profiles.service'
+
+function getActivityIcon(action: string, log: ActivityLogWithActor) {
+  switch (action) {
+    case 'customer_created': return <UserPlus className="size-4" />
+    case 'customer_updated': return <Pencil className="size-4" />
+    case 'contract_created': return <FileText className="size-4" />
+    case 'contract_updated': return <RefreshCw className="size-4" />
+    case 'contract_deleted': return <Trash2 className="size-4" />
+    case 'incident_created': return <AlertTriangle className="size-4" />
+    case 'incident_updated': return <AlertTriangle className="size-4" />
+    case 'incident_deleted': return <Trash2 className="size-4" />
+    case 'renewal_alert_sent': return <Bell className="size-4" />
+    case 'renewal_contact': {
+      const ch = getContactChannel(log)
+      return ch === 'email' ? <Mail className="size-4" /> : <Phone className="size-4" />
+    }
+    default: return <Clock className="size-4" />
+  }
+}
+
+function getActivityIconBg(action: string): string {
+  if (action.includes('deleted')) return 'bg-destructive/10 text-destructive'
+  if (action.includes('incident')) return 'bg-amber-100 text-amber-600'
+  if (action.includes('contract')) return 'bg-blue-100 text-blue-600'
+  if (action === 'renewal_contact') return 'bg-violet-100 text-violet-600'
+  if (action === 'customer_created') return 'bg-emerald-100 text-emerald-600'
+  return 'bg-muted text-muted-foreground'
+}
 
 export function CustomerDetailRoute() {
   const { id } = useParams()
@@ -31,7 +59,7 @@ export function CustomerDetailRoute() {
   const { data: customer, isLoading } = useCustomer(id)
   const { data: documents = [] } = useDocuments(id)
   const { data: contracts = [] } = useContracts(id)
-  const { data: interactions = [], isLoading: interactionsLoading } = useCustomerInteractions(id)
+  const { data: activityLogs = [], isLoading: activityLoading } = useCustomerActivity(id ?? '')
   const { data: profiles = [] } = useProfiles()
   const deleteContract = useDeleteContract()
   const deleteDocument = useDeleteDocument()
@@ -294,61 +322,69 @@ export function CustomerDetailRoute() {
         )}
       </section>
 
+      {/* Activity history ─ all events */}
       <section className="mt-8">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Últimas interacciones</h3>
+            <h3 className="text-sm font-semibold text-foreground">Historial de actividad</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Conversaciones registradas por teléfono o correo electrónico.
+              Todos los cambios del cliente: contratos, incidencias, contactos y más.
             </p>
           </div>
-          {interactions.length > 0 && (
+          {activityLogs.length > 0 && (
             <span className="text-xs tabular-nums text-muted-foreground">
-              {interactions.length} {interactions.length === 1 ? 'interacción' : 'interacciones'}
+              {activityLogs.length} {activityLogs.length === 1 ? 'evento' : 'eventos'}
             </span>
           )}
         </div>
 
-        {interactionsLoading ? (
+        {activityLoading ? (
           <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
-            Cargando interacciones...
+            Cargando historial…
           </div>
-        ) : interactions.length === 0 ? (
+        ) : activityLogs.length === 0 ? (
           <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-card px-4 py-8 text-center">
             <MessageSquare className="size-5 text-muted-foreground" />
-            <p className="mt-3 text-sm font-medium text-foreground">Sin interacciones registradas</p>
+            <p className="mt-3 text-sm font-medium text-foreground">Sin actividad registrada</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Los contactos guardados desde Renovaciones aparecerán aquí.
+              Las acciones sobre este cliente aparecerán aquí automáticamente.
             </p>
           </div>
         ) : (
           <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-            {interactions.map((interaction) => {
-              const channel = getContactChannel(interaction)
+            {activityLogs.map((log) => {
+              const m = (log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata))
+                ? log.metadata as Record<string, unknown>
+                : {}
+              const notes = getContactNotes(log)
               return (
-                <li key={interaction.id} className="grid gap-3 px-4 py-4 sm:grid-cols-[auto_1fr_auto]">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    {channel === 'email' ? <Mail className="size-4" /> : <Phone className="size-4" />}
+                <li key={log.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[auto_1fr_auto]">
+                  <div className={`flex size-8 shrink-0 items-center justify-center rounded-full ${getActivityIconBg(log.action)}`}>
+                    {getActivityIcon(log.action, log)}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <p className="text-sm font-medium text-foreground">
-                        {channel === 'email' ? 'Correo electrónico' : 'Llamada telefónica'}
+                        {getActivityLabel(log.action, m)}
                       </p>
-                      <span className="text-xs text-muted-foreground">
-                        por {interaction.actor?.full_name ?? 'Usuario no disponible'}
-                      </span>
+                      {log.actor?.full_name && (
+                        <span className="text-xs text-muted-foreground">
+                          por {log.actor.full_name}
+                        </span>
+                      )}
                     </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">
-                      {getContactNotes(interaction) || 'Sin notas de la conversación.'}
-                    </p>
+                    {notes && (
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground leading-5">
+                        {notes}
+                      </p>
+                    )}
                   </div>
                   <time
-                    className="text-xs text-muted-foreground sm:text-right"
-                    dateTime={interaction.created_at}
-                    title={formatDateTime(interaction.created_at)}
+                    className="shrink-0 text-xs text-muted-foreground sm:text-right"
+                    dateTime={log.created_at}
+                    title={formatDateTime(log.created_at)}
                   >
-                    {relativeTime(interaction.created_at)}
+                    {relativeTime(log.created_at)}
                   </time>
                 </li>
               )

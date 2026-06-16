@@ -308,7 +308,7 @@ export function ContractFormDialog({
 
           <div className="col-span-full">
             <p className="mb-2 text-sm font-medium text-foreground">Precio potencia por tramo <span className="text-xs font-normal text-muted-foreground">(€/kW·año)</span></p>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            <div className="grid grid-cols-3 gap-3">
               {([1, 2, 3, 4, 5, 6] as const).map((p) => {
                 const key = `power_price_p${p}_eur` as const
                 return (
