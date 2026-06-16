@@ -213,6 +213,10 @@ export function useContractsByMonth(month: string) {
 }
 
 export interface ContractsExportFilter {
+	search?: string;
+	status?: ContractStatus;
+	startsFrom?: string;
+	endsTo?: string;
 	dateFrom?: string;
 	dateTo?: string;
 }
@@ -229,11 +233,18 @@ export type ContractExportRow = ContractRow & {
 export async function fetchAllContractsForExport(
 	filter: ContractsExportFilter = {},
 ): Promise<ContractExportRow[]> {
-	const { dateFrom, dateTo } = filter;
+	const { search, status, startsFrom, endsTo, dateFrom, dateTo } = filter;
 	let q = supabase
 		.from("contracts")
 		.select("*, customer:customers(id, name, company, assigned_to)")
 		.order("created_at", { ascending: false });
+	if (search)
+		q = q.or(
+			`cups.ilike.%${search}%,provider.ilike.%${search}%,product.ilike.%${search}%,contract_number.ilike.%${search}%`,
+		);
+	if (status) q = q.eq("status", status);
+	if (startsFrom) q = q.gte("starts_at", startsFrom);
+	if (endsTo) q = q.lte("ends_at", endsTo);
 	if (dateFrom) q = q.gte("created_at", dateFrom);
 	if (dateTo) q = q.lte("created_at", dateTo);
 	const { data, error } = await q;

@@ -1,15 +1,18 @@
-import { Search } from 'lucide-react'
+import { Download, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { StatusBadge } from '../components/feedback/StatusBadge'
+import { Button } from '../components/ui/button'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { useDebounce } from '../hooks/use-debounce'
+import { exportToCSV } from '../lib/export'
 import { formatDate, money } from '../lib/formatters'
-import { type ContractWithCustomer, useAllContracts } from '../services/contracts.service'
+import { type ContractWithCustomer, fetchAllContractsForExport, useAllContracts } from '../services/contracts.service'
 import type { ContractStatus } from '../types/database.types'
 
 const PAGE_SIZE = 25
@@ -26,8 +29,6 @@ export function ContractsRoute() {
   const search = params.get('q') ?? ''
   const status = params.get('status') ?? 'all'
   const startsFrom = params.get('startsFrom') ?? ''
-  const startsTo = params.get('startsTo') ?? ''
-  const endsFrom = params.get('endsFrom') ?? ''
   const endsTo = params.get('endsTo') ?? ''
   const page = Math.max(1, Number(params.get('page') ?? '1'))
 
@@ -44,15 +45,13 @@ export function ContractsRoute() {
     setParams((prev) => { const n = new URLSearchParams(prev); if (p > 1) n.set('page', String(p)); else n.delete('page'); return n }, { replace: true })
   }
 
-  const hasFilters = !!(search || status !== 'all' || startsFrom || startsTo || endsFrom || endsTo)
+  const hasFilters = !!(search || status !== 'all' || startsFrom || endsTo)
   const debouncedSearch = useDebounce(search, 250)
 
   const { data: result, isLoading } = useAllContracts({
     search: debouncedSearch || undefined,
     status: status !== 'all' ? status as ContractStatus : undefined,
     startsFrom: startsFrom || undefined,
-    startsTo: startsTo || undefined,
-    endsFrom: endsFrom || undefined,
     endsTo: endsTo || undefined,
     page: page - 1,
     pageSize: PAGE_SIZE,
@@ -89,16 +88,10 @@ export function ContractsRoute() {
             ))}
           </Select>
         </Field>
-        <Field label="Inicio desde" className="w-36">
+        <Field label="Inicio" className="w-36">
           <Input type="date" value={startsFrom} onChange={(e) => setDateParam('startsFrom', e.target.value)} />
         </Field>
-        <Field label="Inicio hasta" className="w-36">
-          <Input type="date" value={startsTo} onChange={(e) => setDateParam('startsTo', e.target.value)} />
-        </Field>
-        <Field label="Vto. desde" className="w-36">
-          <Input type="date" value={endsFrom} onChange={(e) => setDateParam('endsFrom', e.target.value)} />
-        </Field>
-        <Field label="Vto. hasta" className="w-36">
+        <Field label="Fin" className="w-36">
           <Input type="date" value={endsTo} onChange={(e) => setDateParam('endsTo', e.target.value)} />
         </Field>
       </div>
