@@ -1,5 +1,7 @@
 import {
+	AlertTriangle,
 	Building2,
+	CalendarDays,
 	FileArchive,
 	FileText,
 	Home,
@@ -43,6 +45,21 @@ export const navItems = [
 		icon: FileArchive,
 		description:
 			"Repositorio centralizado de archivos: contratos, DNIs, propuestas y facturas de todos los clientes.",
+	},
+	{
+		href: "/incidents",
+		label: "Incidencias",
+		icon: AlertTriangle,
+		description:
+			"Incidencias abiertas de clientes: falta de factura, DNI, firma u otros problemas pendientes.",
+	},
+	{
+		href: "/agenda",
+		label: "Agenda",
+		icon: CalendarDays,
+		description:
+			"Calendario de reuniones, renovaciones y contactos programados.",
+		enabled: false, // TODO: activar cuando el cliente pague el módulo de Agenda
 	},
 	{
 		href: "/settings",

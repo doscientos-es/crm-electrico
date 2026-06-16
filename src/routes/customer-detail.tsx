@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Phone, Trash2, Upload } from 'lucide-react'
+import { CheckCircle2, Mail, MessageSquare, Phone, Trash2, Upload } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -8,20 +8,25 @@ import { PdfViewerDialog } from '../components/documents/PdfViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { DataTable, EmptyState, Td, Tr, TruncatePath } from '../components/ui/table'
-import { contractStatusLabels, customerStatusLabels } from '../config/constants'
+import { contractStatusLabels, customerStatusLabels, incidentPriorityLabels, incidentStatusLabels } from '../config/constants'
+import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
+import { IncidentFormDialog } from '../features/incidents/IncidentFormDialog'
 import { getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
+import { canDownloadPdf } from '../lib/permissions'
 import { isPdfDocument } from '../lib/storage'
 import { getContactChannel, getContactNotes, useCustomerInteractions } from '../services/activity.service'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
 import { useCustomer } from '../services/customers.service'
 import { useDeleteDocument, useDocuments } from '../services/documents.service'
+import { useIncidents, useResolveIncident } from '../services/incidents.service'
 import { useProfiles } from '../services/profiles.service'
 
 export function CustomerDetailRoute() {
   const { id } = useParams()
+  const { profile: currentUser } = useAuth()
 
   const { data: customer, isLoading } = useCustomer(id)
   const { data: documents = [] } = useDocuments(id)
@@ -30,6 +35,8 @@ export function CustomerDetailRoute() {
   const { data: profiles = [] } = useProfiles()
   const deleteContract = useDeleteContract()
   const deleteDocument = useDeleteDocument()
+  const { data: incidents = [] } = useIncidents(id)
+  const resolveIncident = useResolveIncident()
 
   const owner = useMemo(
     () => profiles.find((p) => p.id === customer?.assigned_to),
@@ -121,6 +128,14 @@ export function CustomerDetailRoute() {
             <DetailRow label="Email" value={customer.email ?? '—'} />
             <DetailRow label="Teléfono" value={customer.phone ?? '—'} />
             <DetailRow label="IBAN" value={customer.iban ?? '—'} />
+            <DetailRow
+              label="Dirección de suministro"
+              value={formatAddress(customer.address, customer.postal_code, customer.city, customer.province)}
+            />
+            <DetailRow
+              label="Dirección de correspondencia"
+              value={formatAddress(customer.mailing_address, customer.mailing_postal_code, customer.mailing_city, customer.mailing_province)}
+            />
             <DetailRow label="Productos y servicios" value={customer.products_services.join(', ') || '—'} />
             <DetailRow label="Comercial" value={owner?.full_name ?? '—'} />
             <DetailRow label="Notas" value={customer.notes ?? '—'} />
@@ -207,7 +222,12 @@ export function CustomerDetailRoute() {
               <Td>
                 <div className="flex items-center justify-end gap-1">
                   {isPdfDocument(document.file_name, document.mime_type ?? undefined) ? (
-                    <PdfViewerDialog source={{ bucket: document.bucket, file_path: document.file_path, file_name: document.file_name, mime_type: document.mime_type ?? undefined }} title={document.file_name} description={`Archivo asociado a ${customer.name}`} />
+                    <PdfViewerDialog
+                      source={{ bucket: document.bucket, file_path: document.file_path, file_name: document.file_name, mime_type: document.mime_type ?? undefined }}
+                      title={document.file_name}
+                      description={`Archivo asociado a ${customer.name}`}
+                      canDownload={canDownloadPdf(currentUser?.role ?? 'viewer')}
+                    />
                   ) : (
                     <span className="text-xs text-muted-foreground">No PDF</span>
                   )}
@@ -228,6 +248,54 @@ export function CustomerDetailRoute() {
             </Tr>
           ))}
         </DataTable>
+      </section>
+
+      {/* Incidents */}
+      <section className="mt-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Incidencias abiertas</h3>
+          <IncidentFormDialog customerId={customer.id} />
+        </div>
+        {incidents.length === 0 ? (
+          <EmptyState
+            title="Sin incidencias"
+            description="Este cliente no tiene incidencias abiertas."
+          />
+        ) : (
+          <DataTable headers={['Tipo / Título', 'Prioridad', 'Estado', 'Creada', { label: 'Acciones', align: 'right' }]}>
+            {incidents.map((incident) => (
+              <Tr key={incident.id} hover>
+                <Td variant="primary">{incident.title}</Td>
+                <Td variant="muted">
+                  {incidentPriorityLabels[incident.priority as keyof typeof incidentPriorityLabels] ?? incident.priority}
+                </Td>
+                <Td>
+                  <StatusBadge value={incidentStatusLabels[incident.status as keyof typeof incidentStatusLabels] ?? incident.status} />
+                </Td>
+                <Td variant="muted">{relativeTime(incident.created_at)}</Td>
+                <Td align="right">
+                  <div className="flex items-center justify-end gap-1">
+                    <IncidentFormDialog customerId={customer.id} incident={incident} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={resolveIncident.isPending}
+                      onClick={() =>
+                        resolveIncident.mutate(incident.id, {
+                          onSuccess: () => toast.success('Incidencia resuelta'),
+                        })
+                      }
+                      className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Resolver
+                    </Button>
+                  </div>
+                </Td>
+              </Tr>
+            ))}
+          </DataTable>
+        )}
       </section>
 
       <section className="mt-8">
@@ -313,4 +381,15 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <dd className="text-right text-sm text-foreground">{value}</dd>
     </div>
   )
+}
+
+function formatAddress(
+  address: string | null,
+  postalCode: string | null,
+  city: string | null,
+  province: string | null,
+): string {
+  const locality = [postalCode, city].filter(Boolean).join(' ')
+  const parts = [address, locality, province].map((p) => p?.trim()).filter(Boolean)
+  return parts.length > 0 ? parts.join(', ') : '—'
 }

@@ -34,15 +34,19 @@ const numOrNull = (v: number | undefined) => (v === undefined || Number.isNaN(v)
 export function ContractFormDialog({
   customerId,
   contract,
+  prefillFrom,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: {
   customerId: string
   contract?: ContractRow
+  /** Pre-fills a new contract form with data from a previous contract (renewal). */
+  prefillFrom?: ContractRow
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
   const isEditing = Boolean(contract)
+  const source = contract ?? prefillFrom
   const [internalOpen, setInternalOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const open = controlledOpen ?? internalOpen
@@ -76,25 +80,26 @@ export function ContractFormDialog({
     defaultValues: {
       customer_id: customerId,
       status: contract?.status ?? 'pending_processing',
+      // contract_number and dates are never copied on renewal — they must be set fresh
       contract_number: contract?.contract_number ?? '',
-      cups: contract?.cups ?? '',
-      provider: contract?.provider ?? '',
-      product: contract?.product ?? '',
-      tariff_type: contract?.tariff_type ?? '',
-      power_kw: contract?.power_kw ?? undefined,
-      annual_consumption_kwh: contract?.annual_consumption_kwh ?? undefined,
-      energy_price_eur: contract?.energy_price_eur ?? undefined,
-      power_price_p1_eur: contract?.power_price_p1_eur ?? undefined,
-      power_price_p2_eur: contract?.power_price_p2_eur ?? undefined,
-      power_price_p3_eur: contract?.power_price_p3_eur ?? undefined,
-      power_price_p4_eur: contract?.power_price_p4_eur ?? undefined,
-      power_price_p5_eur: contract?.power_price_p5_eur ?? undefined,
-      power_price_p6_eur: contract?.power_price_p6_eur ?? undefined,
-      commission_company_eur: contract?.commission_company_eur ?? 0,
-      commission_commercial_eur: contract?.commission_commercial_eur ?? 0,
+      cups: source?.cups ?? '',
+      provider: source?.provider ?? '',
+      product: source?.product ?? '',
+      tariff_type: source?.tariff_type ?? '',
+      power_kw: source?.power_kw ?? undefined,
+      annual_consumption_kwh: source?.annual_consumption_kwh ?? undefined,
+      energy_price_eur: source?.energy_price_eur ?? undefined,
+      power_price_p1_eur: source?.power_price_p1_eur ?? undefined,
+      power_price_p2_eur: source?.power_price_p2_eur ?? undefined,
+      power_price_p3_eur: source?.power_price_p3_eur ?? undefined,
+      power_price_p4_eur: source?.power_price_p4_eur ?? undefined,
+      power_price_p5_eur: source?.power_price_p5_eur ?? undefined,
+      power_price_p6_eur: source?.power_price_p6_eur ?? undefined,
+      commission_company_eur: source?.commission_company_eur ?? 0,
+      commission_commercial_eur: source?.commission_commercial_eur ?? 0,
       starts_at: contract?.starts_at?.slice(0, 10) ?? '',
       ends_at: contract?.ends_at?.slice(0, 10) ?? '',
-      notes: contract?.notes ?? '',
+      notes: source?.notes ?? '',
     },
   })
 
@@ -133,7 +138,17 @@ export function ContractFormDialog({
     if (isEditing && contract) {
       updateContract.mutate({ id: contract.id, ...payload }, done)
     } else {
-      createContract.mutate(payload, done)
+      createContract.mutate(payload, {
+        onSuccess: () => {
+          if (prefillFrom) {
+            updateContract.mutate({ id: prefillFrom.id, status: 'terminated' })
+          }
+          toast.success('Contrato creado')
+          reset()
+          setOpen(false)
+        },
+        onError,
+      })
     }
   }
 
@@ -145,7 +160,7 @@ export function ContractFormDialog({
         if (!next) reset()
       }}
       size="lg"
-      title={isEditing ? 'Editar contrato' : 'Nuevo contrato'}
+      title={isEditing ? 'Editar contrato' : prefillFrom ? 'Renovar contrato' : 'Nuevo contrato'}
       trigger={
         controlledOpen !== undefined ? undefined : isEditing ? (
           <Button variant="secondary" size="sm"><Pencil className="h-4 w-4" />Editar</Button>

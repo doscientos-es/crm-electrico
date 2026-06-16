@@ -1,4 +1,4 @@
-import { Activity, CalendarClock, CheckCircle2, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { Activity, AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -22,7 +22,9 @@ export function DashboardRoute() {
   const contractStats = useMemo(() => {
     const active = contracts.filter((c) => c.status === 'active').length
     const pendingSignature = contracts.filter((c) => c.status === 'pending_signature').length
-    return { total: contracts.length, active, pendingSignature }
+    const pendingProcessing = contracts.filter((c) => c.status === 'pending_processing').length
+    const incidents = contracts.filter((c) => c.status === 'incident').length
+    return { total: contracts.length, active, pendingSignature, pendingProcessing, incidents }
   }, [contracts])
 
   const kpis = useMemo(() => {
@@ -65,10 +67,12 @@ export function DashboardRoute() {
       </section>
 
       {/* Contract KPIs */}
-      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-3">
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border xl:grid-cols-5">
         <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} />
         <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} />
         <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} />
+        <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} />
+        <Kpi title="Incidencias" value={contractStats.incidents} icon={<AlertTriangle />} highlight={contractStats.incidents > 0 ? 'danger' : undefined} />
       </section>
 
       {/* Urgent contract renewals */}
@@ -105,13 +109,14 @@ export function DashboardRoute() {
   )
 }
 
-function Kpi({ title, value, icon, trend }: { title: string; value: string | number; icon: React.ReactNode; trend?: number }) {
+function Kpi({ title, value, icon, trend, highlight }: { title: string; value: string | number; icon: React.ReactNode; trend?: number; highlight?: 'warning' | 'danger' }) {
   const isPositive = (trend ?? 0) >= 0
+  const valueClass = highlight === 'danger' ? 'text-destructive' : highlight === 'warning' ? 'text-amber-500' : 'text-foreground'
   return (
     <div className="flex items-center justify-between bg-background px-5 py-5">
       <div>
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
-        <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+        <p className={`mt-2 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
         {trend !== undefined && (
           <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-primary' : 'text-destructive'}`}>
             {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}

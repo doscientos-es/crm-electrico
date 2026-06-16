@@ -19,12 +19,14 @@ export function PdfViewerDialog({
   description,
   buttonLabel = 'Ver',
   buttonClassName,
+  canDownload = true,
 }: {
   source: PdfSource
   title?: string
   description?: string
   buttonLabel?: string
   buttonClassName?: string
+  canDownload?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -84,7 +86,11 @@ export function PdfViewerDialog({
         </div>
 
         {canPreview && url ? (
-          <iframe title={source.file_name} src={url} className="h-[70dvh] w-full rounded-lg border border-border bg-background" />
+          <iframe
+            title={source.file_name}
+            src={canDownload ? url : `${url}#toolbar=0&navpanes=0`}
+            className="h-[70dvh] w-full rounded-lg border border-border bg-background"
+          />
         ) : canPreview && !urlError ? (
           <div className="grid place-items-center rounded-lg border border-dashed border-border bg-muted/30 p-10 text-center">
             <p className="text-sm text-muted-foreground">Cargando vista previa…</p>
@@ -101,20 +107,22 @@ export function PdfViewerDialog({
           </div>
         )}
 
-        <div className="flex flex-wrap justify-between gap-3">
-          <Button variant="ghost" onClick={copyPath}>
-            <Copy className="h-4 w-4" />
-            {copied ? 'Ruta copiada' : 'Copiar ruta'}
-          </Button>
-          {url ? (
-            <Button asChild variant="secondary">
-              <a href={url} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                Abrir en otra pestaña
-              </a>
+        {canDownload && (
+          <div className="flex flex-wrap justify-between gap-3">
+            <Button variant="ghost" onClick={copyPath}>
+              <Copy className="h-4 w-4" />
+              {copied ? 'Ruta copiada' : 'Copiar ruta'}
             </Button>
-          ) : null}
-        </div>
+            {url ? (
+              <Button asChild variant="secondary">
+                <a href={url} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir en otra pestaña
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
     </Dialog>
   )

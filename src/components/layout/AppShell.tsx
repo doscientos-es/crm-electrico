@@ -39,7 +39,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-0.5">
-          {navItems.map((item) => {
+          {navItems.filter((item) => item.enabled !== false).map((item) => {
             const Icon = item.icon
             return (
               <li key={item.href}>

@@ -164,7 +164,7 @@ export function RenewalsRoute() {
                           contractId={contract.id}
                           contacts={renewalContacts}
                         />
-                        <ContractFormDialog customerId={customerId} />
+                        <ContractFormDialog customerId={customerId} prefillFrom={contract} />
                       </>
                     )}
                   </div>

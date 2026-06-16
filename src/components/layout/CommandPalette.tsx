@@ -73,7 +73,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     const q = query.trim().toLowerCase()
 
     const pages: ResultItem[] = navItems
-      .filter((item) => !q || item.label.toLowerCase().includes(q))
+      .filter((item) => item.enabled !== false && (!q || item.label.toLowerCase().includes(q)))
       .map((item) => ({ id: `nav-${item.href}`, category: 'Páginas', categoryIcon: Home, label: item.label, href: item.href, icon: item.icon }))
 
     if (!q) return pages

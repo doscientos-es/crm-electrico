@@ -9,12 +9,22 @@ interface CustomersFilter {
 	search?: string;
 	status?: string;
 	assignedTo?: string;
+	dateFrom?: string;
+	dateTo?: string;
 	page?: number;
 	pageSize?: number;
 }
 
 export function useCustomers(filter: CustomersFilter = {}) {
-	const { search, status, assignedTo, page = 0, pageSize = 25 } = filter;
+	const {
+		search,
+		status,
+		assignedTo,
+		dateFrom,
+		dateTo,
+		page = 0,
+		pageSize = 25,
+	} = filter;
 	return useQuery<{ data: CustomerRow[]; count: number }>({
 		queryKey: queryKeys.customers(filter),
 		queryFn: async () => {
@@ -28,12 +38,33 @@ export function useCustomers(filter: CustomersFilter = {}) {
 				);
 			if (status) q = q.eq("status", status as never);
 			if (assignedTo) q = q.eq("assigned_to", assignedTo);
+			if (dateFrom) q = q.gte("created_at", dateFrom);
+			if (dateTo) q = q.lte("created_at", dateTo);
 			q = q.order("name").range(page * pageSize, (page + 1) * pageSize - 1);
 			const { data, error, count } = await q;
 			if (error) throw error;
 			return { data: data as CustomerRow[], count: count ?? 0 };
 		},
 	});
+}
+
+export async function fetchAllCustomersForExport(
+	filter: Omit<CustomersFilter, "page" | "pageSize">,
+): Promise<CustomerRow[]> {
+	const { search, status, assignedTo, dateFrom, dateTo } = filter;
+	let q = supabase.from("customers").select("*").is("deleted_at", null);
+	if (search)
+		q = q.or(
+			`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%`,
+		);
+	if (status) q = q.eq("status", status as never);
+	if (assignedTo) q = q.eq("assigned_to", assignedTo);
+	if (dateFrom) q = q.gte("created_at", dateFrom);
+	if (dateTo) q = q.lte("created_at", dateTo);
+	q = q.order("name");
+	const { data, error } = await q;
+	if (error) throw error;
+	return data as CustomerRow[];
 }
 
 export function useCustomer(id: string | undefined) {

@@ -214,6 +214,10 @@ export type Database = {
 					city: string | null;
 					province: string | null;
 					postal_code: string | null;
+					mailing_address: string | null;
+					mailing_city: string | null;
+					mailing_province: string | null;
+					mailing_postal_code: string | null;
 					latitude: number | null;
 					longitude: number | null;
 					contract_signed_at: string | null;
@@ -246,6 +250,10 @@ export type Database = {
 					city?: string | null;
 					province?: string | null;
 					postal_code?: string | null;
+					mailing_address?: string | null;
+					mailing_city?: string | null;
+					mailing_province?: string | null;
+					mailing_postal_code?: string | null;
 					latitude?: number | null;
 					longitude?: number | null;
 					contract_signed_at?: string | null;
@@ -277,6 +285,10 @@ export type Database = {
 					city?: string | null;
 					province?: string | null;
 					postal_code?: string | null;
+					mailing_address?: string | null;
+					mailing_city?: string | null;
+					mailing_province?: string | null;
+					mailing_postal_code?: string | null;
 					latitude?: number | null;
 					longitude?: number | null;
 					contract_signed_at?: string | null;

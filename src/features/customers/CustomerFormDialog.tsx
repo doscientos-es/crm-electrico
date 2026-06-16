@@ -1,5 +1,5 @@
 ﻿import { zodResolver } from '@hookform/resolvers/zod'
-import { Building2, CreditCard, IdCard, Mail, MapPin, Pencil, Phone, Plus } from 'lucide-react'
+import { Building2, CopyCheck, CreditCard, IdCard, Mail, MapPin, Pencil, Phone, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -42,7 +42,8 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
   const { data: profiles = [] } = useProfiles()
   const createCustomer = useCreateCustomer()
   const updateCustomer = useUpdateCustomer()
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FullFormValues>({
+  const [sameAsSupply, setSameAsSupply] = useState(false)
+  const { register, handleSubmit, reset, getValues, setValue, formState: { errors, isSubmitting } } = useForm<FullFormValues>({
     resolver: zodResolver(customerSchema) as never,
     defaultValues: customer
       ? {
@@ -55,7 +56,14 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         email: customer.email ?? '',
         phone: customer.phone ?? '',
         iban: customer.iban ?? '',
+        address: customer.address ?? '',
         city: customer.city ?? '',
+        province: customer.province ?? '',
+        postal_code: customer.postal_code ?? '',
+        mailing_address: customer.mailing_address ?? '',
+        mailing_city: customer.mailing_city ?? '',
+        mailing_province: customer.mailing_province ?? '',
+        mailing_postal_code: customer.mailing_postal_code ?? '',
         notes: customer.notes ?? '',
         assigned_to: customer.assigned_to ?? currentUser?.id ?? '',
         products_services: customer.products_services.join(', '),
@@ -84,11 +92,26 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
       email: values.email || null,
       phone: values.phone || null,
       iban: values.iban || null,
+      address: values.address || null,
       city: values.city || null,
+      province: values.province || null,
+      postal_code: values.postal_code || null,
+      mailing_address: values.mailing_address || null,
+      mailing_city: values.mailing_city || null,
+      mailing_province: values.mailing_province || null,
+      mailing_postal_code: values.mailing_postal_code || null,
       assigned_to: values.assigned_to || null,
       products_services: products,
       notes: values.notes || null,
     }
+    // If "same as supply" is checked, ensure mailing fields mirror supply
+    if (sameAsSupply) {
+      common.mailing_address = common.address
+      common.mailing_city = common.city
+      common.mailing_province = common.province
+      common.mailing_postal_code = common.postal_code
+    }
+
     if (isEditing && customer) {
       updateCustomer.mutate({ id: customer.id, ...common }, { onSuccess: () => { reset(); setOpen(false) } })
     } else {
@@ -181,12 +204,6 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
             <Input {...register('contact_name')} placeholder="Persona de referencia" />
           </Field>
 
-          <Field label="Ciudad" error={errors.city?.message}>
-            <InputGroup leading={<MapPin />}>
-              <Input {...register('city')} placeholder="Madrid, Barcelona…" />
-            </InputGroup>
-          </Field>
-
           <Field label="Email" error={errors.email?.message}>
             <InputGroup leading={<Mail />}>
               <Input type="email" autoComplete="email" {...register('email')} placeholder="cliente@email.com" />
@@ -203,6 +220,77 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
             <InputGroup leading={<CreditCard />}>
               <Input {...register('iban')} placeholder="ES00 0000 0000 0000 0000 0000" />
             </InputGroup>
+          </Field>
+        </div>
+
+        {/* ── Dirección de suministro ── */}
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <SectionHeader title="Dirección de suministro" description="Dirección física del punto de suministro" />
+
+          <Field label="Dirección" error={errors.address?.message}>
+            <InputGroup leading={<MapPin />}>
+              <Input {...register('address')} placeholder="Calle, número, piso…" />
+            </InputGroup>
+          </Field>
+
+          <Field label="Código postal" error={(errors as Record<string, { message?: string }>).postal_code?.message}>
+            <Input inputMode="numeric" {...register('postal_code')} placeholder="28001" />
+          </Field>
+
+          <Field label="Ciudad" error={errors.city?.message}>
+            <Input {...register('city')} placeholder="Madrid, Barcelona…" />
+          </Field>
+
+          <Field label="Provincia" error={errors.province?.message}>
+            <Input {...register('province')} placeholder="Madrid" />
+          </Field>
+        </div>
+
+        {/* ── Dirección de correspondencia ── */}
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="col-span-full border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dirección de correspondencia</p>
+                <p className="mt-0.5 text-xs text-muted-foreground/70">Solo si el cliente recibe cartas en otra dirección</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !sameAsSupply
+                  setSameAsSupply(next)
+                  if (next) {
+                    const v = getValues()
+                    setValue('mailing_address', v.address ?? '')
+                    setValue('mailing_postal_code', v.postal_code ?? '')
+                    setValue('mailing_city', v.city ?? '')
+                    setValue('mailing_province', v.province ?? '')
+                  }
+                }}
+                className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${sameAsSupply ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-muted-foreground hover:text-foreground'}`}
+              >
+                <CopyCheck className="h-3.5 w-3.5" />
+                Igual que suministro
+              </button>
+            </div>
+          </div>
+
+          <Field label="Dirección" error={(errors as Record<string, { message?: string }>).mailing_address?.message}>
+            <InputGroup leading={<MapPin />}>
+              <Input {...register('mailing_address')} placeholder="Calle, número, piso…" disabled={sameAsSupply} />
+            </InputGroup>
+          </Field>
+
+          <Field label="Código postal" error={(errors as Record<string, { message?: string }>).mailing_postal_code?.message}>
+            <Input inputMode="numeric" {...register('mailing_postal_code')} placeholder="28001" disabled={sameAsSupply} />
+          </Field>
+
+          <Field label="Ciudad" error={(errors as Record<string, { message?: string }>).mailing_city?.message}>
+            <Input {...register('mailing_city')} placeholder="Madrid, Barcelona…" disabled={sameAsSupply} />
+          </Field>
+
+          <Field label="Provincia" error={(errors as Record<string, { message?: string }>).mailing_province?.message}>
+            <Input {...register('mailing_province')} placeholder="Madrid" disabled={sameAsSupply} />
           </Field>
         </div>
 

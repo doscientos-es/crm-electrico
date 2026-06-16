@@ -16,6 +16,8 @@ const RenewalsRoute = lazyWithRetry(() => import('../routes/renewals').then((m) 
 const DocumentsRoute = lazyWithRetry(() => import('../routes/documents').then((m) => ({ default: m.DocumentsRoute })))
 const ContractsRoute = lazyWithRetry(() => import('../routes/contracts').then((m) => ({ default: m.ContractsRoute })))
 const SettingsRoute = lazyWithRetry(() => import('../routes/settings').then((m) => ({ default: m.SettingsRoute })))
+const IncidentsRoute = lazyWithRetry(() => import('../routes/incidents').then((m) => ({ default: m.IncidentsRoute })))
+const AgendaRoute = lazyWithRetry(() => import('../routes/agenda').then((m) => ({ default: m.AgendaRoute })))
 
 
 const routeFallback = <PageSkeleton kpis={0} tableRows={8} />
@@ -61,6 +63,8 @@ export function App() {
         <Route path="/contracts" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/agenda" element={<Suspense fallback={<PageSkeleton kpis={0} tableRows={0} />}><ErrorBoundary level="page"><AgendaRoute /></ErrorBoundary></Suspense>} />
 
         <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
         <Route path="/settings/:tab" element={<Suspense fallback={<PageSkeleton kpis={0} tableRows={4} />}><ErrorBoundary level="page"><SettingsRoute /></ErrorBoundary></Suspense>} />

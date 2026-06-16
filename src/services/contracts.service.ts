@@ -136,6 +136,69 @@ export function useContractsDueForRenewal(alertDays = 60) {
 	});
 }
 
+export type ContractForCalendar = {
+	id: string;
+	contract_number: string | null;
+	ends_at: string;
+	provider: string | null;
+	product: string | null;
+	status: ContractStatus;
+	customer: { id: string; name: string; company: string | null } | null;
+};
+
+export function useContractsByMonth(month: string) {
+	return useQuery<ContractForCalendar[]>({
+		queryKey: ["contracts", "calendar", month],
+		queryFn: async () => {
+			const [year, m] = month.split("-").map(Number);
+			const start = `${month}-01`;
+			const lastDay = new Date(year, m, 0).getDate();
+			const end = `${month}-${String(lastDay).padStart(2, "0")}`;
+			const { data, error } = await supabase
+				.from("contracts")
+				.select(
+					"id, contract_number, ends_at, provider, product, status, customer:customers(id, name, company)",
+				)
+				.not("ends_at", "is", null)
+				.gte("ends_at", start)
+				.lte("ends_at", end)
+				.order("ends_at", { ascending: true });
+			if (error) throw error;
+			return (data ?? []) as ContractForCalendar[];
+		},
+		enabled: !!month,
+	});
+}
+
+export interface ContractsExportFilter {
+	dateFrom?: string;
+	dateTo?: string;
+}
+
+export type ContractExportRow = ContractRow & {
+	customer: {
+		id: string;
+		name: string;
+		company: string | null;
+		assigned_to: string | null;
+	} | null;
+};
+
+export async function fetchAllContractsForExport(
+	filter: ContractsExportFilter = {},
+): Promise<ContractExportRow[]> {
+	const { dateFrom, dateTo } = filter;
+	let q = supabase
+		.from("contracts")
+		.select("*, customer:customers(id, name, company, assigned_to)")
+		.order("created_at", { ascending: false });
+	if (dateFrom) q = q.gte("created_at", dateFrom);
+	if (dateTo) q = q.lte("created_at", dateTo);
+	const { data, error } = await q;
+	if (error) throw error;
+	return (data ?? []) as ContractExportRow[];
+}
+
 export function useDeleteContract() {
 	const qc = useQueryClient();
 	return useMutation({

@@ -12,6 +12,7 @@ import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
 import { useToastError } from '../hooks/use-toast-error'
 import { formatDate } from '../lib/formatters'
+import { canDownloadPdf } from '../lib/permissions'
 import { isPdfDocument } from '../lib/storage'
 import { useCustomers } from '../services/customers.service'
 import { type UploadStep, useDeleteDocument, useDocuments, useUploadDocument } from '../services/documents.service'
@@ -148,6 +149,7 @@ export function DocumentsRoute() {
                           source={{ bucket: document.bucket, file_path: document.file_path, file_name: document.file_name, mime_type: document.mime_type ?? undefined }}
                           title={document.file_name}
                           description={`Documento asociado a ${customerById[document.customer_id ?? ''] ?? '-'}`}
+                          canDownload={canDownloadPdf(currentUser?.role ?? 'viewer')}
                         />
                       ) : (
                         <span className="text-xs text-muted-foreground">No PDF</span>

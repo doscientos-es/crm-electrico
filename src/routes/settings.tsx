@@ -17,10 +17,13 @@ import { useAuth } from '../features/auth/AuthContext'
 import { useTheme } from '../hooks/use-theme'
 
 import { appBrand } from '~/config/nav'
-import { customerStatusLabels } from '../config/constants'
+import { contractStatusLabels, customerStatusLabels } from '../config/constants'
+import { exportToCSV } from '../lib/export'
+import { formatDate } from '../lib/formatters'
 import type { ThemePreference } from '../lib/theme'
 import { cn } from '../lib/utils'
-import { useCreateCustomer, useCustomers } from '../services/customers.service'
+import { fetchAllContractsForExport } from '../services/contracts.service'
+import { fetchAllCustomersForExport, useCreateCustomer, useCustomers } from '../services/customers.service'
 import { useOrganization, useUpdateOrganization } from '../services/organization.service'
 import { useDeleteProfile, useInviteProfile, useProfiles, useUpdateProfile } from '../services/profiles.service'
 import type { AppRole } from '../types/database.types'
@@ -533,19 +536,100 @@ function DataTab() {
   const importInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
 
-  function exportCsv() {
-    const headers = ['Nombre', 'DNI', 'Estado', 'Fecha renovacion', 'Asignado a', 'Email', 'Teléfono', 'Ciudad']
-    const rows = customers.map((c) => [
-      c.name, c.dni ?? '', c.status, c.renewal_date ?? '', c.assigned_to ?? '', c.email ?? '', c.phone ?? '', c.city ?? '',
-    ])
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  // ── Export filters ──────────────────────────────────────────────────────────
+  const [exportStatus, setExportStatus] = useState('all')
+  const [exportDateFrom, setExportDateFrom] = useState('')
+  const [exportDateTo, setExportDateTo] = useState('')
+  const [isExportingCsv, setIsExportingCsv] = useState(false)
+  const [isExportingContracts, setIsExportingContracts] = useState(false)
+
+  const { data: profiles } = useProfiles()
+  const profilesById = useMemo(
+    () => Object.fromEntries((profiles ?? []).map((p) => [p.id, p.full_name ?? ''])),
+    [profiles],
+  )
+
+  async function exportCsv() {
+    setIsExportingCsv(true)
+    try {
+      const rows = await fetchAllCustomersForExport({
+        status: exportStatus !== 'all' ? exportStatus : undefined,
+        dateFrom: exportDateFrom || undefined,
+        dateTo: exportDateTo || undefined,
+      })
+      if (!rows.length) {
+        toast.info('No hay clientes con los filtros seleccionados.')
+        return
+      }
+      exportToCSV(
+        rows.map((c) => ({
+          Nombre: c.name,
+          Empresa: c.company ?? '',
+          DNI: c.dni ?? '',
+          Estado: customerStatusLabels[c.status as keyof typeof customerStatusLabels] ?? c.status,
+          Email: c.email ?? '',
+          Teléfono: c.phone ?? '',
+          Ciudad: c.city ?? '',
+          Provincia: c.province ?? '',
+          IBAN: c.iban ?? '',
+          'Comercial asignado': profilesById[c.assigned_to ?? ''] ?? '',
+          'Servicios contratados': (c.products_services as string[] ?? []).join(', '),
+          'Contrato firmado': c.contract_signed_at ? formatDate(c.contract_signed_at) : '',
+          'Fecha renovación': c.renewal_date ? formatDate(c.renewal_date) : '',
+          'Alta en CRM': c.created_at ? formatDate(c.created_at) : '',
+        })),
+        `clientes-${new Date().toISOString().slice(0, 10)}`,
+      )
+      toast.success(`${rows.length} clientes exportados.`)
+    } catch {
+      toast.error('Error al exportar clientes.')
+    } finally {
+      setIsExportingCsv(false)
+    }
+  }
+
+  async function exportContractsCsv() {
+    setIsExportingContracts(true)
+    try {
+      const rows = await fetchAllContractsForExport({
+        dateFrom: exportDateFrom || undefined,
+        dateTo: exportDateTo || undefined,
+      })
+      if (!rows.length) {
+        toast.info('No hay contratos con los filtros seleccionados.')
+        return
+      }
+      exportToCSV(
+        rows.map((ct) => ({
+          'Nº Contrato': ct.contract_number ?? '',
+          Cliente: ct.customer?.name ?? '',
+          Empresa: ct.customer?.company ?? '',
+          'Comercial asignado': profilesById[ct.customer?.assigned_to ?? ''] ?? '',
+          Estado: contractStatusLabels[ct.status as keyof typeof contractStatusLabels] ?? ct.status,
+          Comercializadora: ct.provider ?? '',
+          Producto: ct.product ?? '',
+          CUPS: ct.cups ?? '',
+          Tarifa: ct.tariff_type ?? '',
+          'Potencia (kW)': ct.power_kw ?? '',
+          'Consumo anual (kWh)': ct.annual_consumption_kwh ?? '',
+          'Precio energía': ct.energy_price_eur ?? '',
+          'Precio potencia': ct.power_price_eur ?? '',
+          'Importe (€)': ct.amount_eur ?? '',
+          'Comisión (€)': ct.commission_eur ?? '',
+          'Inicio vigencia': ct.starts_at ? formatDate(ct.starts_at) : '',
+          'Fin vigencia': ct.ends_at ? formatDate(ct.ends_at) : '',
+          'Fecha firma': ct.signed_at ? formatDate(ct.signed_at) : '',
+          'Alta en CRM': ct.created_at ? formatDate(ct.created_at) : '',
+          Notas: ct.notes ?? '',
+        })),
+        `contratos-${new Date().toISOString().slice(0, 10)}`,
+      )
+      toast.success(`${rows.length} contratos exportados.`)
+    } catch {
+      toast.error('Error al exportar contratos.')
+    } finally {
+      setIsExportingContracts(false)
+    }
   }
 
   function exportJson() {
@@ -624,19 +708,46 @@ function DataTab() {
           <CardTitle>Exportar datos</CardTitle>
           <p className="text-sm text-muted-foreground">Descarga un snapshot de los datos en el formato que necesites.</p>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid gap-4">
+          {/* ── Filtros de exportación ── */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Estado cliente">
+              <Select value={exportStatus} onChange={(e) => setExportStatus(e.target.value)}>
+                <option value="all">Todos</option>
+                {Object.entries(customerStatusLabels).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Alta desde">
+              <Input type="date" value={exportDateFrom} onChange={(e) => setExportDateFrom(e.target.value)} />
+            </Field>
+            <Field label="Alta hasta">
+              <Input type="date" value={exportDateTo} onChange={(e) => setExportDateTo(e.target.value)} />
+            </Field>
+          </div>
+
+          {/* ── Botones de exportación ── */}
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-border bg-muted/30 p-4">
               <p className="mb-1 text-sm font-medium text-foreground">Clientes CSV</p>
-              <p className="mb-3 text-xs text-muted-foreground">Exporta nombre, DNI, estado, renovación y comercial asignado.</p>
-              <Button size="sm" variant="secondary" onClick={exportCsv}>
+              <p className="mb-3 text-xs text-muted-foreground">Nombre, empresa, DNI, estado, comercial, servicios y renovación.</p>
+              <Button size="sm" variant="secondary" disabled={isExportingCsv} onClick={exportCsv}>
                 <Download className="h-3.5 w-3.5" />
-                Descargar CSV
+                {isExportingCsv ? 'Exportando...' : 'Descargar CSV'}
+              </Button>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <p className="mb-1 text-sm font-medium text-foreground">Contratos CSV</p>
+              <p className="mb-3 text-xs text-muted-foreground">Una fila por contrato con datos energéticos, comercial y vigencia.</p>
+              <Button size="sm" variant="secondary" disabled={isExportingContracts} onClick={exportContractsCsv}>
+                <Download className="h-3.5 w-3.5" />
+                {isExportingContracts ? 'Exportando...' : 'Descargar CSV'}
               </Button>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-4">
               <p className="mb-1 text-sm font-medium text-foreground">Backup JSON</p>
-              <p className="mb-3 text-xs text-muted-foreground">Exporta todos los clientes en formato JSON.</p>
+              <p className="mb-3 text-xs text-muted-foreground">Exporta todos los clientes en formato JSON para backup completo.</p>
               <Button size="sm" variant="secondary" onClick={exportJson}>
                 <Download className="h-3.5 w-3.5" />
                 Descargar JSON
@@ -696,7 +807,8 @@ export function SettingsRoute() {
     rawTab &&
       (VALID_TABS as readonly string[]).includes(rawTab) &&
       (rawTab !== 'team' || canManageTeam) &&
-      (rawTab !== 'organization' || canManageOrg)
+      (rawTab !== 'organization' || canManageOrg) &&
+      (rawTab !== 'data' || canManageOrg)
       ? (rawTab as SettingsTab)
       : 'appearance'
 
@@ -709,7 +821,7 @@ export function SettingsRoute() {
       { value: 'appearance', label: 'Apariencia', content: <AppearanceTab /> },
       ...(canManageOrg ? [{ value: 'organization', label: 'Empresa', content: <OrganizationTab /> }] : []),
       ...(canManageTeam ? [{ value: 'team', label: 'Equipo', content: <TeamTab /> }] : []),
-      { value: 'data', label: 'Datos', content: <DataTab /> },
+      ...(canManageOrg ? [{ value: 'data', label: 'Datos', content: <DataTab /> }] : []),
     ],
     [canManageOrg, canManageTeam],
   )
