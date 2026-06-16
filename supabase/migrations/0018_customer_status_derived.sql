@@ -33,7 +33,6 @@ alter type customer_status_v2 rename to customer_status;
 create or replace view public.customers_due_for_renewal as
 select
   c.id,
-  c.organization_id,
   c.name,
   c.company,
   c.status,
