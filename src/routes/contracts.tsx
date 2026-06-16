@@ -25,6 +25,51 @@ export function ContractsRoute() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [editingContract, setEditingContract] = useState<ContractWithCustomer | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+
+  async function handleExport() {
+    setIsExporting(true)
+    try {
+      const rows = await fetchAllContractsForExport({
+        search: debouncedSearch || undefined,
+        status: status !== 'all' ? status as ContractStatus : undefined,
+        startsFrom: startsFrom || undefined,
+        endsTo: endsTo || undefined,
+      })
+      if (!rows.length) {
+        toast.info('No hay contratos que exportar con los filtros actuales.')
+        return
+      }
+      const statusLabel = status !== 'all' ? contractStatusLabels[status as keyof typeof contractStatusLabels] ?? status : 'todos'
+      const filename = `contratos_${statusLabel}_${new Date().toISOString().slice(0, 10)}`
+      exportToCSV(
+        rows.map((ct) => ({
+          Cliente: ct.customer?.name ?? '',
+          Empresa: ct.customer?.company ?? '',
+          Estado: contractStatusLabels[ct.status as keyof typeof contractStatusLabels] ?? ct.status,
+          Comercializadora: ct.provider ?? '',
+          Producto: ct.product ?? '',
+          CUPS: ct.cups ?? '',
+          Tarifa: ct.tariff_type ?? '',
+          'Potencia (kW)': ct.power_kw ?? '',
+          'Consumo anual (kWh)': ct.annual_consumption_kwh ?? '',
+          'Precio energía': ct.energy_price_eur ?? '',
+          'Importe (€)': ct.amount_eur ?? '',
+          'Comisión (€)': ct.commission_eur ?? '',
+          'Comisión empresa (€)': ct.commission_company_eur ?? '',
+          'Inicio vigencia': ct.starts_at ? formatDate(ct.starts_at) : '',
+          'Fin vigencia': ct.ends_at ? formatDate(ct.ends_at) : '',
+          'Fecha firma': ct.signed_at ? formatDate(ct.signed_at) : '',
+        })),
+        filename,
+      )
+      toast.success(`${rows.length} contratos exportados correctamente.`)
+    } catch {
+      toast.error('Error al exportar. Inténtalo de nuevo.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const search = params.get('q') ?? ''
   const status = params.get('status') ?? 'all'
@@ -94,6 +139,12 @@ export function ContractsRoute() {
         <Field label="Fin" className="w-36">
           <Input type="date" value={endsTo} onChange={(e) => setDateParam('endsTo', e.target.value)} />
         </Field>
+        <div className="flex items-end">
+          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
+        </div>
       </div>
 
       {!isLoading && contracts.length === 0 ? (
