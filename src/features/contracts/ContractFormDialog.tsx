@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addYears, format } from 'date-fns'
-import { CopyCheck, Euro, Loader2, MapPin, Pencil, Plus, Trash2, Zap } from 'lucide-react'
+import { CopyCheck, Euro, Loader2, MapPin, Pencil, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -184,6 +184,8 @@ export function ContractFormDialog({
       trigger={
         controlledOpen !== undefined ? undefined : isEditing ? (
           <Button variant="secondary" size="sm"><Pencil className="h-4 w-4" />Editar</Button>
+        ) : prefillFrom ? (
+          <Button size="sm" variant="default"><RefreshCw className="h-4 w-4" />Renovar</Button>
         ) : (
           <Button size="sm"><Plus className="h-4 w-4" />Nuevo contrato</Button>
         )
