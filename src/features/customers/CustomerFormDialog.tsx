@@ -131,7 +131,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
             <Input {...register('name')} placeholder="Nombre del cliente o razón social" />
           </Field>
 
-          <Field label="Tipo de cliente" error={(errors as Record<string, { message?: string }>).type?.message} required>
+          <Field label="Tipo de cliente" error={(errors as Record<string, { message?: string }>).type?.message}>
             <Select {...register('type')}>
               {Object.entries(customerTypeLabels).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -156,7 +156,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         <div className="grid items-start gap-4 md:grid-cols-2">
           <SectionHeader title="Estado y asignación" />
 
-          <Field label="Estado" error={(errors as Record<string, { message?: string }>).status?.message} required>
+          <Field label="Estado" error={(errors as Record<string, { message?: string }>).status?.message}>
             <Select {...register('status')}>
               <option value="new">Nuevo</option>
               <option value="active">Activo</option>
@@ -168,9 +168,10 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
           <Field
             label="Comercial responsable"
             error={(errors as Record<string, { message?: string }>).assigned_to?.message}
-            hint="Encargado del seguimiento del cliente"
+            hint="Opcional — asignable más adelante"
           >
             <Select {...register('assigned_to')}>
+              <option value="">Sin asignar</option>
               {profiles
                 .filter((p) => ['owner', 'admin', 'sales'].includes(p.role))
                 .map((p) => (
@@ -188,13 +189,13 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
             <Input {...register('contact_name')} placeholder="Persona de referencia" />
           </Field>
 
-          <Field label="Email" error={errors.email?.message}>
+          <Field label="Email" error={errors.email?.message} hint="Opcional">
             <InputGroup leading={<Mail />}>
               <Input type="email" autoComplete="email" {...register('email')} placeholder="cliente@email.com" />
             </InputGroup>
           </Field>
 
-          <Field label="Teléfono" error={errors.phone?.message}>
+          <Field label="Teléfono" error={errors.phone?.message} hint="Opcional">
             <InputGroup leading={<Phone />}>
               <Input type="tel" inputMode="tel" autoComplete="tel" {...register('phone')} placeholder="600 123 456" />
             </InputGroup>

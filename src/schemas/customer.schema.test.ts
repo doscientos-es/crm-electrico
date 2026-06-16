@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { customerSchema } from "./customer.schema";
 
-// Minimal valid input – all optional fields absent
+// Minimal valid input – only truly required fields
 const base = {
 	name: "Empresa Test",
 	type: "business" as const,
 	status: "new" as const,
-	assigned_to: "user-uuid-1",
 	products_services: "",
-	email: "test@example.com",
-	phone: "",
 };
 
 describe("customerSchema", () => {
@@ -32,33 +29,48 @@ describe("customerSchema", () => {
 		expect(result.success).toBe(false);
 	});
 
-	// ── Contact refine (email OR phone required) ───────────────────────────────
+	// ── Contact fields (all optional) ────────────────────────────────────────
 
-	it("rejects when both email and phone are empty", () => {
-		const result = customerSchema.safeParse({
-			...base,
-			email: "",
-			phone: "",
-		});
-		expect(result.success).toBe(false);
+	it("accepts when both email and phone are empty", () => {
+		const result = customerSchema.safeParse({ ...base, email: "", phone: "" });
+		expect(result.success).toBe(true);
 	});
 
 	it("accepts when only phone is provided", () => {
-		const result = customerSchema.safeParse({
-			...base,
-			email: "",
-			phone: "600123456",
-		});
+		const result = customerSchema.safeParse({ ...base, phone: "600123456" });
 		expect(result.success).toBe(true);
 	});
 
 	it("accepts when only email is provided", () => {
+		const result = customerSchema.safeParse({ ...base, email: "a@b.com" });
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects an invalid email format", () => {
 		const result = customerSchema.safeParse({
 			...base,
-			email: "a@b.com",
-			phone: "",
+			email: "no-es-un-email",
 		});
-		expect(result.success).toBe(true);
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toContain("email");
+	});
+
+	it("rejects an invalid phone format", () => {
+		const result = customerSchema.safeParse({ ...base, phone: "123" });
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toContain("phone");
+	});
+
+	// ── assigned_to (optional) ────────────────────────────────────────────────
+
+	it("accepts when assigned_to is absent", () => {
+		expect(customerSchema.safeParse(base).success).toBe(true);
+	});
+
+	it("accepts when assigned_to is a valid uuid string", () => {
+		expect(
+			customerSchema.safeParse({ ...base, assigned_to: "user-uuid-1" }).success,
+		).toBe(true);
 	});
 
 	// ── Mailing postal code ────────────────────────────────────────────────────
