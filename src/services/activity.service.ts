@@ -125,7 +125,7 @@ export function useCustomerInteractions(customerId: string | undefined) {
 				.from("activity_logs")
 				.select("*, actor:profiles!activity_logs_actor_id_fkey(full_name)")
 				.eq("entity_type", "customer")
-				.eq("entity_id", customerId!)
+				.eq("entity_id", customerId ?? "")
 				.eq("action", "renewal_contact")
 				.order("created_at", { ascending: false })
 				.limit(20);
