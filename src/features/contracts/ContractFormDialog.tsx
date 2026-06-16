@@ -84,9 +84,14 @@ export function ContractFormDialog({
       power_kw: contract?.power_kw ?? undefined,
       annual_consumption_kwh: contract?.annual_consumption_kwh ?? undefined,
       energy_price_eur: contract?.energy_price_eur ?? undefined,
-      power_price_eur: contract?.power_price_eur ?? undefined,
-      commission_eur: contract?.commission_eur ?? 0,
-      amount_eur: contract?.amount_eur ?? 0,
+      power_price_p1_eur: contract?.power_price_p1_eur ?? undefined,
+      power_price_p2_eur: contract?.power_price_p2_eur ?? undefined,
+      power_price_p3_eur: contract?.power_price_p3_eur ?? undefined,
+      power_price_p4_eur: contract?.power_price_p4_eur ?? undefined,
+      power_price_p5_eur: contract?.power_price_p5_eur ?? undefined,
+      power_price_p6_eur: contract?.power_price_p6_eur ?? undefined,
+      commission_company_eur: contract?.commission_company_eur ?? 0,
+      commission_commercial_eur: contract?.commission_commercial_eur ?? 0,
       starts_at: contract?.starts_at?.slice(0, 10) ?? '',
       ends_at: contract?.ends_at?.slice(0, 10) ?? '',
       notes: contract?.notes ?? '',
@@ -105,9 +110,14 @@ export function ContractFormDialog({
       power_kw: numOrNull(values.power_kw),
       annual_consumption_kwh: numOrNull(values.annual_consumption_kwh),
       energy_price_eur: numOrNull(values.energy_price_eur),
-      power_price_eur: numOrNull(values.power_price_eur),
-      commission_eur: values.commission_eur ?? 0,
-      amount_eur: values.amount_eur ?? 0,
+      power_price_p1_eur: numOrNull(values.power_price_p1_eur),
+      power_price_p2_eur: numOrNull(values.power_price_p2_eur),
+      power_price_p3_eur: numOrNull(values.power_price_p3_eur),
+      power_price_p4_eur: numOrNull(values.power_price_p4_eur),
+      power_price_p5_eur: numOrNull(values.power_price_p5_eur),
+      power_price_p6_eur: numOrNull(values.power_price_p6_eur),
+      commission_company_eur: values.commission_company_eur ?? 0,
+      commission_commercial_eur: values.commission_commercial_eur ?? 0,
       starts_at: values.starts_at || null,
       ends_at: values.ends_at || null,
       notes: values.notes || null,
@@ -183,7 +193,7 @@ export function ContractFormDialog({
             error={errors.tariff_type?.message}
             hint="Determinada por la potencia y el tipo de suministro"
           >
-            <Input {...register('tariff_type')} placeholder="2.0TD, 3.0TD, 6.1TD…" />
+            <Input {...register('tariff_type')} placeholder="2.0TD, RL1, 6.1TD…" />
           </Field>
         </div>
 
@@ -214,21 +224,31 @@ export function ContractFormDialog({
             </MoneyInput>
           </Field>
 
-          <Field label="Precio potencia" error={errors.power_price_eur?.message} hint="€ por kW contratado al año">
+          <div className="col-span-full">
+            <p className="mb-2 text-sm font-medium text-foreground">Precio potencia por tramo <span className="text-xs font-normal text-muted-foreground">(€/kW·año)</span></p>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              {([1, 2, 3, 4, 5, 6] as const).map((p) => {
+                const key = `power_price_p${p}_eur` as const
+                return (
+                  <Field key={key} label={`P${p}`} error={(errors as Record<string, { message?: string }>)[key]?.message}>
+                    <MoneyInput>
+                      <Input type="number" step="any" min={0} {...register(key)} placeholder="0.00" />
+                    </MoneyInput>
+                  </Field>
+                )
+              })}
+            </div>
+          </div>
+
+          <Field label="Comisión empresa" error={errors.commission_company_eur?.message}>
             <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('power_price_eur')} placeholder="38.04" />
+              <Input type="number" step="any" min={0} {...register('commission_company_eur')} placeholder="0.00" />
             </MoneyInput>
           </Field>
 
-          <Field label="Comisión" error={errors.commission_eur?.message}>
+          <Field label="Comisión comercial" error={errors.commission_commercial_eur?.message}>
             <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('commission_eur')} placeholder="0.00" />
-            </MoneyInput>
-          </Field>
-
-          <Field label="Importe total" error={errors.amount_eur?.message}>
-            <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('amount_eur')} placeholder="0.00" />
+              <Input type="number" step="any" min={0} {...register('commission_commercial_eur')} placeholder="0.00" />
             </MoneyInput>
           </Field>
         </div>

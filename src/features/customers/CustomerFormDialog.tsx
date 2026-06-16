@@ -1,5 +1,5 @@
 ﻿import { zodResolver } from '@hookform/resolvers/zod'
-import { Building2, IdCard, Mail, MapPin, Pencil, Phone, Plus } from 'lucide-react'
+import { Building2, CreditCard, IdCard, Mail, MapPin, Pencil, Phone, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -54,6 +54,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         contact_name: customer.contact_name ?? '',
         email: customer.email ?? '',
         phone: customer.phone ?? '',
+        iban: customer.iban ?? '',
         city: customer.city ?? '',
         notes: customer.notes ?? '',
         assigned_to: customer.assigned_to ?? currentUser?.id ?? '',
@@ -66,6 +67,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
         products_services: '',
         email: '',
         phone: '',
+        iban: '',
       },
   })
 
@@ -81,6 +83,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
       contact_name: values.contact_name || values.name,
       email: values.email || null,
       phone: values.phone || null,
+      iban: values.iban || null,
       city: values.city || null,
       assigned_to: values.assigned_to || null,
       products_services: products,
@@ -193,6 +196,12 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
           <Field label="Teléfono" error={errors.phone?.message}>
             <InputGroup leading={<Phone />}>
               <Input type="tel" inputMode="tel" autoComplete="tel" {...register('phone')} placeholder="600 123 456" />
+            </InputGroup>
+          </Field>
+
+          <Field label="IBAN" error={(errors as Record<string, { message?: string }>).iban?.message} hint="Número de cuenta bancaria">
+            <InputGroup leading={<CreditCard />}>
+              <Input {...register('iban')} placeholder="ES00 0000 0000 0000 0000 0000" />
             </InputGroup>
           </Field>
         </div>

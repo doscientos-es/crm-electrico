@@ -118,6 +118,9 @@ export function CustomerDetailRoute() {
           <dl className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
             <DetailRow label="DNI" value={customer.dni ?? '—'} />
             <DetailRow label="Empresa" value={customer.company ?? '—'} />
+            <DetailRow label="Email" value={customer.email ?? '—'} />
+            <DetailRow label="Teléfono" value={customer.phone ?? '—'} />
+            <DetailRow label="IBAN" value={customer.iban ?? '—'} />
             <DetailRow label="Productos y servicios" value={customer.products_services.join(', ') || '—'} />
             <DetailRow label="Comercial" value={owner?.full_name ?? '—'} />
             <DetailRow label="Notas" value={customer.notes ?? '—'} />

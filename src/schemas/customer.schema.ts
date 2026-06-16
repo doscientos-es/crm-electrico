@@ -19,6 +19,7 @@ export const customerSchema = z
 			.regex(/^\d{5}$/, "El codigo postal debe tener 5 digitos")
 			.optional()
 			.or(z.literal("")),
+		iban: z.string().optional(),
 		assigned_to: z.string().min(1, "Selecciona un comercial responsable"),
 		products_services: z.string(),
 		notes: z.string().optional(),
