@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../../components/ui/input'
-import { incidentPriorityLabels, incidentTypeOptions } from '../../config/constants'
+import { incidentPriorityLabels } from '../../config/constants'
 import { useToastError } from '../../hooks/use-toast-error'
 import { type IncidentRow, useCreateIncident, useUpdateIncident } from '../../services/incidents.service'
 
@@ -17,7 +17,6 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
   const isEditing = Boolean(incident)
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState(incident?.title ?? '')
-  const [type, setType] = useState(incident?.title ?? incidentTypeOptions[0].value)
   const [description, setDescription] = useState(incident?.description ?? '')
   const [priority, setPriority] = useState<IncidentRow['priority']>(incident?.priority ?? 'medium')
 
@@ -29,7 +28,6 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
   function resetForm() {
     if (!isEditing) {
       setTitle('')
-      setType(incidentTypeOptions[0].value)
       setDescription('')
       setPriority('medium')
     }
@@ -37,10 +35,9 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const resolvedTitle = title.trim() || (incidentTypeOptions.find((o) => o.value === type)?.label ?? type)
     const payload = {
       customer_id: customerId,
-      title: resolvedTitle,
+      title: title.trim(),
       description: description.trim() || null,
       priority,
       status: 'open' as const,
@@ -48,7 +45,7 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
 
     if (isEditing && incident) {
       updateIncident.mutate(
-        { id: incident.id, title: resolvedTitle, description: payload.description, priority },
+        { id: incident.id, title: payload.title, description: payload.description, priority },
         {
           onSuccess: () => { toast.success('Incidencia actualizada'); setOpen(false) },
           onError,
@@ -85,19 +82,20 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
       }
     >
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <Field label="Tipo de incidencia" required>
-          <Select value={type} onChange={(e) => setType(e.target.value)}>
-            {incidentTypeOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Título" hint="Deja vacío para usar el tipo como título">
+        <Field label="Título" required>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Descripción breve del problema…"
+            required
+          />
+        </Field>
+
+        <Field label="Descripción">
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Detalles, pasos realizados, contexto…"
           />
         </Field>
 
@@ -107,14 +105,6 @@ export function IncidentFormDialog({ customerId, incident }: Props) {
               <option key={v} value={v}>{l}</option>
             ))}
           </Select>
-        </Field>
-
-        <Field label="Notas adicionales">
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detalles, pasos realizados, contexto…"
-          />
         </Field>
 
         <Button type="submit" size="lg" disabled={isPending} className="w-full">
