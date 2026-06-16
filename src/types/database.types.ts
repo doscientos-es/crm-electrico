@@ -8,6 +8,7 @@ export type Json =
 
 export type AppRole = "owner" | "admin" | "sales" | "technician" | "viewer";
 export type CustomerStatus =
+	| "new"
 	| "active"
 	| "renewal_due"
 	| "renewed"
@@ -17,7 +18,7 @@ export type CustomerType =
 	| "residential"
 	| "business"
 	| "community"
-	| "industrial";
+	| "property_manager";
 export type LeadStatus =
 	| "new"
 	| "contacted"
@@ -31,7 +32,9 @@ export type ContractStatus =
 	| "processing"
 	| "pending_signature"
 	| "active"
-	| "cancelled";
+	| "cancelled"
+	| "terminated"
+	| "incident";
 export type InstallationStatus =
 	| "pending"
 	| "scheduled"

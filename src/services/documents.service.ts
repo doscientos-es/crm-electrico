@@ -55,7 +55,7 @@ export function useDeleteDocument() {
 				throw new Error("No se pudo eliminar el registro del documento.");
 		},
 		onSuccess: () => {
-			void qc.invalidateQueries({ queryKey: queryKeys.documents() });
+			void qc.invalidateQueries({ queryKey: ["documents"] });
 		},
 	});
 }
@@ -107,8 +107,8 @@ export function useUploadDocument() {
 			return data as DocumentRow;
 		},
 		onSuccess: () => {
-			// void to avoid blocking isPending while the refetch completes
-			void qc.invalidateQueries({ queryKey: queryKeys.documents() });
+			// Invalidate all document queries regardless of filters
+			void qc.invalidateQueries({ queryKey: ["documents"] });
 		},
 	});
 }

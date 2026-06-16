@@ -10,6 +10,8 @@ export const contractSchema = z.object({
 			"pending_signature",
 			"active",
 			"cancelled",
+			"terminated",
+			"incident",
 		])
 		.default("pending_processing"),
 	contract_number: z.string().optional(),

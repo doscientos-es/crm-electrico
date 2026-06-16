@@ -157,15 +157,10 @@ export function ContractFormDialog({
             </Select>
           </Field>
 
-          <Field label="Número de contrato" error={errors.contract_number?.message}>
-            <Input {...register('contract_number')} placeholder="CTR-2024-001" />
-          </Field>
-
           <Field
             label="CUPS"
             error={errors.cups?.message}
             hint="Código Universal del Punto de Suministro — 20 caracteres alfanuméricos"
-            className="md:col-span-2"
           >
             <Input {...register('cups')} placeholder="ES0021000000000000AA" />
           </Field>

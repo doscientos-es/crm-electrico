@@ -4,8 +4,8 @@ import { contactRefinement, optionalEmail, optionalPhone } from "./common";
 export const customerSchema = z
 	.object({
 		name: z.string().min(1, "Este campo es obligatorio"),
-		type: z.enum(["residential", "business", "community", "industrial"]),
-		status: z.enum(["active", "inactive", "lost"]),
+		type: z.enum(["residential", "business", "community", "property_manager"]),
+		status: z.enum(["new", "active", "inactive", "lost"]).default("new"),
 		legal_name: z.string().optional(),
 		tax_id: z.string().optional(),
 		contact_name: z.string().optional(),

@@ -2,10 +2,11 @@ export const customerTypeLabels = {
 	residential: "Residencial",
 	business: "PYME / Empresa",
 	community: "Comunidad",
-	industrial: "Industrial",
+	property_manager: "Administrador de fincas",
 };
 
 export const customerStatusLabels = {
+	new: "Nuevo",
 	active: "Activo",
 	renewal_due: "Renovacion pendiente",
 	renewed: "Renovado",
@@ -19,4 +20,6 @@ export const contractStatusLabels = {
 	pending_signature: "Pendiente de firma",
 	active: "Activo",
 	cancelled: "Cancelado",
+	terminated: "Baja",
+	incident: "Incidencia",
 };

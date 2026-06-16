@@ -27,7 +27,8 @@ function SectionHeader({ title, description }: { title: string; description?: st
 }
 
 /** Map system-managed statuses to their editable equivalent */
-function toEditableStatus(s: string): 'active' | 'inactive' | 'lost' {
+function toEditableStatus(s: string): 'new' | 'active' | 'inactive' | 'lost' {
+  if (s === 'new') return 'new'
   if (s === 'inactive') return 'inactive'
   if (s === 'lost') return 'lost'
   return 'active' // active | renewal_due | renewed → active
@@ -60,7 +61,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
       }
       : {
         type: 'residential',
-        status: 'active',
+        status: 'new',
         assigned_to: currentUser?.id ?? '',
         products_services: '',
         email: '',
@@ -147,6 +148,7 @@ export function CustomerFormDialog({ customer }: { customer?: CustomerRow }) {
 
           <Field label="Estado" error={(errors as Record<string, { message?: string }>).status?.message} required>
             <Select {...register('status')}>
+              <option value="new">Nuevo</option>
               <option value="active">Activo</option>
               <option value="inactive">Baja</option>
               <option value="lost">Perdido</option>

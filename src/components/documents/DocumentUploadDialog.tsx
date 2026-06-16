@@ -74,7 +74,7 @@ export function DocumentUploadDialog({
       <div className="grid gap-4">
         <Field label="Tipo">
           <Select value={type} onChange={(e) => setType(e.target.value as DocumentType)}>
-            <option value="contract">Contrato</option>
+            <option value="invoice">Factura</option>
             <option value="dni">DNI</option>
             <option value="cif">CIF</option>
             <option value="other">Otro</option>

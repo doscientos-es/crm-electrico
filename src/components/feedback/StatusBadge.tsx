@@ -5,6 +5,7 @@ type BadgeVariant = ComponentProps<typeof Badge>['variant']
 
 function inferVariant(value: string): BadgeVariant {
   // "Pendiente de firma" debe ir antes que la comprobación de "Firm".
+  if (value === 'Nuevo') return 'violet'
   if (value.includes('Pendiente') || value.includes('Pend')) return 'amber'
   if (
     value.includes('Ganado') ||
