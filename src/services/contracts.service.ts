@@ -30,6 +30,12 @@ export interface ContractsListParams {
 	pageSize?: number;
 }
 
+function invalidateContractCustomerQueries(qc: ReturnType<typeof useQueryClient>) {
+	qc.invalidateQueries({ queryKey: ["contracts"], exact: false });
+	qc.invalidateQueries({ queryKey: ["customers"], exact: false });
+	qc.invalidateQueries({ queryKey: ["customer"], exact: false });
+}
+
 export function useContracts(filterOrId?: string | { customerId?: string }) {
 	const customerId =
 		typeof filterOrId === "string" ? filterOrId : filterOrId?.customerId;
@@ -128,8 +134,7 @@ export function useCreateContract() {
 			if (error) throw error;
 			return data as ContractRow;
 		},
-		onSuccess: () =>
-			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
+		onSuccess: () => invalidateContractCustomerQueries(qc),
 	});
 }
 
@@ -149,8 +154,7 @@ export function useUpdateContract() {
 			if (error) throw error;
 			return data as ContractRow;
 		},
-		onSuccess: () =>
-			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
+		onSuccess: () => invalidateContractCustomerQueries(qc),
 	});
 }
 
@@ -261,7 +265,6 @@ export function useDeleteContract() {
 			const { error } = await supabase.from("contracts").delete().eq("id", id);
 			if (error) throw error;
 		},
-		onSuccess: () =>
-			qc.invalidateQueries({ queryKey: ["contracts"], exact: false }),
+		onSuccess: () => invalidateContractCustomerQueries(qc),
 	});
 }
