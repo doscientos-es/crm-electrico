@@ -115,7 +115,7 @@ export function ContractsRoute() {
         description="Listado global de todos los contratos. Busca por CUPS, comercializadora, canal de venta o producto."
       />
 
-      <div className="mb-6 flex flex-wrap items-end gap-3">
+      <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-end">
         <Field label="Buscar" className="min-w-52 flex-1">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -135,16 +135,18 @@ export function ContractsRoute() {
             ))}
           </Select>
         </Field>
-        <Field label="Inicio" className="w-36">
-          <Input type="date" value={startsFrom} onChange={(e) => setDateParam('startsFrom', e.target.value)} />
-        </Field>
-        <Field label="Fin" className="w-36">
-          <Input type="date" value={endsTo} onChange={(e) => setDateParam('endsTo', e.target.value)} />
-        </Field>
-        <Button variant="outline" className="self-end" onClick={handleExport} disabled={isExporting}>
-          <Download className="h-4 w-4" />
-          {isExporting ? 'Exportando...' : 'Exportar Excel'}
-        </Button>
+        <div className="flex items-end gap-3">
+          <Field label="Inicio" className="w-36">
+            <Input type="date" value={startsFrom} onChange={(e) => setDateParam('startsFrom', e.target.value)} />
+          </Field>
+          <Field label="Fin" className="w-36">
+            <Input type="date" value={endsTo} onChange={(e) => setDateParam('endsTo', e.target.value)} />
+          </Field>
+          <Button variant="outline" className="self-end" onClick={handleExport} disabled={isExporting}>
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
+        </div>
       </div>
 
       {!isLoading && contracts.length === 0 ? (
