@@ -105,14 +105,14 @@
 	--input: oklch(0.87 0.024 156);
 	--ring: oklch(0.627 0.194 156.35);
 
-	/* Sidebar — light, matches overall theme */
-	--sidebar: oklch(1 0 0);
-	--sidebar-foreground: oklch(0.13 0.012 156);
-	--sidebar-border: oklch(0.87 0.024 156);
+	/* Sidebar — forest emerald oscuro (presencia de marca fuerte) */
+	--sidebar: oklch(0.178 0.044 156);
+	--sidebar-foreground: oklch(0.91 0.034 156);
+	--sidebar-border: oklch(0.265 0.042 156);
 	--sidebar-primary: oklch(0.627 0.194 156.35);
 	--sidebar-primary-foreground: oklch(1 0 0);
-	--sidebar-accent: oklch(0.93 0.032 156);
-	--sidebar-accent-foreground: oklch(0.3 0.14 156);
+	--sidebar-accent: oklch(0.252 0.052 156);
+	--sidebar-accent-foreground: oklch(0.91 0.034 156);
 	--sidebar-ring: oklch(0.627 0.194 156.35);
 
 	/* Charts — colorful data-vis palette */
