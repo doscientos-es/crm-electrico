@@ -103,7 +103,7 @@ export function LoginRoute() {
       <Card className="w-full max-w-sm border-white/24 bg-white/95 shadow-2xl shadow-black/25 backdrop-blur-xl">
         <CardContent className="p-8">
           <div className="mb-8">
-            <img src={logoUrl} alt={`Logo de ${appBrand.name}`} className="mb-5 h-auto w-full rounded-md object-contain" />
+            <img src={logoUrl} alt={`Logo de ${appBrand.name}`} className="mb-5 h-auto max-h-30 w-auto rounded-md object-contain" />
             <h1 className="text-xl font-semibold text-foreground">{appBrand.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">Inicia sesión con tu cuenta.</p>
           </div>
