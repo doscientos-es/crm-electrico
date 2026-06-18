@@ -131,7 +131,7 @@ export function DashboardRoute() {
               <Link to="/contracts?status=terminated">Ver todos</Link>
             </Button>
           </div>
-          <div className="overflow-hidden rounded-lg border border-destructive/20 bg-destructive/5 divide-y divide-destructive/10">
+          <div className="overflow-hidden rounded-lg border border-destructive/20 bg-destructive/5 divide-y divide-destructive/10 max-h-80 overflow-y-auto">
             {terminatedContracts.map((contract) => (
               <Link
                 key={contract.id}
@@ -165,7 +165,7 @@ export function DashboardRoute() {
                 <Link to="/renewals">Ver todas</Link>
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
+            <div className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border max-h-80 overflow-y-auto">
               {urgentRenewals.map(({ contract, stage, days }) => {
                 const style = renewalStageStyle[stage] ?? renewalStageStyle.due
                 return (

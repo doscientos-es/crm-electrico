@@ -366,7 +366,7 @@ export function CustomerDetailRoute() {
             </p>
           </div>
         ) : (
-          <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card max-h-130 overflow-y-auto">
             {activityLogs.map((log) => {
               const m = (log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata))
                 ? log.metadata as Record<string, unknown>
