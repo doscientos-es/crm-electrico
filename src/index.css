@@ -181,6 +181,29 @@
 }
 
 /* ═══════════════════════════════════════════════════════
+   FORCE LIGHT — overrides .dark vars on a scoped element
+   Useful for elements that are always light (e.g. login card)
+   ═══════════════════════════════════════════════════════ */
+.theme-force-light {
+	--background: oklch(0.972 0.008 156);
+	--foreground: oklch(0.13 0.012 156);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.13 0.012 156);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.13 0.012 156);
+	--muted: oklch(0.948 0.018 156);
+	--muted-foreground: oklch(0.48 0.025 156);
+	--border: oklch(0.87 0.024 156);
+	--input: oklch(0.87 0.024 156);
+	--ring: oklch(0.627 0.194 156.35);
+	--primary: oklch(0.627 0.194 156.35);
+	--primary-foreground: oklch(1 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--destructive-foreground: oklch(1 0 0);
+	color-scheme: light;
+}
+
+/* ═══════════════════════════════════════════════════════
    BASE RESETS
    ═══════════════════════════════════════════════════════ */
 @layer base {

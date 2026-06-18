@@ -100,7 +100,7 @@ export function LoginRoute() {
       />
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(6,35,31,0.08),rgba(6,35,31,0.84))]" aria-hidden />
 
-      <Card className="w-full max-w-sm border-white/24 bg-white/95 shadow-2xl shadow-black/25 backdrop-blur-xl">
+      <Card className="theme-force-light w-full max-w-sm border-white/24 bg-white/95 shadow-2xl shadow-black/25 backdrop-blur-xl">
         <CardContent className="p-8">
           <div className="mb-8">
             <img src={logoUrl} alt={`Logo de ${appBrand.name}`} className="mb-5 h-auto max-h-30 w-auto rounded-md object-contain" />
