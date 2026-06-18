@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Ban, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/media/logo.png'
@@ -21,8 +21,6 @@ export function DashboardRoute() {
   const { data: contracts = [] } = useContracts()
   const { data: openIncidents = [] } = useIncidents()
 
-  const customers = customersResult?.data ?? []
-
   const contractStats = useMemo(() => {
     const active = contracts.filter((c) => c.status === 'active').length
     const pendingSignature = contracts.filter((c) => c.status === 'pending_signature').length
@@ -31,13 +29,15 @@ export function DashboardRoute() {
   }, [contracts])
 
   const kpis = useMemo(() => {
+    const customers = customersResult?.data ?? []
     const thisMonth = new Date().toISOString().slice(0, 7)
     const activeCount = customers.filter((c) => c.status === 'active').length
     const activeContracts = contracts.filter((c) => c.status === 'active' && c.ends_at)
     const urgentCount = activeContracts.filter((c) => ['overdue', 'urgent'].includes(getContractRenewalStage(c))).length
     const thisMonthCount = activeContracts.filter((c) => c.ends_at?.startsWith(thisMonth)).length
-    return { activeCount, urgentCount, thisMonthCount }
-  }, [customers, contracts])
+    const terminatedCount = contracts.filter((c) => c.status === 'terminated').length
+    return { activeCount, urgentCount, thisMonthCount, terminatedCount }
+  }, [customersResult, contracts])
 
   const urgentRenewals = useMemo(
     () =>
@@ -60,7 +60,7 @@ export function DashboardRoute() {
           aria-hidden
         />
         <div
-          className="absolute inset-x-0 bottom-[-30%] h-[50%] rotate-[-2deg] bg-[linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.07)_1px,transparent_1px)] bg-[size:64px_48px] opacity-60"
+          className="absolute inset-x-0 bottom-[-30%] h-[50%] -rotate-2 bg-[linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.07)_1px,transparent_1px)] bg-[size:64px_48px] opacity-60"
           aria-hidden
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,35,31,0.05),rgba(6,35,31,0.65))]" aria-hidden />
@@ -89,11 +89,12 @@ export function DashboardRoute() {
       />
 
       {/* KPIs — Cartera */}
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-sky-200/80 bg-sky-200/60 dark:border-sky-800/40 dark:bg-sky-900/20 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-sky-200/80 bg-sky-200/60 dark:border-sky-800/40 dark:bg-sky-900/20 sm:grid-cols-3 xl:grid-cols-5">
         <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} href="/customers?status=active" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
         <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
         <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} href="/renewals" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
         <Kpi title="Incidencias abiertas" value={openIncidents.length} icon={<AlertTriangle />} highlight={openIncidents.length > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
+        <Kpi title="Contratos en baja" value={kpis.terminatedCount} icon={<Ban />} highlight={kpis.terminatedCount > 0 ? 'warning' : undefined} href="/contracts?status=terminated" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
       </section>
 
       {/* KPIs — Contratos */}
