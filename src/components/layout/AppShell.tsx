@@ -1,7 +1,7 @@
 import { Menu, Search, Settings } from 'lucide-react'
 import { Suspense, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import logo from '../../assets/media/logo-dark.png'
+import logo from '../../assets/media/logo.png'
 import { appBrand, navItems } from '../../config/nav'
 import { useAuth } from '../../features/auth/AuthContext'
 import { cn } from '../../lib/utils'
