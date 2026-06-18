@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/input'
-import { contractStatusLabels, providerOptions, salesChannelOptions } from '../../config/constants'
+import { contractStatusLabels, providerOptions } from '../../config/constants'
 import { useToastError } from '../../hooks/use-toast-error'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
 import { type ContractRow, useCreateContract, useDeleteContract, useUpdateContract } from '../../services/contracts.service'
@@ -274,12 +274,7 @@ export function ContractFormDialog({
           </Field>
 
           <Field label="Canal de venta" error={errors.sales_channel?.message}>
-            <Select {...register('sales_channel')}>
-              <option value="">— Seleccionar —</option>
-              {salesChannelOptions.map((ch) => (
-                <option key={ch} value={ch}>{ch}</option>
-              ))}
-            </Select>
+            <Input {...register('sales_channel')} placeholder="Ej. Puerta fría, Referido, Online…" />
           </Field>
 
           <Field label="Producto / oferta" error={errors.product?.message}>
