@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Ban, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { Activity, AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/media/logo.png'
@@ -35,8 +35,7 @@ export function DashboardRoute() {
     const activeContracts = contracts.filter((c) => c.status === 'active' && c.ends_at)
     const urgentCount = activeContracts.filter((c) => ['overdue', 'urgent'].includes(getContractRenewalStage(c))).length
     const thisMonthCount = activeContracts.filter((c) => c.ends_at?.startsWith(thisMonth)).length
-    const terminatedCount = contracts.filter((c) => c.status === 'terminated').length
-    return { activeCount, urgentCount, thisMonthCount, terminatedCount }
+    return { activeCount, urgentCount, thisMonthCount }
   }, [customersResult, contracts])
 
   const urgentRenewals = useMemo(
@@ -50,10 +49,7 @@ export function DashboardRoute() {
     [contracts],
   )
 
-  const terminatedContracts = useMemo(
-    () => contracts.filter((c) => c.status === 'terminated').slice(0, 6),
-    [contracts],
-  )
+
 
   return (
     <div className="space-y-8">
@@ -99,7 +95,6 @@ export function DashboardRoute() {
         <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
         <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} href="/renewals" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
         <Kpi title="Incidencias abiertas" value={openIncidents.length} icon={<AlertTriangle />} highlight={openIncidents.length > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
-        <Kpi title="Contratos en baja" value={kpis.terminatedCount} icon={<Ban />} highlight={kpis.terminatedCount > 0 ? 'warning' : undefined} href="/contracts?status=terminated" cellBg="bg-sky-50 hover:bg-sky-100/70 dark:bg-sky-950/50 dark:hover:bg-sky-900/50" />
       </section>
 
       {/* KPIs — Contratos */}
@@ -110,44 +105,6 @@ export function DashboardRoute() {
         <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} href="/contracts?status=pending_processing" cellBg="bg-violet-50 hover:bg-violet-100/70 dark:bg-violet-950/50 dark:hover:bg-violet-900/50" />
       </section>
 
-      {/* Contratos en baja */}
-      {terminatedContracts.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Ban className="h-4 w-4 text-destructive" />
-              <h2 className="text-sm font-semibold text-foreground">Contratos en baja</h2>
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                {kpis.terminatedCount}
-              </span>
-            </div>
-            <Button asChild size="sm" variant="ghost">
-              <Link to="/contracts?status=terminated">Ver todos</Link>
-            </Button>
-          </div>
-          <div className="overflow-hidden rounded-lg border border-destructive/20 bg-destructive/5 divide-y divide-destructive/10 max-h-80 overflow-y-auto">
-            {terminatedContracts.map((contract) => (
-              <Link
-                key={contract.id}
-                to={`/customers/${contract.customer_id}`}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 transition-colors"
-              >
-                <Ban className="h-4 w-4 shrink-0 text-destructive/60" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{contract.cups ?? '—'}</p>
-                  <p className="text-xs text-muted-foreground">{contract.provider ?? '—'}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-semibold text-destructive">Baja</p>
-                  {contract.ends_at && (
-                    <p className="text-xs text-muted-foreground">{contract.ends_at.slice(0, 10)}</p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Urgent contract renewals */}
       <section>

@@ -265,12 +265,7 @@ export function ContractFormDialog({
           <SectionHeader title="Suministro" />
 
           <Field label="Comercializadora" error={errors.provider?.message}>
-            <Select {...register('provider')}>
-              <option value="">— Seleccionar —</option>
-              {providerOptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </Select>
+            <Input {...register('provider')} placeholder="Ej. Iberdrola, Endesa, Naturgy…" />
           </Field>
 
           <Field label="Canal de venta" error={errors.sales_channel?.message}>
