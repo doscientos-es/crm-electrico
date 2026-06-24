@@ -8,10 +8,12 @@ import { Button } from '../components/ui/button'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
+import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { useDebounce } from '../hooks/use-debounce'
 import { exportToCSV } from '../lib/export'
 import { formatDate, money } from '../lib/formatters'
+import { canViewCompanyCommission } from '../lib/permissions'
 import { type ContractWithCustomer, fetchAllContractsForExport, useAllContracts } from '../services/contracts.service'
 import type { ContractStatus } from '../types/database.types'
 
@@ -22,10 +24,12 @@ function setParam(p: URLSearchParams, key: string, value: string | undefined) {
 }
 
 export function ContractsRoute() {
+  const { profile: currentUser } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [editingContract, setEditingContract] = useState<ContractWithCustomer | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const showCompanyCommission = canViewCompanyCommission(currentUser?.role ?? 'viewer')
 
   async function handleExport() {
     setIsExporting(true)
@@ -35,6 +39,7 @@ export function ContractsRoute() {
         status: status !== 'all' ? status as ContractStatus : undefined,
         startsFrom: startsFrom || undefined,
         endsTo: endsTo || undefined,
+        includeCompanyCommission: showCompanyCommission,
       })
       if (!rows.length) {
         toast.info('No hay contratos que exportar con los filtros actuales.')
@@ -57,7 +62,7 @@ export function ContractsRoute() {
           'Precio energía': ct.energy_price_eur ?? '',
           'Importe (€)': ct.amount_eur ?? '',
           'Comisión (€)': ct.commission_eur ?? '',
-          'Comisión empresa (€)': ct.commission_company_eur ?? '',
+          ...(showCompanyCommission ? { 'Comisión empresa (€)': ct.commission_company_eur ?? '' } : {}),
           'Comisión comercial (€)': ct.commission_commercial_eur ?? '',
           'Inicio vigencia': ct.starts_at ? formatDate(ct.starts_at) : '',
           'Fin vigencia': ct.ends_at ? formatDate(ct.ends_at) : '',
@@ -102,11 +107,23 @@ export function ContractsRoute() {
     endsTo: endsTo || undefined,
     page: page - 1,
     pageSize: PAGE_SIZE,
+    includeCompanyCommission: showCompanyCommission,
   })
 
   const contracts = result?.data ?? []
   const total = result?.count ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+  const headers = [
+    'Cliente',
+    'Estado',
+    'Producto / Comercializadora',
+    'Canal de venta',
+    'CUPS',
+    'Inicio',
+    'Fin',
+    ...(showCompanyCommission ? ['Comisión empresa'] : []),
+    'Comisión comercial',
+  ]
 
   return (
     <div>
@@ -156,7 +173,7 @@ export function ContractsRoute() {
         />
       ) : (
         <DataTable
-          headers={['Cliente', 'Estado', 'Producto / Comercializadora', 'Canal de venta', 'CUPS', 'Inicio', 'Fin', 'Comisión empresa', 'Comisión comercial']}
+          headers={headers}
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage, onPageSizeChange: () => { } }}
         >
           {contracts.map((contract) => (
@@ -188,7 +205,9 @@ export function ContractsRoute() {
               <Td variant="muted" className="whitespace-nowrap font-mono text-xs">{contract.cups ?? '-'}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
-              <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
+              {showCompanyCommission && (
+                <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
+              )}
               <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_commercial_eur ?? 0)}</Td>
             </Tr>
           ))}

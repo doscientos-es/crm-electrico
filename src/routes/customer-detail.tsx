@@ -16,7 +16,7 @@ import { IncidentFormDialog } from '../features/incidents/IncidentFormDialog'
 import { usePagination } from '../hooks/use-pagination'
 import { getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
-import { canDownloadPdf } from '../lib/permissions'
+import { canDownloadPdf, canViewCompanyCommission } from '../lib/permissions'
 import { isPdfDocument } from '../lib/storage'
 import { type ActivityLogWithActor, getActivityLabel, getContactChannel, getContactNotes, useCustomerActivity } from '../services/activity.service'
 import { useContracts, useDeleteContract } from '../services/contracts.service'
@@ -56,10 +56,11 @@ function getActivityIconBg(action: string): string {
 export function CustomerDetailRoute() {
   const { id } = useParams()
   const { profile: currentUser } = useAuth()
+  const showCompanyCommission = canViewCompanyCommission(currentUser?.role ?? 'viewer')
 
   const { data: customer, isLoading } = useCustomer(id)
   const { data: documents = [] } = useDocuments(id)
-  const { data: contracts = [] } = useContracts(id)
+  const { data: contracts = [] } = useContracts({ customerId: id, includeCompanyCommission: showCompanyCommission })
   const { data: activityLogs = [], isLoading: activityLoading } = useCustomerActivity(id ?? '')
   const { data: profiles = [] } = useProfiles()
   const deleteContract = useDeleteContract()
@@ -83,6 +84,19 @@ export function CustomerDetailRoute() {
     .sort((a, b) => (b.ends_at ?? '').localeCompare(a.ends_at ?? ''))[0]
 
   const daysToContractEnd = latestActiveContract ? getDaysToContractEnd(latestActiveContract) : undefined
+  const contractTableHeaders = [
+    'CUPS',
+    'Comercializadora',
+    'Canal de venta',
+    'Producto',
+    'Tarifa',
+    'Importe',
+    ...(showCompanyCommission ? ['Comisión empresa'] : []),
+    'Comisión comercial',
+    'Vigencia',
+    'Estado',
+    '',
+  ]
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>
@@ -194,7 +208,7 @@ export function CustomerDetailRoute() {
           />
         ) : (
           <DataTable
-            headers={['CUPS', 'Comercializadora', 'Canal de venta', 'Producto', 'Tarifa', 'Importe', 'Comisión', 'Vigencia', 'Estado', '']}
+            headers={contractTableHeaders}
             pagination={{ page: contractsPagination.page, pageSize: contractsPagination.pageSize, total: contractsPagination.total, totalPages: contractsPagination.totalPages, onPageChange: contractsPagination.setPage, onPageSizeChange: contractsPagination.setPageSize }}
           >
             {contractsPagination.items.map((contract) => (
@@ -205,7 +219,10 @@ export function CustomerDetailRoute() {
                 <Td variant="muted">{contract.product ?? '—'}</Td>
                 <Td variant="muted">{contract.tariff_type ?? '—'}</Td>
                 <Td variant="muted">{contract.amount_eur.toLocaleString('es-ES')} EUR</Td>
-                <Td variant="muted">{contract.commission_eur.toLocaleString('es-ES')} EUR</Td>
+                {showCompanyCommission && (
+                  <Td variant="muted">{contract.commission_company_eur.toLocaleString('es-ES')} EUR</Td>
+                )}
+                <Td variant="muted">{contract.commission_commercial_eur.toLocaleString('es-ES')} EUR</Td>
                 <Td variant="muted">{formatDate(contract.starts_at ?? undefined)} – {formatDate(contract.ends_at ?? undefined)}</Td>
                 <Td>
                   <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />

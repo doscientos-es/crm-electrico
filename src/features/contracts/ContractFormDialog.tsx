@@ -8,7 +8,9 @@ import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/input'
 import { contractStatusLabels } from '../../config/constants'
+import { useAuth } from '../auth/AuthContext'
 import { useToastError } from '../../hooks/use-toast-error'
+import { canViewCompanyCommission } from '../../lib/permissions'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
 import { type ContractRow, useCreateContract, useDeleteContract, useUpdateContract } from '../../services/contracts.service'
 import { useCustomer } from '../../services/customers.service'
@@ -56,7 +58,9 @@ export function ContractFormDialog({
   const updateContract = useUpdateContract()
   const deleteContract = useDeleteContract()
   const { data: customer } = useCustomer(customerId)
+  const { profile: currentUser } = useAuth()
   const onError = useToastError()
+  const showCompanyCommission = canViewCompanyCommission(currentUser?.role ?? 'viewer')
 
   // The customer's address to optionally copy into the contract's supply address.
   // Falls back to legacy supply fields for customers created before the move.
@@ -139,7 +143,9 @@ export function ContractFormDialog({
       power_price_p4_eur: numOrNull(values.power_price_p4_eur),
       power_price_p5_eur: numOrNull(values.power_price_p5_eur),
       power_price_p6_eur: numOrNull(values.power_price_p6_eur),
-      commission_company_eur: values.commission_company_eur ?? 0,
+      ...(showCompanyCommission || !isEditing
+        ? { commission_company_eur: showCompanyCommission ? values.commission_company_eur ?? 0 : source?.commission_company_eur ?? 0 }
+        : {}),
       commission_commercial_eur: values.commission_commercial_eur ?? 0,
       supply_address: values.supply_address || null,
       supply_city: values.supply_city || null,
@@ -328,11 +334,13 @@ export function ContractFormDialog({
             </div>
           </div>
 
-          <Field label="Comisión empresa" error={errors.commission_company_eur?.message}>
-            <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('commission_company_eur')} placeholder="0.00" />
-            </MoneyInput>
-          </Field>
+          {showCompanyCommission && (
+            <Field label="Comisión empresa" error={errors.commission_company_eur?.message}>
+              <MoneyInput>
+                <Input type="number" step="any" min={0} {...register('commission_company_eur')} placeholder="0.00" />
+              </MoneyInput>
+            </Field>
+          )}
 
           <Field label="Comisión comercial" error={errors.commission_commercial_eur?.message}>
             <MoneyInput>

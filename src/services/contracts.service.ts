@@ -19,6 +19,52 @@ export type ContractWithCustomerInfo = ContractRow & {
 	} | null;
 };
 
+const contractColumnsWithoutCompanyCommission = [
+	"id",
+	"customer_id",
+	"deal_id",
+	"proposal_id",
+	"status",
+	"signed_at",
+	"starts_at",
+	"ends_at",
+	"amount_eur",
+	"file_path",
+	"cups",
+	"provider",
+	"sales_channel",
+	"product",
+	"tariff_type",
+	"power_kw",
+	"annual_consumption_kwh",
+	"energy_price_eur",
+	"power_price_p1_eur",
+	"power_price_p2_eur",
+	"power_price_p3_eur",
+	"power_price_p4_eur",
+	"power_price_p5_eur",
+	"power_price_p6_eur",
+	"commission_eur",
+	"commission_commercial_eur",
+	"supply_address",
+	"supply_city",
+	"supply_province",
+	"supply_postal_code",
+	"notes",
+	"created_at",
+	"updated_at",
+	"created_by",
+].join(",");
+
+function contractColumns(includeCompanyCommission = true) {
+	return includeCompanyCommission
+		? contractColumnsWithoutCompanyCommission.replace(
+				"commission_commercial_eur",
+				"commission_company_eur,commission_commercial_eur",
+			)
+		: contractColumnsWithoutCompanyCommission;
+}
+
 export interface ContractsListParams {
 	search?: string;
 	status?: ContractStatus;
@@ -28,6 +74,7 @@ export interface ContractsListParams {
 	endsTo?: string;
 	page?: number;
 	pageSize?: number;
+	includeCompanyCommission?: boolean;
 }
 
 function invalidateContractCustomerQueries(qc: ReturnType<typeof useQueryClient>) {
@@ -36,15 +83,21 @@ function invalidateContractCustomerQueries(qc: ReturnType<typeof useQueryClient>
 	qc.invalidateQueries({ queryKey: ["customer"], exact: false });
 }
 
-export function useContracts(filterOrId?: string | { customerId?: string }) {
+export function useContracts(
+	filterOrId?: string | { customerId?: string; includeCompanyCommission?: boolean },
+) {
 	const customerId =
 		typeof filterOrId === "string" ? filterOrId : filterOrId?.customerId;
+	const includeCompanyCommission =
+		typeof filterOrId === "string"
+			? true
+			: filterOrId?.includeCompanyCommission ?? true;
 	return useQuery<ContractRow[]>({
-		queryKey: queryKeys.contracts({ customerId }),
+		queryKey: queryKeys.contracts({ customerId, includeCompanyCommission }),
 		queryFn: async () => {
 			let q = supabase
 				.from("contracts")
-				.select("*")
+				.select(contractColumns(includeCompanyCommission))
 				.order("created_at", { ascending: false });
 			if (customerId) q = q.eq("customer_id", customerId);
 			const { data, error } = await q;
@@ -64,6 +117,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 		endsTo,
 		page = 0,
 		pageSize = 25,
+		includeCompanyCommission = true,
 	} = params;
 	return useQuery<{ data: ContractWithCustomer[]; count: number }>({
 		queryKey: [
@@ -78,12 +132,13 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				endsTo,
 				page,
 				pageSize,
+				includeCompanyCommission,
 			},
 		],
 		queryFn: async () => {
 			let q = supabase
 				.from("contracts")
-				.select("*, customer:customers(id, name, company)", { count: "exact" })
+				.select(`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company)`, { count: "exact" })
 				.order("created_at", { ascending: false })
 				.range(page * pageSize, page * pageSize + pageSize - 1);
 
@@ -225,6 +280,7 @@ export interface ContractsExportFilter {
 	endsTo?: string;
 	dateFrom?: string;
 	dateTo?: string;
+	includeCompanyCommission?: boolean;
 }
 
 export type ContractExportRow = ContractRow & {
@@ -239,10 +295,20 @@ export type ContractExportRow = ContractRow & {
 export async function fetchAllContractsForExport(
 	filter: ContractsExportFilter = {},
 ): Promise<ContractExportRow[]> {
-	const { search, status, startsFrom, endsTo, dateFrom, dateTo } = filter;
+	const {
+		search,
+		status,
+		startsFrom,
+		endsTo,
+		dateFrom,
+		dateTo,
+		includeCompanyCommission = true,
+	} = filter;
 	let q = supabase
 		.from("contracts")
-		.select("*, customer:customers(id, name, company, assigned_to)")
+		.select(
+			`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company, assigned_to)`,
+		)
 		.order("created_at", { ascending: false });
 	if (search)
 		q = q.or(
