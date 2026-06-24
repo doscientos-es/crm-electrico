@@ -589,6 +589,7 @@ export type Database = {
 					signed_at: string | null;
 					starts_at: string | null;
 					ends_at: string | null;
+					terminated_at: string | null;
 					amount_eur: number;
 					file_path: string | null;
 					cups: string | null;
@@ -626,6 +627,7 @@ export type Database = {
 					signed_at?: string | null;
 					starts_at?: string | null;
 					ends_at?: string | null;
+					terminated_at?: string | null;
 					amount_eur?: number;
 					file_path?: string | null;
 					cups?: string | null;
@@ -661,6 +663,7 @@ export type Database = {
 					signed_at?: string | null;
 					starts_at?: string | null;
 					ends_at?: string | null;
+					terminated_at?: string | null;
 					amount_eur?: number;
 					file_path?: string | null;
 					cups?: string | null;

@@ -39,6 +39,7 @@ export const contractSchema = z.object({
 		.or(z.literal("")),
 	starts_at: z.string().optional(),
 	ends_at: z.string().optional(),
+	terminated_at: z.string().optional(),
 	notes: z.string().optional(),
 	file_path: z.string().optional(),
 });

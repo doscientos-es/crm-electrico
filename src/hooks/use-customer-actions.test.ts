@@ -41,6 +41,7 @@ const base: Contract = {
 	supply_postal_code: null,
 	starts_at: "2024-01-01",
 	ends_at: null,
+	terminated_at: null,
 	notes: null,
 	created_by: null,
 	created_at: "2024-01-01T00:00:00Z",

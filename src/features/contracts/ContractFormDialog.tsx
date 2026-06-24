@@ -121,6 +121,7 @@ export function ContractFormDialog({
       supply_postal_code: source?.supply_postal_code ?? '',
       starts_at: contract?.starts_at?.slice(0, 10) ?? '',
       ends_at: contract?.ends_at?.slice(0, 10) ?? '',
+      terminated_at: contract?.terminated_at?.slice(0, 10) ?? '',
       notes: source?.notes ?? '',
     },
   })
@@ -153,6 +154,7 @@ export function ContractFormDialog({
       supply_postal_code: values.supply_postal_code || null,
       starts_at: values.starts_at || null,
       ends_at: values.ends_at || null,
+      terminated_at: values.terminated_at || null,
       notes: values.notes || null,
     }
     const done = {
@@ -372,6 +374,10 @@ export function ContractFormDialog({
 
           <Field label="Fecha de vencimiento" error={errors.ends_at?.message}>
             <Input type="date" {...register('ends_at')} />
+          </Field>
+
+          <Field label="Fecha de baja" error={errors.terminated_at?.message}>
+            <Input type="date" {...register('terminated_at')} />
           </Field>
         </div>
 
