@@ -640,6 +640,7 @@ function DataTab() {
           'Comisión (€)': ct.commission_eur ?? '',
           'Inicio vigencia': ct.starts_at ? formatDate(ct.starts_at) : '',
           'Fin vigencia': ct.ends_at ? formatDate(ct.ends_at) : '',
+          'Fecha baja': ct.terminated_at ? formatDate(ct.terminated_at) : '',
           'Fecha firma': ct.signed_at ? formatDate(ct.signed_at) : '',
           'Alta en CRM': ct.created_at ? formatDate(ct.created_at) : '',
           Notas: ct.notes ?? '',

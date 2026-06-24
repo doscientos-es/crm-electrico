@@ -61,6 +61,7 @@ export function ContractsRoute() {
           'Comisión comercial (€)': ct.commission_commercial_eur ?? '',
           'Inicio vigencia': ct.starts_at ? formatDate(ct.starts_at) : '',
           'Fin vigencia': ct.ends_at ? formatDate(ct.ends_at) : '',
+          'Fecha baja': ct.terminated_at ? formatDate(ct.terminated_at) : '',
           'Fecha firma': ct.signed_at ? formatDate(ct.signed_at) : '',
         })),
         filename,
