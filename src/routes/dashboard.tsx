@@ -26,7 +26,8 @@ export function DashboardRoute() {
     const pendingSignature = contracts.filter((c) => c.status === 'pending_signature').length
     const pendingProcessing = contracts.filter((c) => c.status === 'pending_processing').length
     const cancelled = contracts.filter((c) => c.status === 'cancelled').length
-    return { total: contracts.length, active, pendingSignature, pendingProcessing, cancelled }
+    const terminated = contracts.filter((c) => c.status === 'terminated').length
+    return { total: contracts.length, active, pendingSignature, pendingProcessing, cancelled, terminated }
   }, [contracts])
 
   const kpis = useMemo(() => {
@@ -100,12 +101,13 @@ export function DashboardRoute() {
       </section>
 
       {/* KPIs — Contratos */}
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 md:grid-cols-3 xl:grid-cols-6">
         <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} href="/contracts" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
         <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} href="/contracts?status=active" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
         <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} href="/contracts?status=pending_signature" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
         <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} href="/contracts?status=pending_processing" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
         <Kpi title="Contratos cancelados" value={contractStats.cancelled} icon={<Ban />} highlight={contractStats.cancelled > 0 ? 'danger' : undefined} href="/contracts?status=cancelled" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
+        <Kpi title="Contratos baja" value={contractStats.terminated} icon={<Ban />} highlight={contractStats.terminated > 0 ? 'danger' : undefined} href="/contracts?status=terminated" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
       </section>
 
 
