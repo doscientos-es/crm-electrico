@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:backup": "supabase db dump --linked -f db-backup-schema.sql && supabase db dump --linked --data-only -f db-backup-data.sql"
+    "db:backup": "node --env-file=.env scripts/db-backup.mjs",
+    "db:restore": "node --env-file=.env scripts/db-restore.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -54,6 +55,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",
+    "pg": "^8.22.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",
