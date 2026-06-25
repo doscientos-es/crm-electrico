@@ -8,12 +8,12 @@ import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/input'
 import { contractStatusLabels } from '../../config/constants'
-import { useAuth } from '../auth/AuthContext'
 import { useToastError } from '../../hooks/use-toast-error'
 import { canViewCompanyCommission } from '../../lib/permissions'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
 import { type ContractRow, useCreateContract, useDeleteContract, useUpdateContract } from '../../services/contracts.service'
 import { useCustomer } from '../../services/customers.service'
+import { useAuth } from '../auth/AuthContext'
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -97,7 +97,7 @@ export function ContractFormDialog({
     resolver: zodResolver(contractSchema) as never,
     defaultValues: {
       customer_id: customerId,
-      status: contract?.status ?? 'pending_processing',
+      status: (contract?.status as ContractFormValues['status']) ?? 'pending_processing',
       // dates are never copied on renewal — they must be set fresh
       cups: source?.cups ?? '',
       provider: source?.provider ?? '',
@@ -201,7 +201,7 @@ export function ContractFormDialog({
         )
       }
     >
-      <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+      <form className="grid gap-4" onSubmit={handleSubmit(onSubmit as never)}>
         {/* ── Identificación ── */}
         <div className="grid items-start gap-4 md:grid-cols-2">
           <SectionHeader title="Identificación" />

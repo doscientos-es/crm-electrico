@@ -77,21 +77,25 @@ export interface ContractsListParams {
 	includeCompanyCommission?: boolean;
 }
 
-function invalidateContractCustomerQueries(qc: ReturnType<typeof useQueryClient>) {
+function invalidateContractCustomerQueries(
+	qc: ReturnType<typeof useQueryClient>,
+) {
 	qc.invalidateQueries({ queryKey: ["contracts"], exact: false });
 	qc.invalidateQueries({ queryKey: ["customers"], exact: false });
 	qc.invalidateQueries({ queryKey: ["customer"], exact: false });
 }
 
 export function useContracts(
-	filterOrId?: string | { customerId?: string; includeCompanyCommission?: boolean },
+	filterOrId?:
+		| string
+		| { customerId?: string; includeCompanyCommission?: boolean },
 ) {
 	const customerId =
 		typeof filterOrId === "string" ? filterOrId : filterOrId?.customerId;
 	const includeCompanyCommission =
 		typeof filterOrId === "string"
 			? true
-			: filterOrId?.includeCompanyCommission ?? true;
+			: (filterOrId?.includeCompanyCommission ?? true);
 	return useQuery<ContractRow[]>({
 		queryKey: queryKeys.contracts({ customerId, includeCompanyCommission }),
 		queryFn: async () => {
@@ -102,7 +106,7 @@ export function useContracts(
 			if (customerId) q = q.eq("customer_id", customerId);
 			const { data, error } = await q;
 			if (error) throw error;
-			return data as ContractRow[];
+			return data as unknown as ContractRow[];
 		},
 	});
 }
@@ -138,7 +142,10 @@ export function useAllContracts(params: ContractsListParams = {}) {
 		queryFn: async () => {
 			let q = supabase
 				.from("contracts")
-				.select(`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company)`, { count: "exact" })
+				.select(
+					`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company)`,
+					{ count: "exact" },
+				)
 				.order("created_at", { ascending: false })
 				.range(page * pageSize, page * pageSize + pageSize - 1);
 
@@ -170,7 +177,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 			const { data, error, count } = await q;
 			if (error) throw error;
 			return {
-				data: (data ?? []) as ContractWithCustomer[],
+				data: (data ?? []) as unknown as ContractWithCustomer[],
 				count: count ?? 0,
 			};
 		},
@@ -321,7 +328,7 @@ export async function fetchAllContractsForExport(
 	if (dateTo) q = q.lte("created_at", dateTo);
 	const { data, error } = await q;
 	if (error) throw error;
-	return (data ?? []) as ContractExportRow[];
+	return (data ?? []) as unknown as ContractExportRow[];
 }
 
 export function useDeleteContract() {
