@@ -85,7 +85,18 @@ function invalidateContractCustomerQueries(
 	qc.invalidateQueries({ queryKey: ["customer"], exact: false });
 	// stats query uses staleTime:0 but explicit invalidation ensures
 	// dashboard refreshes immediately after any mutation in the same session
-	qc.invalidateQueries({ queryKey: ["contracts", "stats"], exact: true });
+	qc.invalidateQueries({ queryKey: ["contracts", "stats"], exact: false });
+}
+
+function requireCount(
+	result: { count: number | null; error: { message: string } | null },
+	label: string,
+) {
+	if (result.error) throw result.error;
+	if (result.count === null) {
+		throw new Error(`No se pudo calcular el contador de contratos: ${label}`);
+	}
+	return result.count;
 }
 
 export function useContracts(
@@ -117,10 +128,13 @@ export function useContracts(
 export interface ContractStats {
 	total: number;
 	active: number;
+	processing: number;
 	pendingSignature: number;
 	pendingProcessing: number;
 	cancelled: number;
 	terminated: number;
+	urgentRenewals: number;
+	thisMonthEnding: number;
 }
 
 /**
@@ -128,25 +142,83 @@ export interface ContractStats {
  * Uses staleTime: 0 to always reflect real DB state on mount.
  */
 export function useContractStats() {
+	const today = new Date();
+	const todayStr = today.toISOString().slice(0, 10);
+	const thisMonth = today.toISOString().slice(0, 7);
+	const [year, month] = thisMonth.split("-").map(Number);
+	const monthEnd = `${thisMonth}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+	const urgentLimit = new Date(today);
+	urgentLimit.setDate(urgentLimit.getDate() + 30);
+	const urgentLimitStr = urgentLimit.toISOString().slice(0, 10);
+
 	return useQuery<ContractStats>({
-		queryKey: ["contracts", "stats"],
+		queryKey: ["contracts", "stats", todayStr, thisMonth, urgentLimitStr],
 		staleTime: 0,
 		queryFn: async () => {
-			const { data, error, count } = await supabase
-				.from("contracts")
-				.select("status", { count: "exact" })
-				.limit(10000);
-			if (error) throw error;
-			const rows = (data ?? []) as { status: ContractStatus }[];
+			const [
+				total,
+				active,
+				processing,
+				pendingSignature,
+				pendingProcessing,
+				cancelled,
+				terminated,
+				urgentRenewals,
+				thisMonthEnding,
+			] = await Promise.all([
+				supabase.from("contracts").select("*", { count: "exact", head: true }),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "active"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "processing"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "pending_signature"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "pending_processing"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "cancelled"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "terminated"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "active")
+					.not("ends_at", "is", null)
+					.gte("ends_at", todayStr)
+					.lte("ends_at", urgentLimitStr),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "active")
+					.gte("ends_at", todayStr)
+					.lte("ends_at", monthEnd),
+			]);
+
 			return {
-				total: count ?? rows.length,
-				active: rows.filter((r) => r.status === "active").length,
-				pendingSignature: rows.filter((r) => r.status === "pending_signature")
-					.length,
-				pendingProcessing: rows.filter((r) => r.status === "pending_processing")
-					.length,
-				cancelled: rows.filter((r) => r.status === "cancelled").length,
-				terminated: rows.filter((r) => r.status === "terminated").length,
+				total: requireCount(total, "total"),
+				active: requireCount(active, "activos"),
+				processing: requireCount(processing, "en tramitación"),
+				pendingSignature: requireCount(pendingSignature, "pendientes de firma"),
+				pendingProcessing: requireCount(
+					pendingProcessing,
+					"pendientes de tramitar",
+				),
+				cancelled: requireCount(cancelled, "cancelados"),
+				terminated: requireCount(terminated, "baja"),
+				urgentRenewals: requireCount(urgentRenewals, "urgentes"),
+				thisMonthEnding: requireCount(thisMonthEnding, "vencen este mes"),
 			};
 		},
 	});
@@ -262,22 +334,25 @@ export function useUpdateContract() {
 }
 
 /**
- * Fetches active contracts whose ends_at falls within the next `alertDays` days
- * (or is already overdue). Ordered by ends_at ASC so the most urgent appear first.
+ * Fetches active contracts whose ends_at falls from today through the next
+ * `alertDays` days. Ordered by ends_at ASC so the closest renewals appear first.
  */
 export function useContractsDueForRenewal(alertDays = 60) {
-	return useQuery<ContractWithCustomerInfo[]>({
-		queryKey: ["contracts", "renewal", alertDays],
-		queryFn: async () => {
-			const alertDate = new Date();
-			alertDate.setDate(alertDate.getDate() + alertDays);
-			const alertDateStr = alertDate.toISOString().slice(0, 10);
+	const today = new Date();
+	const todayStr = today.toISOString().slice(0, 10);
+	const alertDate = new Date(today);
+	alertDate.setDate(alertDate.getDate() + alertDays);
+	const alertDateStr = alertDate.toISOString().slice(0, 10);
 
+	return useQuery<ContractWithCustomerInfo[]>({
+		queryKey: ["contracts", "renewal", alertDays, todayStr],
+		queryFn: async () => {
 			const { data, error } = await supabase
 				.from("contracts")
 				.select("*, customer:customers(id, name, company, assigned_to)")
 				.eq("status", "active")
 				.not("ends_at", "is", null)
+				.gte("ends_at", todayStr)
 				.lte("ends_at", alertDateStr)
 				.order("ends_at", { ascending: true });
 

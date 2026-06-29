@@ -17,7 +17,7 @@ import { cn } from '../lib/utils'
 import { getContactChannel, useRenewalContacts } from '../services/activity.service'
 import { useContractsDueForRenewal } from '../services/contracts.service'
 
-type StageFilter = 'all' | 'due' | 'urgent' | 'overdue'
+type StageFilter = 'all' | 'due' | 'urgent'
 
 function DaysBadge({ days }: { days: number | undefined }) {
   if (typeof days !== 'number') return <span className="text-muted-foreground">-</span>
@@ -37,7 +37,8 @@ export function RenewalsRoute() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
 
-  const stage = (params.get('stage') ?? 'all') as StageFilter
+  const requestedStage = params.get('stage')
+  const stage: StageFilter = requestedStage === 'due' || requestedStage === 'urgent' ? requestedStage : 'all'
   const search = params.get('q') ?? ''
   const debouncedSearch = useDebounce(search, 250)
 
@@ -101,7 +102,6 @@ export function RenewalsRoute() {
             <option value="all">Todos</option>
             <option value="due">Para contactar</option>
             <option value="urgent">Urgentes (≤30 días)</option>
-            <option value="overdue">Vencidos</option>
           </Select>
         </Field>
       </div>
