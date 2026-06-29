@@ -9,6 +9,20 @@ export type IncidentWithCustomer = IncidentRow & {
 	customer: { id: string; name: string; company: string | null } | null;
 };
 
+export function useOpenIncidentsCount() {
+	return useQuery<number>({
+		queryKey: queryKeys.incidents({ count: true, open: true }),
+		queryFn: async () => {
+			const { error, count } = await supabase
+				.from("incidents")
+				.select("*", { count: "exact", head: true })
+				.not("status", "in", '("resolved","closed")');
+			if (error) throw error;
+			return count ?? 0;
+		},
+	});
+}
+
 /** Open incidents — excludes resolved & closed */
 export function useIncidents(customerId?: string) {
 	return useQuery<IncidentRow[]>({

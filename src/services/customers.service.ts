@@ -23,6 +23,23 @@ interface CustomersFilter {
 	pageSize?: number;
 }
 
+export function useCustomerCount(filter: Pick<CustomersFilter, "status"> = {}) {
+	const { status } = filter;
+	return useQuery<number>({
+		queryKey: queryKeys.customers({ count: true, status }),
+		queryFn: async () => {
+			let q = supabase
+				.from("customers")
+				.select("*", { count: "exact", head: true })
+				.is("deleted_at", null);
+			if (status) q = q.eq("status", status as never);
+			const { error, count } = await q;
+			if (error) throw error;
+			return count ?? 0;
+		},
+	});
+}
+
 export function useCustomers(filter: CustomersFilter = {}) {
 	const {
 		search,

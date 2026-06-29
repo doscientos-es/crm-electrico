@@ -6,9 +6,10 @@ import { PageHeader } from '../components/data-table/Toolbar'
 import { Button } from '../components/ui/button'
 import { appBrand } from '../config/nav'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
-import { useContractStats, useContracts } from '../services/contracts.service'
-import { useCustomers } from '../services/customers.service'
-import { useIncidents } from '../services/incidents.service'
+import { useContractStats, useContractsDueForRenewal } from '../services/contracts.service'
+import { useCustomerCount } from '../services/customers.service'
+import { useOpenIncidentsCount } from '../services/incidents.service'
+import { dashboardContractKpis, type ContractKpiIcon } from './dashboard-kpis'
 
 const renewalStageStyle: Record<string, { label: string; className: string }> = {
   overdue: { label: 'Vencido', className: 'text-destructive' },
@@ -16,32 +17,50 @@ const renewalStageStyle: Record<string, { label: string; className: string }> = 
   due: { label: 'Contactar', className: 'text-primary' },
 }
 
+const contractKpiIcons: Record<ContractKpiIcon, React.ReactNode> = {
+  total: <FileText />,
+  active: <CheckCircle2 />,
+  signature: <FileSignature />,
+  processing: <ClipboardList />,
+  cancelled: <Ban />,
+  terminated: <Ban />,
+}
+
 export function DashboardRoute() {
-  const { data: customersResult } = useCustomers({ pageSize: 500 })
-  const { data: contracts = [] } = useContracts()
-  const { data: openIncidents = [] } = useIncidents()
-  const { data: contractStats = { total: 0, active: 0, pendingSignature: 0, pendingProcessing: 0, cancelled: 0, terminated: 0 } } = useContractStats()
+  const { data: activeCustomerCount = 0 } = useCustomerCount({ status: 'active' })
+  const { data: openIncidentsCount = 0 } = useOpenIncidentsCount()
+  const { data: renewalContracts = [] } = useContractsDueForRenewal(60)
+  const {
+    data: contractStats = {
+      total: 0,
+      active: 0,
+      processing: 0,
+      pendingSignature: 0,
+      pendingProcessing: 0,
+      cancelled: 0,
+      terminated: 0,
+      urgentRenewals: 0,
+      thisMonthEnding: 0,
+    },
+  } = useContractStats()
 
   const kpis = useMemo(() => {
-    const customers = customersResult?.data ?? []
-    const thisMonth = new Date().toISOString().slice(0, 7)
-    const activeCount = customers.filter((c) => c.status === 'active').length
-    const activeContracts = contracts.filter((c) => c.status === 'active' && c.ends_at)
-    const urgentCount = activeContracts.filter((c) => ['overdue', 'urgent'].includes(getContractRenewalStage(c))).length
-    const thisMonthCount = activeContracts.filter((c) => c.ends_at?.startsWith(thisMonth)).length
-    const incidents = openIncidents.length
-    return { activeCount, urgentCount, thisMonthCount, incidents }
-  }, [customersResult, contracts, openIncidents])
+    return {
+      activeCount: activeCustomerCount,
+      urgentCount: contractStats.urgentRenewals,
+      thisMonthCount: contractStats.thisMonthEnding,
+      incidents: openIncidentsCount,
+    }
+  }, [activeCustomerCount, contractStats, openIncidentsCount])
 
   const urgentRenewals = useMemo(
     () =>
-      contracts
-        .filter((c) => c.status === 'active' && c.ends_at)
+      renewalContracts
         .map((c) => ({ contract: c, stage: getContractRenewalStage(c), days: getDaysToContractEnd(c) }))
-        .filter(({ stage }) => ['overdue', 'urgent', 'due'].includes(stage))
+        .filter(({ stage }) => ['urgent', 'due'].includes(stage))
         .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
         .slice(0, 6),
-    [contracts],
+    [renewalContracts],
   )
 
 
@@ -87,19 +106,27 @@ export function DashboardRoute() {
       {/* KPIs — Cartera */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-rose-200/80 bg-rose-200/60 dark:border-rose-800/40 dark:bg-rose-900/20 sm:grid-cols-4">
         <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} href="/customers?status=active" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
-        <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
+        <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals?stage=urgent" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
         <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} href="/renewals" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
-        <Kpi title="Incidencias abiertas" value={openIncidents.length} icon={<AlertTriangle />} highlight={openIncidents.length > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
+        <Kpi title="Incidencias abiertas" value={kpis.incidents} icon={<AlertTriangle />} highlight={kpis.incidents > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
       </section>
 
       {/* KPIs — Contratos */}
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi title="Contratos totales" value={contractStats.total} icon={<FileText />} href="/contracts" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
-        <Kpi title="Contratos activos" value={contractStats.active} icon={<CheckCircle2 />} href="/contracts?status=active" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
-        <Kpi title="Pendientes de firma" value={contractStats.pendingSignature} icon={<FileSignature />} href="/contracts?status=pending_signature" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
-        <Kpi title="Pendientes de tramitar" value={contractStats.pendingProcessing} icon={<ClipboardList />} highlight={contractStats.pendingProcessing > 0 ? 'warning' : undefined} href="/contracts?status=pending_processing" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
-        <Kpi title="Contratos cancelados" value={contractStats.cancelled} icon={<Ban />} highlight={contractStats.cancelled > 0 ? 'danger' : undefined} href="/contracts?status=cancelled" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
-        <Kpi title="Contratos baja" value={contractStats.terminated} icon={<Ban />} highlight={contractStats.terminated > 0 ? 'danger' : undefined} href="/contracts?status=terminated" cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50" />
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 md:grid-cols-3 xl:grid-cols-7">
+        {dashboardContractKpis.map((item) => {
+          const value = contractStats[item.metric]
+          return (
+            <Kpi
+              key={item.metric}
+              title={item.title}
+              value={value}
+              icon={contractKpiIcons[item.icon]}
+              highlight={item.highlight && value > 0 ? item.highlight : undefined}
+              href={item.href}
+              cellBg="bg-orange-50 hover:bg-orange-100/70 dark:bg-orange-950/50 dark:hover:bg-orange-900/50"
+            />
+          )
+        })}
       </section>
 
 
