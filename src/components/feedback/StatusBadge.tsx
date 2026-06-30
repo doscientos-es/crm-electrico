@@ -17,7 +17,7 @@ function inferVariant(value: string): BadgeVariant {
     value.includes('Renovado')
   )
     return 'emerald'
-  if (value.includes('Perd') || value.includes('Rechaz') || value.includes('Cancel'))
+  if (value.includes('Perd') || value.includes('Rechaz') || value.includes('Cancel') || value.includes('Incid'))
     return 'destructive'
   if (
     value.includes('Urgente') ||

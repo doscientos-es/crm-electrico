@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Ban, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Ban, CalendarClock, CheckCircle2, ClipboardList, FileSignature, FileText, RotateCcw, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/media/logo.png'
@@ -22,6 +22,8 @@ const contractKpiIcons: Record<ContractKpiIcon, React.ReactNode> = {
   active: <CheckCircle2 />,
   signature: <FileSignature />,
   processing: <ClipboardList />,
+  incident: <AlertTriangle />,
+  recovery: <RotateCcw />,
   cancelled: <Ban />,
   terminated: <Ban />,
 }
@@ -37,6 +39,8 @@ export function DashboardRoute() {
       processing: 0,
       pendingSignature: 0,
       pendingProcessing: 0,
+      incident: 0,
+      pendingRecovery: 0,
       cancelled: 0,
       terminated: 0,
       urgentRenewals: 0,
@@ -112,7 +116,7 @@ export function DashboardRoute() {
       </section>
 
       {/* KPIs — Contratos */}
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 md:grid-cols-3 xl:grid-cols-7">
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-orange-200/80 bg-orange-200/60 dark:border-orange-800/40 dark:bg-orange-900/20 md:grid-cols-3 xl:grid-cols-9">
         {dashboardContractKpis.map((item) => {
           const value = contractStats[item.metric]
           return (

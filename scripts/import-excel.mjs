@@ -23,7 +23,9 @@ const STATUS_MAPPING = {
   Baja: "cancelled",
   Cancelado: "cancelled",
   Rechazado: "cancelled",
-  Incidencia: "processing",
+  Incidencia: "incident",
+  "Pendiente recuperar": "pending_recovery",
+  "Pendiente Recuperar": "pending_recovery",
 };
 
 function excelDateToISO(serial) {

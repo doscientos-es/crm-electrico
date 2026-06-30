@@ -40,6 +40,8 @@ export const contractStatusLabels = {
 	processing: "En tramitación",
 	pending_signature: "Pendiente de firma",
 	active: "Activo",
+	incident: "Incidencia",
+	pending_recovery: "Pendiente recuperar",
 	cancelled: "Cancelado",
 	terminated: "Baja",
 };

@@ -7,6 +7,8 @@ type ContractKpiMetric = keyof Pick<
 	| "processing"
 	| "pendingSignature"
 	| "pendingProcessing"
+	| "incident"
+	| "pendingRecovery"
 	| "cancelled"
 	| "terminated"
 >;
@@ -16,6 +18,8 @@ export type ContractKpiIcon =
 	| "active"
 	| "signature"
 	| "processing"
+	| "incident"
+	| "recovery"
 	| "cancelled"
 	| "terminated";
 
@@ -52,6 +56,20 @@ export const dashboardContractKpis: {
 		icon: "processing",
 		highlight: "warning",
 		href: "/contracts?status=processing",
+	},
+	{
+		title: "Incidencias",
+		metric: "incident",
+		icon: "incident",
+		highlight: "danger",
+		href: "/contracts?status=incident",
+	},
+	{
+		title: "Pendientes recuperar",
+		metric: "pendingRecovery",
+		icon: "recovery",
+		highlight: "warning",
+		href: "/contracts?status=pending_recovery",
 	},
 	{
 		title: "Contratos cancelados",

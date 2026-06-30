@@ -9,6 +9,8 @@ export const contractSchema = z.object({
 			"processing",
 			"pending_signature",
 			"active",
+			"incident",
+			"pending_recovery",
 			"cancelled",
 			"terminated",
 		])

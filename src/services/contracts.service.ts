@@ -131,6 +131,8 @@ export interface ContractStats {
 	processing: number;
 	pendingSignature: number;
 	pendingProcessing: number;
+	incident: number;
+	pendingRecovery: number;
 	cancelled: number;
 	terminated: number;
 	urgentRenewals: number;
@@ -161,6 +163,8 @@ export function useContractStats() {
 				processing,
 				pendingSignature,
 				pendingProcessing,
+				incident,
+				pendingRecovery,
 				cancelled,
 				terminated,
 				urgentRenewals,
@@ -183,6 +187,14 @@ export function useContractStats() {
 					.from("contracts")
 					.select("*", { count: "exact", head: true })
 					.eq("status", "pending_processing"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "incident"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "pending_recovery"),
 				supabase
 					.from("contracts")
 					.select("*", { count: "exact", head: true })
@@ -214,6 +226,11 @@ export function useContractStats() {
 				pendingProcessing: requireCount(
 					pendingProcessing,
 					"pendientes de tramitar",
+				),
+				incident: requireCount(incident, "incidencias"),
+				pendingRecovery: requireCount(
+					pendingRecovery,
+					"pendientes de recuperar",
 				),
 				cancelled: requireCount(cancelled, "cancelados"),
 				terminated: requireCount(terminated, "baja"),
