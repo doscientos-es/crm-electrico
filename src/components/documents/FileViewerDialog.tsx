@@ -1,4 +1,4 @@
-import { AlertTriangle, Copy, ExternalLink, Eye, FileText, ImageIcon } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Eye, FileText, ImageIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getStorageSignedUrl, isImageDocument, isPdfDocument } from '../../lib/storage'
 import { cn } from '../../lib/utils'
@@ -29,7 +29,6 @@ export function FileViewerDialog({
   canDownload?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
   const [urlError, setUrlError] = useState(false)
 
@@ -53,12 +52,6 @@ export function FileViewerDialog({
       setUrlError(false)
     }
   }, [open, source.bucket, source.file_path, canPreview])
-
-  async function copyPath() {
-    await navigator.clipboard.writeText(source.file_path)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
-  }
 
   const previewBadge = isPdf ? 'Vista PDF lista' : isImage ? 'Vista imagen lista' : 'Sin vista previa'
 
@@ -122,22 +115,16 @@ export function FileViewerDialog({
           </div>
         )}
 
-        {canDownload && (
-          <div className="flex flex-wrap justify-between gap-3">
-            <Button variant="ghost" onClick={copyPath}>
-              <Copy className="h-4 w-4" />
-              {copied ? 'Ruta copiada' : 'Copiar ruta'}
+        {canDownload && url ? (
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button asChild variant="secondary">
+              <a href={url} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                Abrir en otra pestaña
+              </a>
             </Button>
-            {url ? (
-              <Button asChild variant="secondary">
-                <a href={url} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  Abrir en otra pestaña
-                </a>
-              </Button>
-            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </Dialog>
   )
