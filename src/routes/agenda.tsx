@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Copy, Download, FileText, Lock, Plus, Smartphone, Upload, User } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Copy, FileText, Lock, Plus, Smartphone, User } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { CustomerCombobox } from '../components/forms/CustomerCombobox'
@@ -8,11 +8,11 @@ import { Dialog } from '../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
-import { downloadIcs, generateIcs, parseIcs } from '../lib/ical'
+import { downloadIcs, generateIcs } from '../lib/ical'
 import { cn } from '../lib/utils'
-import { type ContractForCalendar, useContractsByDateRange, useContractsByMonth } from '../services/contracts.service'
+import { type ContractForCalendar, useContractsByMonth } from '../services/contracts.service'
 import { useCalendarFeedUrl } from '../services/profiles.service'
-import { type TaskWithCustomer, useCreateTask, useDeleteTask, useImportIcalTasks, useTasks, useUpdateTask } from '../services/tasks.service'
+import { type TaskWithCustomer, useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../services/tasks.service'
 import type { TaskPriority, TaskStatus } from '../types/database.types'
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -34,11 +34,10 @@ const statusLabels: Record<TaskStatus, string> = {
 
 const contractEventStyle = 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'
 
-// Distinción visual entre tareas con cliente (agendadas) y tareas privadas
-const clientTaskAccent = 'border-l-2 border-l-emerald-500'
-const privateTaskAccent = 'border-l-2 border-l-slate-400 dark:border-l-slate-500'
+// Tareas con cliente → verde esmeralda; tareas privadas → índigo
+const clientTaskStyle = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+const privateTaskStyle = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'
 
-const CALENDAR_SYNC_ENABLED = true
 
 
 
@@ -117,39 +116,7 @@ export function AgendaRoute() {
   const ym = toYearMonth(cursor)
 
   const { profile } = useAuth()
-  const { data: exportTasks = [] } = useTasks({ month: ym })
-  const importIcal = useImportIcalTasks()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: calFeedUrl } = useCalendarFeedUrl(profile?.id)
-
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const text = await file.text()
-      const events = parseIcs(text)
-      if (events.length === 0) {
-        toast.warning('No se encontraron eventos válidos en el archivo.')
-        return
-      }
-      const { inserted, skipped } = await importIcal.mutateAsync({
-        events,
-        assignedTo: profile?.id ?? null,
-      })
-      toast.success(`Importados ${inserted} eventos.${skipped > 0 ? ` ${skipped} ya existían.` : ''}`)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al importar el archivo.')
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  function handleExport() {
-    const content = generateIcs(exportTasks)
-    const date = new Date().toISOString().slice(0, 10)
-    downloadIcs(`agenda-crm-${date}.ics`, content)
-    toast.success('Archivo .ics descargado.')
-  }
 
   function prev() {
     setCursor((c) => {
@@ -199,55 +166,34 @@ export function AgendaRoute() {
 
   return (
     <div className="h-full overflow-y-auto">
-      {/* Hidden file input for .ics import — oculto hasta activar CALENDAR_SYNC_ENABLED */}
-      {CALENDAR_SYNC_ENABLED && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".ics,text/calendar"
-          className="hidden"
-          onChange={handleImport}
-        />
-      )}
       <PageHeader
         title="Agenda"
         description="Reuniones, renovaciones y contactos programados."
         action={
           <div className="flex items-center gap-2">
-            {CALENDAR_SYNC_ENABLED && (
+            {calFeedUrl && (
               <>
-                {calFeedUrl && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      title="Añadir al calendario de iPhone/Mac (se actualiza automáticamente)"
-                    >
-                      <a href={calFeedUrl}>
-                        <Smartphone className="size-4" />
-                        Suscribir en iPhone
-                      </a>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Copiar URL de suscripción"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(calFeedUrl)
-                        toast.success('URL copiada. Pégala en Ajustes › Calendario › Añadir cuenta › Otro.')
-                      }}
-                    >
-                      <Copy className="size-4" />
-                    </Button>
-                  </>
-                )}
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importIcal.isPending}>
-                  <Upload className="size-4" />
-                  {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  title="Suscribirse al calendario — se actualiza automáticamente en iPhone/Mac"
+                >
+                  <a href={calFeedUrl}>
+                    <Smartphone className="size-4" />
+                    Sincronizar con iPhone
+                  </a>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={exportTasks.length === 0}>
-                  <Download className="size-4" /> Exportar .ics
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Copiar URL del calendario"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(calFeedUrl)
+                    toast.success('URL copiada al portapapeles.')
+                  }}
+                >
+                  <Copy className="size-4" />
                 </Button>
               </>
             )}
@@ -323,9 +269,9 @@ function EventChip({
 }) {
   const base = cn('block w-full truncate rounded text-left font-medium', size === 'xs' ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs')
   if (ev.kind === 'task') {
-    const accent = ev.data.customer_id ? clientTaskAccent : privateTaskAccent
+    const color = ev.data.customer_id ? clientTaskStyle : privateTaskStyle
     return (
-      <button type="button" className={cn(base, priorityStyles[ev.data.priority], accent)} onClick={onClick}>
+      <button type="button" className={cn(base, color)} onClick={onClick}>
         {ev.data.customer_id ? <User className="mr-0.5 inline size-2.5" /> : <Lock className="mr-0.5 inline size-2.5" />}
         {formatEventTime(ev.data.due_at) && <span className="mr-1 opacity-70">{formatEventTime(ev.data.due_at)}</span>}
         {ev.data.title}
@@ -549,7 +495,7 @@ function DayView({
             const timeStr = ev.kind === 'task' ? formatEventTime(ev.data.due_at) : null
             const label = ev.kind === 'task' ? ev.data.title : (ev.data.customer?.name ?? 'Contrato')
             const chipClass = ev.kind === 'task'
-              ? cn(priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)
+              ? (ev.data.customer_id ? clientTaskStyle : privateTaskStyle)
               : contractEventStyle
             return (
               <li key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}>
@@ -600,7 +546,7 @@ function DayEventsDialog({
             <li key={ev.data.id}>
               <button
                 type="button"
-                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)}
+                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', ev.data.customer_id ? clientTaskStyle : privateTaskStyle)}
                 onClick={() => onSelect(ev)}
               >
                 {ev.data.customer_id
@@ -654,7 +600,7 @@ function CreateTaskDialog({
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!title.trim() || !date) return
-    await create.mutateAsync({
+    const task = await create.mutateAsync({
       title: title.trim(),
       due_at: `${date}T${time}:00`,
       priority,
@@ -665,6 +611,22 @@ function CreateTaskDialog({
     })
     setTitle(''); setDescription(''); setCustomerId('')
     onOpenChange(false)
+    // Offer to add the event directly to the device calendar
+    toast.success('Entrada guardada', {
+      action: {
+        label: '📅 Añadir al iPhone',
+        onClick: () => {
+          const ics = generateIcs([{
+            id: task.id,
+            title: task.title,
+            due_at: task.due_at,
+            description: task.description,
+            ical_uid: task.ical_uid,
+          }])
+          downloadIcs(`evento-${task.id}.ics`, ics)
+        },
+      },
+    })
   }
 
   return (
@@ -744,6 +706,17 @@ function TaskDetailDialog({
     onClose()
   }
 
+  function handleAddToCalendar() {
+    const ics = generateIcs([{
+      id: task.id,
+      title: task.title,
+      due_at: task.due_at,
+      description: task.description,
+      ical_uid: task.ical_uid,
+    }])
+    downloadIcs(`evento-${task.id}.ics`, ics)
+  }
+
   return (
     <Dialog open onOpenChange={() => onClose()} title={editing ? 'Editar entrada' : task.title}>
       {editing ? (
@@ -816,7 +789,12 @@ function TaskDetailDialog({
           )}
           <div className="flex justify-between gap-2">
             <Button type="button" variant="destructive" size="sm" onClick={handleDelete} disabled={remove.isPending}>Eliminar</Button>
-            <Button type="button" onClick={() => setEditing(true)}>Editar</Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={handleAddToCalendar} title="Descargar este evento para añadirlo al calendario del iPhone/Mac">
+                <Smartphone className="size-4" /> Añadir al iPhone
+              </Button>
+              <Button type="button" onClick={() => setEditing(true)}>Editar</Button>
+            </div>
           </div>
         </div>
       )}
