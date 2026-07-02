@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Download, FileText, Plus, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Download, FileText, Plus, Smartphone, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -11,6 +11,7 @@ import { useAuth } from '../features/auth/AuthContext'
 import { downloadIcs, generateIcs, parseIcs } from '../lib/ical'
 import { cn } from '../lib/utils'
 import { type ContractForCalendar, useContractsByMonth } from '../services/contracts.service'
+import { useCalendarFeedUrl } from '../services/profiles.service'
 import { type TaskWithCustomer, useCreateTask, useDeleteTask, useImportIcalTasks, useTasks, useUpdateTask } from '../services/tasks.service'
 import type { TaskPriority, TaskStatus } from '../types/database.types'
 
@@ -33,8 +34,7 @@ const statusLabels: Record<TaskStatus, string> = {
 
 const contractEventStyle = 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'
 
-// TODO: activar sincronización de calendarios (.ics) cuando el cliente lo solicite
-const CALENDAR_SYNC_ENABLED = false
+const CALENDAR_SYNC_ENABLED = true
 
 
 
@@ -74,6 +74,33 @@ function formatEventTime(isoStr: string): string | null {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+type CalendarView = 'month' | 'week' | 'day'
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d)
+  r.setDate(r.getDate() + n)
+  return r
+}
+
+function getWeekStart(d: Date): Date {
+  const dow = (d.getDay() + 6) % 7 // Mon=0
+  const r = new Date(d)
+  r.setDate(d.getDate() - dow)
+  r.setHours(0, 0, 0, 0)
+  return r
+}
+
+function buildEventsByDay(tasks: TaskWithCustomer[], contracts: ContractForCalendar[]): Map<string, CalendarEvent[]> {
+  const map = new Map<string, CalendarEvent[]>()
+  const add = (day: string, ev: CalendarEvent) => {
+    if (!map.has(day)) map.set(day, [])
+    map.get(day)!.push(ev)
+  }
+  for (const t of tasks) add(t.due_at.slice(0, 10), { kind: 'task', data: t })
+  for (const c of contracts) if (c.ends_at) add(c.ends_at.slice(0, 10), { kind: 'contract', data: c })
+  return map
+}
+
 export function AgendaRoute() {
   const today = new Date()
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
@@ -81,6 +108,7 @@ export function AgendaRoute() {
   const [selected, setSelected] = useState<CalendarEvent | null>(null)
   const [prefillDate, setPrefillDate] = useState<string>('')
   const [dayList, setDayList] = useState<{ date: string; events: CalendarEvent[] } | null>(null)
+  const [showRenewals, setShowRenewals] = useState(true)
 
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
@@ -91,6 +119,7 @@ export function AgendaRoute() {
   const { data: contracts = [] } = useContractsByMonth(ym)
   const importIcal = useImportIcalTasks()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { data: calFeedUrl } = useCalendarFeedUrl(profile?.id)
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -129,9 +158,11 @@ export function AgendaRoute() {
       if (bucket) bucket.push(ev)
     }
     for (const t of tasks) add(t.due_at.slice(0, 10), { kind: 'task', data: t })
-    for (const c of contracts) if (c.ends_at) add(c.ends_at.slice(0, 10), { kind: 'contract', data: c })
+    if (showRenewals) {
+      for (const c of contracts) if (c.ends_at) add(c.ends_at.slice(0, 10), { kind: 'contract', data: c })
+    }
     return map
-  }, [tasks, contracts])
+  }, [tasks, contracts, showRenewals])
 
   const weeks = buildCalendarGrid(year, month)
 
@@ -164,6 +195,32 @@ export function AgendaRoute() {
           <div className="flex items-center gap-2">
             {CALENDAR_SYNC_ENABLED && (
               <>
+                {calFeedUrl && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      title="Añadir al calendario de iPhone/Mac (se actualiza automáticamente)"
+                    >
+                      <a href={calFeedUrl}>
+                        <Smartphone className="size-4" />
+                        Suscribir en iPhone
+                      </a>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Copiar URL de suscripción"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(calFeedUrl)
+                        toast.success('URL copiada. Pégala en Ajustes › Calendario › Añadir cuenta › Otro.')
+                      }}
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                  </>
+                )}
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importIcal.isPending}>
                   <Upload className="size-4" />
                   {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
@@ -186,6 +243,21 @@ export function AgendaRoute() {
         <span className="min-w-44 text-center text-sm font-semibold capitalize text-foreground">{monthLabel}</span>
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="size-4" /></Button>
         <Button variant="ghost" size="sm" onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}>Hoy</Button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRenewals((v) => !v)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+              showRenewals
+                ? 'border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-700 dark:bg-violet-900/40 dark:text-violet-300'
+                : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
+            )}
+          >
+            <FileText className="size-3" />
+            Renovaciones
+          </button>
+        </div>
       </div>
 
       {/* Calendar grid */}

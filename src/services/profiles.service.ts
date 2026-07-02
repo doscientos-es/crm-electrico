@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabase";
 import type { Tables, UpdateDto } from "../types/database.types";
 import { queryKeys } from "./query-keys";
 
+const SUPABASE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
 export type ProfileRow = Tables<"profiles">;
 
 export function useProfiles() {
@@ -100,5 +102,51 @@ export function useCreateMember() {
 			}
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.profile }),
+	});
+}
+
+/**
+ * Returns the webcal:// subscription URL for the current user.
+ * If the profile doesn't have a calendar_token yet, generates one on first call.
+ */
+export function useCalendarFeedUrl(profileId: string | undefined) {
+	const qc = useQueryClient();
+	return useQuery<string | null>({
+		queryKey: [...queryKeys.profile, profileId, "calendar-token"],
+		enabled: !!profileId,
+		queryFn: async () => {
+			// `enabled` guards profileId being defined; cast once to avoid non-null assertions
+			const id = profileId as string;
+
+			const { data, error } = await supabase
+				.from("profiles")
+				.select("calendar_token")
+				.eq("id", id)
+				.single();
+
+			if (error) throw error;
+
+			let token = (data as unknown as { calendar_token: string | null })
+				.calendar_token;
+
+			// Generate a token if missing (e.g. profiles created before the migration)
+			if (!token) {
+				const newToken = crypto.randomUUID();
+				await supabase
+					.from("profiles")
+					.update({ calendar_token: newToken } as never)
+					.eq("id", id);
+				token = newToken;
+				void qc.invalidateQueries({ queryKey: queryKeys.profile });
+			}
+
+			// Build the webcal:// URL — replace https:// with webcal://
+			const functionsBase = SUPABASE_FUNCTIONS_URL.replace(
+				/^https?:\/\//,
+				"webcal://",
+			);
+			return `${functionsBase}/functions/v1/calendar-feed?token=${token}`;
+		},
+		staleTime: Number.POSITIVE_INFINITY, // token never changes unless explicitly rotated
 	});
 }

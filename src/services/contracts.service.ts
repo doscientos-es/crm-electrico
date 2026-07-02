@@ -416,6 +416,26 @@ export function useContractsByMonth(month: string) {
 	});
 }
 
+export function useContractsByDateRange(from: string, to: string) {
+	return useQuery<ContractForCalendar[]>({
+		queryKey: ["contracts", "calendar", "range", from, to],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("contracts")
+				.select(
+					"id, ends_at, provider, sales_channel, product, status, customer:customers(id, name, company)",
+				)
+				.not("ends_at", "is", null)
+				.gte("ends_at", from)
+				.lte("ends_at", to)
+				.order("ends_at", { ascending: true });
+			if (error) throw error;
+			return (data ?? []) as ContractForCalendar[];
+		},
+		enabled: !!from && !!to,
+	});
+}
+
 export interface ContractsExportFilter {
 	search?: string;
 	status?: ContractStatus;

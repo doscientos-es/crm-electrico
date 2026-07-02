@@ -10,7 +10,11 @@ export type TaskWithCustomer = TaskRow & {
 	customer: { id: string; name: string; company: string | null } | null;
 };
 
-export function useTasks(params?: { month?: string }) {
+export function useTasks(params?: {
+	month?: string;
+	from?: string;
+	to?: string;
+}) {
 	return useQuery<TaskWithCustomer[]>({
 		queryKey: queryKeys.tasks(params),
 		queryFn: async () => {
@@ -25,6 +29,9 @@ export function useTasks(params?: { month?: string }) {
 				const lastDay = new Date(year, month, 0).getDate();
 				const end = `${params.month}-${String(lastDay).padStart(2, "0")}T23:59:59`;
 				query = query.gte("due_at", start).lte("due_at", end);
+			} else if (params?.from) {
+				query = query.gte("due_at", params.from);
+				if (params.to) query = query.lte("due_at", `${params.to}T23:59:59`);
 			}
 
 			const { data, error } = await query;
