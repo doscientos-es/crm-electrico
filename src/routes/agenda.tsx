@@ -246,7 +246,7 @@ export function AgendaRoute() {
                   <Upload className="size-4" />
                   {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={tasks.length === 0}>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={exportTasks.length === 0}>
                   <Download className="size-4" /> Exportar .ics
                 </Button>
               </>
@@ -320,9 +320,12 @@ export function AgendaRoute() {
                             <button
                               key={ev.data.id}
                               type="button"
-                              className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium', priorityStyles[ev.data.priority])}
+                              className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium', priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)}
                               onClick={(e) => { e.stopPropagation(); setSelected(ev) }}
                             >
+                              {ev.data.customer_id
+                                ? <User className="mr-0.5 inline size-2.5" />
+                                : <Lock className="mr-0.5 inline size-2.5" />}
                               {formatEventTime(ev.data.due_at) && (
                                 <span className="mr-1 opacity-70">{formatEventTime(ev.data.due_at)}</span>
                               )}
@@ -413,14 +416,17 @@ function DayEventsDialog({
             <li key={ev.data.id}>
               <button
                 type="button"
-                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', priorityStyles[ev.data.priority])}
+                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)}
                 onClick={() => onSelect(ev)}
               >
+                {ev.data.customer_id
+                  ? <User className="mr-1 inline size-3.5" />
+                  : <Lock className="mr-1 inline size-3.5" />}
                 {formatEventTime(ev.data.due_at) && (
                   <span className="mr-1.5 text-xs opacity-70">{formatEventTime(ev.data.due_at)}</span>
                 )}
                 {ev.data.title}
-                <span className="ml-2 text-xs opacity-70">{priorityLabels[ev.data.priority]}</span>
+                <span className="ml-2 text-xs opacity-70">{ev.data.customer?.name ?? 'Privada'} · {priorityLabels[ev.data.priority]}</span>
               </button>
             </li>
           ) : (
