@@ -1,6 +1,11 @@
 import { AlertTriangle, Download, ExternalLink, Eye, FileText, ImageIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { getStorageSignedUrl, isImageDocument, isPdfDocument } from '../../lib/storage'
+import {
+  getStorageSignedDownloadUrl,
+  getStorageSignedUrl,
+  isImageDocument,
+  isPdfDocument,
+} from '../../lib/storage'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -30,6 +35,7 @@ export function FileViewerDialog({
 }) {
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
   const [urlError, setUrlError] = useState(false)
 
   const isPdf = isPdfDocument(source.file_name, source.mime_type)
@@ -46,12 +52,22 @@ export function FileViewerDialog({
       .catch(() => {
         if (active) setUrlError(true)
       })
+    if (isImage) {
+      getStorageSignedDownloadUrl(source.bucket, source.file_path, source.file_name)
+        .then((signed) => {
+          if (active) setDownloadUrl(signed)
+        })
+        .catch(() => {
+          if (active) setDownloadUrl(null)
+        })
+    }
     return () => {
       active = false
       setUrl(null)
+      setDownloadUrl(null)
       setUrlError(false)
     }
-  }, [open, source.bucket, source.file_path, canPreview])
+  }, [open, source.bucket, source.file_name, source.file_path, canPreview, isImage])
 
   const previewBadge = isPdf ? 'Vista PDF lista' : isImage ? 'Vista imagen lista' : 'Sin vista previa'
 
@@ -80,7 +96,17 @@ export function FileViewerDialog({
               <p className="truncate text-xs text-muted-foreground">{source.file_path}</p>
             </div>
           </div>
-          <Badge variant={canPreview ? 'emerald' : 'amber'}>{previewBadge}</Badge>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Badge variant={canPreview ? 'emerald' : 'amber'}>{previewBadge}</Badge>
+            {isImage && downloadUrl ? (
+              <Button asChild variant="secondary" size="sm">
+                <a href={downloadUrl} download={source.file_name}>
+                  <Download className="h-4 w-4" />
+                  Descargar
+                </a>
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {canPreview && url ? (
@@ -117,14 +143,6 @@ export function FileViewerDialog({
 
         {canDownload && url ? (
           <div className="flex flex-wrap justify-end gap-3">
-            {isImage && (
-              <Button asChild variant="secondary">
-                <a href={url} download={source.file_name}>
-                  <Download className="h-4 w-4" />
-                  Descargar
-                </a>
-              </Button>
-            )}
             <Button asChild variant="secondary">
               <a href={url} target="_blank" rel="noreferrer">
                 <ExternalLink className="h-4 w-4" />

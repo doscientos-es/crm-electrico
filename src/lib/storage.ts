@@ -85,3 +85,17 @@ export async function getStorageSignedUrl(
 	if (error) throw error;
 	return data.signedUrl;
 }
+
+export async function getStorageSignedDownloadUrl(
+	bucket: string,
+	filePath: string,
+	fileName: string,
+	expiresIn = 3600,
+): Promise<string> {
+	if (/^https?:\/\//i.test(filePath)) return filePath;
+	const { data, error } = await supabase.storage
+		.from(bucket)
+		.createSignedUrl(filePath, expiresIn, { download: fileName });
+	if (error) throw error;
+	return data.signedUrl;
+}
