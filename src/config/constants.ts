@@ -8,6 +8,7 @@ export const customerTypeLabels = {
 export const customerStatusLabels = {
 	new: "Nuevo",
 	active: "Activo",
+	pending_recovery: "Pendiente recuperar",
 	inactive: "Baja",
 };
 
