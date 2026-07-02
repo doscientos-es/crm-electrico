@@ -33,6 +33,9 @@ const statusLabels: Record<TaskStatus, string> = {
 
 const contractEventStyle = 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'
 
+// TODO: activar sincronización de calendarios (.ics) cuando el cliente lo solicite
+const CALENDAR_SYNC_ENABLED = false
+
 
 
 type CalendarEvent =
@@ -144,26 +147,32 @@ export function AgendaRoute() {
 
   return (
     <div className="h-full overflow-y-auto">
-      {/* Hidden file input for .ics import */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".ics,text/calendar"
-        className="hidden"
-        onChange={handleImport}
-      />
+      {/* Hidden file input for .ics import — oculto hasta activar CALENDAR_SYNC_ENABLED */}
+      {CALENDAR_SYNC_ENABLED && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".ics,text/calendar"
+          className="hidden"
+          onChange={handleImport}
+        />
+      )}
       <PageHeader
         title="Agenda"
         description="Reuniones, renovaciones y contactos programados."
         action={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importIcal.isPending}>
-              <Upload className="size-4" />
-              {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={tasks.length === 0}>
-              <Download className="size-4" /> Exportar .ics
-            </Button>
+            {CALENDAR_SYNC_ENABLED && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importIcal.isPending}>
+                  <Upload className="size-4" />
+                  {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={tasks.length === 0}>
+                  <Download className="size-4" /> Exportar .ics
+                </Button>
+              </>
+            )}
             <Button onClick={() => openCreate()}>
               <Plus className="size-4" /> Nueva entrada
             </Button>

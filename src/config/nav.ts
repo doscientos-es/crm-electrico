@@ -5,12 +5,21 @@ import {
 	FileArchive,
 	FileText,
 	Home,
+	type LucideIcon,
 	Settings,
 	ShieldCheck,
 	Zap,
 } from "lucide-react";
 
-export const navItems = [
+interface NavItem {
+	href: string;
+	label: string;
+	icon: LucideIcon;
+	description: string;
+	enabled?: boolean;
+}
+
+export const navItems: NavItem[] = [
 	{
 		href: "/dashboard",
 		label: "Dashboard",
