@@ -59,7 +59,7 @@ export const navItems = [
 		icon: CalendarDays,
 		description:
 			"Calendario de reuniones, renovaciones y contactos programados.",
-		enabled: false, // TODO: activar cuando el cliente pague el módulo de Agenda
+		// enabled: false, // TODO: activar cuando el cliente pague el módulo de Agenda
 	},
 	{
 		href: "/settings",
