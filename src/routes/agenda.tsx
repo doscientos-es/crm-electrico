@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, FileText, Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Download, FileText, Plus, Upload } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { CustomerCombobox } from '../components/forms/CustomerCombobox'
 import { Button } from '../components/ui/button'
@@ -7,9 +8,10 @@ import { Dialog } from '../components/ui/dialog'
 import { Field, Input, Select, Textarea } from '../components/ui/input'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
+import { downloadIcs, generateIcs, parseIcs } from '../lib/ical'
 import { cn } from '../lib/utils'
 import { type ContractForCalendar, useContractsByMonth } from '../services/contracts.service'
-import { type TaskWithCustomer, useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../services/tasks.service'
+import { type TaskWithCustomer, useCreateTask, useDeleteTask, useImportIcalTasks, useTasks, useUpdateTask } from '../services/tasks.service'
 import type { TaskPriority, TaskStatus } from '../types/database.types'
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -72,8 +74,40 @@ export function AgendaRoute() {
   const month = cursor.getMonth()
   const ym = toYearMonth(cursor)
 
+  const { profile } = useAuth()
   const { data: tasks = [] } = useTasks({ month: ym })
   const { data: contracts = [] } = useContractsByMonth(ym)
+  const importIcal = useImportIcalTasks()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const events = parseIcs(text)
+      if (events.length === 0) {
+        toast.warning('No se encontraron eventos válidos en el archivo.')
+        return
+      }
+      const { inserted, skipped } = await importIcal.mutateAsync({
+        events,
+        assignedTo: profile?.id ?? null,
+      })
+      toast.success(`Importados ${inserted} eventos.${skipped > 0 ? ` ${skipped} ya existían.` : ''}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al importar el archivo.')
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function handleExport() {
+    const content = generateIcs(tasks)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadIcs(`agenda-crm-${date}.ics`, content)
+    toast.success('Archivo .ics descargado.')
+  }
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -101,13 +135,30 @@ export function AgendaRoute() {
 
   return (
     <div className="h-full overflow-y-auto">
+      {/* Hidden file input for .ics import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ics,text/calendar"
+        className="hidden"
+        onChange={handleImport}
+      />
       <PageHeader
         title="Agenda"
         description="Reuniones, renovaciones y contactos programados."
         action={
-          <Button onClick={() => openCreate()}>
-            <Plus className="size-4" /> Nueva entrada
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importIcal.isPending}>
+              <Upload className="size-4" />
+              {importIcal.isPending ? 'Importando…' : 'Importar .ics'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={tasks.length === 0}>
+              <Download className="size-4" /> Exportar .ics
+            </Button>
+            <Button onClick={() => openCreate()}>
+              <Plus className="size-4" /> Nueva entrada
+            </Button>
+          </div>
         }
       />
 
