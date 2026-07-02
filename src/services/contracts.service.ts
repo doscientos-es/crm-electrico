@@ -285,16 +285,19 @@ export function useAllContracts(params: ContractsListParams = {}) {
 			if (endsFrom) q = q.gte("ends_at", endsFrom);
 			if (endsTo) q = q.lte("ends_at", endsTo);
 			if (search) {
+				const normalizedSearch = search.trim().replace(/\s+/g, " ");
 				const orFilters = [
-					`cups.ilike.%${search}%`,
-					`provider.ilike.%${search}%`,
-					`sales_channel.ilike.%${search}%`,
-					`product.ilike.%${search}%`,
+					`cups.ilike.%${normalizedSearch}%`,
+					`provider.ilike.%${normalizedSearch}%`,
+					`sales_channel.ilike.%${normalizedSearch}%`,
+					`product.ilike.%${normalizedSearch}%`,
 				];
 				const { data: matchedCustomers } = await supabase
 					.from("customers")
 					.select("id")
-					.or(`name.ilike.%${search}%,company.ilike.%${search}%`);
+					.or(
+						`name.ilike.%${normalizedSearch}%,company.ilike.%${normalizedSearch}%`,
+					);
 				const customerIds = ((matchedCustomers ?? []) as { id: string }[]).map(
 					(c) => c.id,
 				);
@@ -450,10 +453,12 @@ export async function fetchAllContractsForExport(
 			`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company, assigned_to)`,
 		)
 		.order("created_at", { ascending: false });
-	if (search)
+	if (search) {
+		const normalizedSearch = search.trim().replace(/\s+/g, " ");
 		q = q.or(
-			`cups.ilike.%${search}%,provider.ilike.%${search}%,sales_channel.ilike.%${search}%,product.ilike.%${search}%`,
+			`cups.ilike.%${normalizedSearch}%,provider.ilike.%${normalizedSearch}%,sales_channel.ilike.%${normalizedSearch}%,product.ilike.%${normalizedSearch}%`,
 		);
+	}
 	if (status) q = q.eq("status", status);
 	if (startsFrom) q = q.gte("starts_at", startsFrom);
 	if (endsTo) q = q.lte("ends_at", endsTo);

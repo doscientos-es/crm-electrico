@@ -10,7 +10,7 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
-import { useDebounce } from '../hooks/use-debounce'
+import { useSearchParam } from '../hooks/use-search-param'
 import { exportToCSV } from '../lib/export'
 import { formatDate, money } from '../lib/formatters'
 import { canViewCompanyCommission } from '../lib/permissions'
@@ -79,15 +79,12 @@ export function ContractsRoute() {
     }
   }
 
-  const search = params.get('q') ?? ''
+  const { value: search, setValue: setSearch, debounced: debouncedSearch } = useSearchParam('q')
   const status = params.get('status') ?? 'all'
   const startsFrom = params.get('startsFrom') ?? ''
   const endsTo = params.get('endsTo') ?? ''
   const page = Math.max(1, Number(params.get('page') ?? '1'))
 
-  function setSearch(v: string) {
-    setParams((p) => { const n = new URLSearchParams(p); setParam(n, 'q', v); n.delete('page'); return n }, { replace: true })
-  }
   function setStatus(v: string) {
     setParams((p) => { const n = new URLSearchParams(p); setParam(n, 'status', v !== 'all' ? v : undefined); n.delete('page'); return n }, { replace: true })
   }
@@ -99,7 +96,6 @@ export function ContractsRoute() {
   }
 
   const hasFilters = !!(search || status !== 'all' || startsFrom || endsTo)
-  const debouncedSearch = useDebounce(search, 250)
 
   const { data: result, isLoading } = useAllContracts({
     search: debouncedSearch || undefined,

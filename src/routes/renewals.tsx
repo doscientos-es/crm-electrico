@@ -9,8 +9,8 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { RenewalContactDialog } from '../features/renewals/RenewalContactDialog'
-import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
+import { useSearchParam } from '../hooks/use-search-param'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
 import { cn } from '../lib/utils'
@@ -39,14 +39,10 @@ export function RenewalsRoute() {
 
   const requestedStage = params.get('stage')
   const stage: StageFilter = requestedStage === 'due' || requestedStage === 'urgent' ? requestedStage : 'all'
-  const search = params.get('q') ?? ''
-  const debouncedSearch = useDebounce(search, 250)
+  const { value: search, setValue: setSearch, debounced: debouncedSearch } = useSearchParam('q')
 
   function setStage(value: StageFilter) {
     setParams((p) => { const n = new URLSearchParams(p); if (value === 'all') n.delete('stage'); else n.set('stage', value); n.delete('page'); return n })
-  }
-  function setSearch(value: string) {
-    setParams((p) => { const n = new URLSearchParams(p); if (value) n.set('q', value); else n.delete('q'); n.delete('page'); return n })
   }
 
   const { data: contracts = [] } = useContractsDueForRenewal(60)
@@ -64,7 +60,7 @@ export function RenewalsRoute() {
   }, [renewalContacts])
 
   const renewalQueue = useMemo(() => {
-    const q = debouncedSearch.toLowerCase()
+    const q = debouncedSearch.trim().replace(/\s+/g, ' ').toLowerCase()
     return contracts.filter((contract) => {
       const currentStage = getContractRenewalStage(contract)
       const inStage = stage === 'all' || currentStage === stage

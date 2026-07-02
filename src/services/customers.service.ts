@@ -5,7 +5,10 @@ import { queryKeys } from "./query-keys";
 
 export type CustomerRow = Tables<"customers">;
 
-type CustomerDocumentForDeletion = Pick<Tables<"documents">, "bucket" | "file_path">;
+type CustomerDocumentForDeletion = Pick<
+	Tables<"documents">,
+	"bucket" | "file_path"
+>;
 type DeleteCustomerRpcClient = {
 	rpc: (
 		fn: "delete_customer_cascade",
@@ -57,10 +60,14 @@ export function useCustomers(filter: CustomersFilter = {}) {
 				.from("customers")
 				.select("*", { count: "exact" })
 				.is("deleted_at", null);
-			if (search)
-				q = q.or(
-					`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%`,
-				);
+			if (search) {
+				const words = search.trim().split(/\s+/).filter(Boolean);
+				for (const word of words) {
+					q = q.or(
+						`name.ilike.%${word}%,company.ilike.%${word}%,email.ilike.%${word}%,city.ilike.%${word}%,dni.ilike.%${word}%`,
+					);
+				}
+			}
 			if (status) q = q.eq("status", status as never);
 			if (assignedTo) q = q.eq("assigned_to", assignedTo);
 			if (dateFrom) q = q.gte("created_at", dateFrom);
@@ -78,10 +85,14 @@ export async function fetchAllCustomersForExport(
 ): Promise<CustomerRow[]> {
 	const { search, status, assignedTo, dateFrom, dateTo } = filter;
 	let q = supabase.from("customers").select("*").is("deleted_at", null);
-	if (search)
-		q = q.or(
-			`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%`,
-		);
+	if (search) {
+		const words = search.trim().split(/\s+/).filter(Boolean);
+		for (const word of words) {
+			q = q.or(
+				`name.ilike.%${word}%,company.ilike.%${word}%,email.ilike.%${word}%,city.ilike.%${word}%,dni.ilike.%${word}%`,
+			);
+		}
+	}
 	if (status) q = q.eq("status", status as never);
 	if (assignedTo) q = q.eq("assigned_to", assignedTo);
 	if (dateFrom) q = q.gte("created_at", dateFrom);
@@ -150,19 +161,25 @@ export function useUpdateCustomer() {
 async function removeCustomerDocumentFiles(
 	documents: CustomerDocumentForDeletion[],
 ): Promise<number> {
-	const filesByBucket = documents.reduce<Record<string, string[]>>((acc, doc) => {
-		if (!doc.bucket || !doc.file_path) return acc;
-		acc[doc.bucket] = acc[doc.bucket] ?? [];
-		acc[doc.bucket].push(doc.file_path);
-		return acc;
-	}, {});
+	const filesByBucket = documents.reduce<Record<string, string[]>>(
+		(acc, doc) => {
+			if (!doc.bucket || !doc.file_path) return acc;
+			acc[doc.bucket] = acc[doc.bucket] ?? [];
+			acc[doc.bucket].push(doc.file_path);
+			return acc;
+		},
+		{},
+	);
 
 	let failedBuckets = 0;
 	for (const [bucket, paths] of Object.entries(filesByBucket)) {
 		const { error } = await supabase.storage.from(bucket).remove(paths);
 		if (error) {
 			failedBuckets += 1;
-			console.error(`No se pudieron eliminar archivos del bucket ${bucket}`, error);
+			console.error(
+				`No se pudieron eliminar archivos del bucket ${bucket}`,
+				error,
+			);
 		}
 	}
 

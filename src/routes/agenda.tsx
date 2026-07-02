@@ -62,6 +62,15 @@ function toDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** Returns "HH:MM" if the timestamp has a non-midnight time, otherwise null */
+function formatEventTime(isoStr: string): string | null {
+  const d = new Date(isoStr)
+  const h = d.getHours()
+  const m = d.getMinutes()
+  if (h === 0 && m === 0) return null
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 export function AgendaRoute() {
   const today = new Date()
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
@@ -212,6 +221,9 @@ export function AgendaRoute() {
                               className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium', priorityStyles[ev.data.priority])}
                               onClick={(e) => { e.stopPropagation(); setSelected(ev) }}
                             >
+                              {formatEventTime(ev.data.due_at) && (
+                                <span className="mr-1 opacity-70">{formatEventTime(ev.data.due_at)}</span>
+                              )}
                               {ev.data.title}
                             </button>
                           ) : (
@@ -302,6 +314,9 @@ function DayEventsDialog({
                 className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', priorityStyles[ev.data.priority])}
                 onClick={() => onSelect(ev)}
               >
+                {formatEventTime(ev.data.due_at) && (
+                  <span className="mr-1.5 text-xs opacity-70">{formatEventTime(ev.data.due_at)}</span>
+                )}
                 {ev.data.title}
                 <span className="ml-2 text-xs opacity-70">{priorityLabels[ev.data.priority]}</span>
               </button>

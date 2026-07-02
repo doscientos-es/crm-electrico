@@ -11,7 +11,7 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { customerStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
-import { useDebounce } from '../hooks/use-debounce'
+import { useSearchParam } from '../hooks/use-search-param'
 import { exportToCSV } from '../lib/export'
 import { formatDate } from '../lib/formatters'
 import { fetchAllCustomersForExport, useCustomers } from '../services/customers.service'
@@ -43,17 +43,14 @@ export function CustomersRoute() {
   const [exportPeriod, setExportPeriod] = useState<ExportPeriod>('all')
   const [isExporting, setIsExporting] = useState(false)
 
-  const search = params.get('q') ?? ''
+  const { value: search, setValue: setSearch, debounced: debouncedSearch } = useSearchParam('q')
   const status = params.get('status') ?? 'all'
   const owner = params.get('owner') ?? 'all'
   const page = Math.max(1, Number(params.get('page') ?? '1'))
 
-  function setSearch(v: string) { setParams((p) => { const n = new URLSearchParams(p); if (v) n.set('q', v); else n.delete('q'); n.delete('page'); return n }, { replace: true }) }
   function setStatus(v: string) { setParams((p) => { const n = new URLSearchParams(p); if (v !== 'all') n.set('status', v); else n.delete('status'); n.delete('page'); return n }, { replace: true }) }
   function setOwner(v: string) { setParams((p) => { const n = new URLSearchParams(p); if (v !== 'all') n.set('owner', v); else n.delete('owner'); n.delete('page'); return n }, { replace: true }) }
   function setPage(p: number) { setParams((prev) => { const n = new URLSearchParams(prev); if (p > 1) n.set('page', String(p)); else n.delete('page'); return n }, { replace: true }) }
-
-  const debouncedSearch = useDebounce(search, 250)
 
   const { data: result, isLoading } = useCustomers({
     search: debouncedSearch || undefined,
