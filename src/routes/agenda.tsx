@@ -10,7 +10,7 @@ import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { downloadIcs, generateIcs, parseIcs } from '../lib/ical'
 import { cn } from '../lib/utils'
-import { type ContractForCalendar, useContractsByMonth } from '../services/contracts.service'
+import { type ContractForCalendar, useContractsByDateRange, useContractsByMonth } from '../services/contracts.service'
 import { useCalendarFeedUrl } from '../services/profiles.service'
 import { type TaskWithCustomer, useCreateTask, useDeleteTask, useImportIcalTasks, useTasks, useUpdateTask } from '../services/tasks.service'
 import type { TaskPriority, TaskStatus } from '../types/database.types'
@@ -258,132 +258,48 @@ export function AgendaRoute() {
         }
       />
 
-      {/* Month navigation */}
+      {/* Navigation + view switcher */}
       <div className="mb-4 flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={prev}><ChevronLeft className="size-4" /></Button>
-        <span className="min-w-44 text-center text-sm font-semibold capitalize text-foreground">{monthLabel}</span>
+        <span className="min-w-52 text-center text-sm font-semibold capitalize text-foreground">{periodLabel}</span>
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="size-4" /></Button>
-        <Button variant="ghost" size="sm" onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}>Hoy</Button>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowRenewals((v) => !v)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
-              showRenewals
-                ? 'border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-700 dark:bg-violet-900/40 dark:text-violet-300'
-                : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
-            )}
-          >
-            <FileText className="size-3" />
-            Renovaciones
-          </button>
-        </div>
-      </div>
-
-      {/* Calendar grid */}
-      <div className="overflow-hidden rounded-lg border border-border">
-        <div className="grid grid-cols-7 border-b border-border bg-muted/40">
-          {DAYS.map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">{d}</div>
+        <Button variant="ghost" size="sm" onClick={goToday}>Hoy</Button>
+        <div className="ml-auto flex overflow-hidden rounded-md border border-border">
+          {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => switchView(v)}
+              className={cn(
+                'px-3 py-1.5 text-sm font-medium transition-colors',
+                view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {VIEW_LABELS[v]}
+            </button>
           ))}
         </div>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
-            {week.map((date, di) => {
-              const dateStr = date ? toDateStr(date) : ''
-              const dayEvents = dateStr ? (eventsByDay.get(dateStr) ?? []) : []
-              const isToday = date ? toDateStr(date) === toDateStr(today) : false
-              return (
-                <div
-                  key={di}
-                  className={cn(
-                    'group min-h-24 p-1.5 text-xs',
-                    date ? 'cursor-pointer hover:bg-muted/30 transition-colors' : 'bg-muted/10',
-                  )}
-                  onClick={() => date && openCreate(toDateStr(date))}
-                  role={date ? 'button' : undefined}
-                  tabIndex={date ? 0 : undefined}
-                  onKeyDown={(e) => e.key === 'Enter' && date && openCreate(toDateStr(date))}
-                >
-                  {date && (
-                    <>
-                      <span className={cn(
-                        'mb-1 flex size-6 items-center justify-center rounded-full text-xs font-medium',
-                        isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
-                      )}>
-                        {date.getDate()}
-                      </span>
-                      <div className="space-y-0.5">
-                        {dayEvents.slice(0, 3).map((ev) =>
-                          ev.kind === 'task' ? (
-                            <button
-                              key={ev.data.id}
-                              type="button"
-                              className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium', priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)}
-                              onClick={(e) => { e.stopPropagation(); setSelected(ev) }}
-                            >
-                              {ev.data.customer_id
-                                ? <User className="mr-0.5 inline size-2.5" />
-                                : <Lock className="mr-0.5 inline size-2.5" />}
-                              {formatEventTime(ev.data.due_at) && (
-                                <span className="mr-1 opacity-70">{formatEventTime(ev.data.due_at)}</span>
-                              )}
-                              {ev.data.title}
-                            </button>
-                          ) : (
-                            <button
-                              key={ev.data.id}
-                              type="button"
-                              className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium', contractEventStyle)}
-                              onClick={(e) => { e.stopPropagation(); setSelected(ev) }}
-                            >
-                              <FileText className="mr-0.5 inline size-2.5" />
-                              {ev.data.customer?.name ?? 'Contrato'}
-                            </button>
-                          )
-                        )}
-                        {dayEvents.length > 3 && (
-                          <button
-                            type="button"
-                            className="block w-full pl-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
-                            onClick={(e) => { e.stopPropagation(); setDayList({ date: dateStr, events: dayEvents }) }}
-                          >
-                            +{dayEvents.length - 3} más
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ))}
       </div>
 
-      {createOpen && (
-        <CreateTaskDialog
-          key={prefillDate}
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          prefillDate={prefillDate}
-        />
+      {view === 'month' && (
+        <MonthView cursor={cursor} today={today} onSelect={setSelected} onOpenCreate={openCreate} onDayList={setDayList} />
+      )}
+      {view === 'week' && (
+        <WeekView cursor={cursor} today={today} onSelect={setSelected} onOpenCreate={openCreate} />
+      )}
+      {view === 'day' && (
+        <DayView cursor={cursor} today={today} onSelect={setSelected} onOpenCreate={openCreate} />
       )}
 
+      {createOpen && (
+        <CreateTaskDialog key={prefillDate} open={createOpen} onOpenChange={setCreateOpen} prefillDate={prefillDate} />
+      )}
       {selected?.kind === 'task' && (
-        <TaskDetailDialog
-          task={selected.data}
-          onClose={() => setSelected(null)}
-        />
+        <TaskDetailDialog task={selected.data} onClose={() => setSelected(null)} />
       )}
       {selected?.kind === 'contract' && (
-        <ContractExpiryDialog
-          contract={selected.data}
-          onClose={() => setSelected(null)}
-        />
+        <ContractExpiryDialog contract={selected.data} onClose={() => setSelected(null)} />
       )}
-
       {dayList && (
         <DayEventsDialog
           date={dayList.date}
@@ -391,6 +307,274 @@ export function AgendaRoute() {
           onSelect={(ev) => { setDayList(null); setSelected(ev) }}
           onClose={() => setDayList(null)}
         />
+      )}
+    </div>
+  )
+}
+
+/* ── Shared event chip ───────────────────────────────────────────── */
+
+function EventChip({
+  ev, size, onClick,
+}: {
+  ev: CalendarEvent
+  size: 'xs' | 'sm'
+  onClick: (e: React.MouseEvent) => void
+}) {
+  const base = cn('block w-full truncate rounded text-left font-medium', size === 'xs' ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs')
+  if (ev.kind === 'task') {
+    const accent = ev.data.customer_id ? clientTaskAccent : privateTaskAccent
+    return (
+      <button type="button" className={cn(base, priorityStyles[ev.data.priority], accent)} onClick={onClick}>
+        {ev.data.customer_id ? <User className="mr-0.5 inline size-2.5" /> : <Lock className="mr-0.5 inline size-2.5" />}
+        {formatEventTime(ev.data.due_at) && <span className="mr-1 opacity-70">{formatEventTime(ev.data.due_at)}</span>}
+        {ev.data.title}
+      </button>
+    )
+  }
+  return (
+    <button type="button" className={cn(base, contractEventStyle)} onClick={onClick}>
+      <FileText className={cn('inline', size === 'xs' ? 'mr-0.5 size-2.5' : 'mr-1 size-3')} />
+      {ev.data.customer?.name ?? 'Contrato'}
+    </button>
+  )
+}
+
+/* ── Month view ──────────────────────────────────────────────────── */
+
+function MonthView({
+  cursor, today, onSelect, onOpenCreate, onDayList,
+}: {
+  cursor: Date
+  today: Date
+  onSelect: (ev: CalendarEvent) => void
+  onOpenCreate: (dateStr: string) => void
+  onDayList: (dl: { date: string; events: CalendarEvent[] }) => void
+}) {
+  const year = cursor.getFullYear()
+  const month = cursor.getMonth()
+  const ym = toYearMonth(cursor)
+  const todayStr = toDateStr(today)
+
+  const { data: tasks = [] } = useTasks({ month: ym })
+  const { data: contracts = [] } = useContractsByMonth(ym)
+  const weeks = buildCalendarGrid(year, month)
+  const eventsByDay = useMemo(() => buildEventsByDay(tasks, contracts), [tasks, contracts])
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+        {DAYS.map((d) => (
+          <div key={d} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">{d}</div>
+        ))}
+      </div>
+      {weeks.map((week, wi) => (
+        <div key={`week-${wi}`} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
+          {week.map((date, di) => {
+            const dateStr = date ? toDateStr(date) : ''
+            const dayEvents = dateStr ? (eventsByDay.get(dateStr) ?? []) : []
+            const isToday = dateStr === todayStr
+            return (
+              <div
+                key={date ? dateStr : `empty-${wi}-${di}`}
+                className={cn(
+                  'min-h-24 p-1.5 text-xs',
+                  date ? 'cursor-pointer hover:bg-muted/30 transition-colors' : 'bg-muted/10',
+                )}
+                onClick={() => date && onOpenCreate(dateStr)}
+                role={date ? 'button' : undefined}
+                tabIndex={date ? 0 : undefined}
+                onKeyDown={(e) => e.key === 'Enter' && date && onOpenCreate(dateStr)}
+              >
+                {date && (
+                  <>
+                    <span className={cn(
+                      'mb-1 flex size-6 items-center justify-center rounded-full text-xs font-medium',
+                      isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                    )}>
+                      {date.getDate()}
+                    </span>
+                    <div className="space-y-0.5">
+                      {dayEvents.slice(0, 3).map((ev) => (
+                        <EventChip
+                          key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}
+                          ev={ev}
+                          size="xs"
+                          onClick={(e) => { e.stopPropagation(); onSelect(ev) }}
+                        />
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <button
+                          type="button"
+                          className="block w-full pl-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          onClick={(e) => { e.stopPropagation(); onDayList({ date: dateStr, events: dayEvents }) }}
+                        >
+                          +{dayEvents.length - 3} más
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── Week view ───────────────────────────────────────────────────── */
+
+function WeekView({
+  cursor, today, onSelect, onOpenCreate,
+}: {
+  cursor: Date
+  today: Date
+  onSelect: (ev: CalendarEvent) => void
+  onOpenCreate: (dateStr: string) => void
+}) {
+  const weekStart = getWeekStart(cursor)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const from = toDateStr(weekStart)
+  const to = toDateStr(days[6])
+  const todayStr = toDateStr(today)
+
+  const { data: tasks = [] } = useTasks({ from, to })
+  const { data: contracts = [] } = useContractsByDateRange(from, to)
+  const eventsByDay = useMemo(() => buildEventsByDay(tasks, contracts), [tasks, contracts])
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+        {days.map((d) => {
+          const ds = toDateStr(d)
+          const isToday = ds === todayStr
+          return (
+            <div key={ds} className="py-2.5 text-center">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {DAYS[(d.getDay() + 6) % 7]}
+              </p>
+              <span className={cn(
+                'mt-0.5 inline-flex size-7 items-center justify-center rounded-full text-sm font-semibold',
+                isToday ? 'bg-primary text-primary-foreground' : 'text-foreground',
+              )}>
+                {d.getDate()}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="grid min-h-120 grid-cols-7 divide-x divide-border">
+        {days.map((d) => {
+          const ds = toDateStr(d)
+          const dayEvents = eventsByDay.get(ds) ?? []
+          const isToday = ds === todayStr
+          return (
+            <div
+              key={ds}
+              className={cn(
+                'cursor-pointer space-y-1 p-2 transition-colors',
+                isToday ? 'bg-primary/5' : 'hover:bg-muted/20',
+              )}
+              onClick={() => onOpenCreate(ds)}
+              onKeyDown={(e) => e.key === 'Enter' && onOpenCreate(ds)}
+            >
+              {dayEvents.map((ev) => (
+                <EventChip
+                  key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}
+                  ev={ev}
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onSelect(ev) }}
+                />
+              ))}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ── Day view ────────────────────────────────────────────────────── */
+
+function DayView({
+  cursor, today, onSelect, onOpenCreate,
+}: {
+  cursor: Date
+  today: Date
+  onSelect: (ev: CalendarEvent) => void
+  onOpenCreate: (dateStr: string) => void
+}) {
+  const ds = toDateStr(cursor)
+  const isToday = ds === toDateStr(today)
+
+  const { data: tasks = [] } = useTasks({ from: ds, to: ds })
+  const { data: contracts = [] } = useContractsByDateRange(ds, ds)
+
+  const events = useMemo<CalendarEvent[]>(() => {
+    const all: CalendarEvent[] = [
+      ...tasks.map((t): CalendarEvent => ({ kind: 'task', data: t })),
+      ...contracts.map((c): CalendarEvent => ({ kind: 'contract', data: c })),
+    ]
+    return all.sort((a, b) => {
+      const at = a.kind === 'task' ? a.data.due_at : (a.data.ends_at ?? '')
+      const bt = b.kind === 'task' ? b.data.due_at : (b.data.ends_at ?? '')
+      return at.localeCompare(bt)
+    })
+  }, [tasks, contracts])
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className={cn('border-b border-border px-4 py-3', isToday ? 'bg-primary/5' : 'bg-muted/40')}>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {cursor.toLocaleDateString('es-ES', { weekday: 'long' })}
+        </p>
+        <p className={cn('text-2xl font-bold capitalize', isToday ? 'text-primary' : 'text-foreground')}>
+          {cursor.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      </div>
+      {events.length === 0 ? (
+        <button
+          type="button"
+          className="flex min-h-64 w-full flex-col items-center justify-center gap-2 text-muted-foreground transition-colors hover:bg-muted/20"
+          onClick={() => onOpenCreate(ds)}
+        >
+          <Plus className="size-8 opacity-30" />
+          <p className="text-sm">Sin eventos — clic para crear una entrada</p>
+        </button>
+      ) : (
+        <ul className="divide-y divide-border">
+          {events.map((ev) => {
+            const timeStr = ev.kind === 'task' ? formatEventTime(ev.data.due_at) : null
+            const label = ev.kind === 'task' ? ev.data.title : (ev.data.customer?.name ?? 'Contrato')
+            const chipClass = ev.kind === 'task'
+              ? cn(priorityStyles[ev.data.priority], ev.data.customer_id ? clientTaskAccent : privateTaskAccent)
+              : contractEventStyle
+            return (
+              <li key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                  onClick={() => onSelect(ev)}
+                >
+                  <span className="w-10 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                    {timeStr ?? '–'}
+                  </span>
+                  <span className={cn('rounded px-2 py-0.5 text-sm font-medium', chipClass)}>
+                    {ev.kind === 'task'
+                      ? (ev.data.customer_id ? <User className="mr-1 inline size-3" /> : <Lock className="mr-1 inline size-3" />)
+                      : <FileText className="mr-1 inline size-3.5" />}
+                    {label}
+                  </span>
+                  {ev.kind === 'task' && (
+                    <span className="ml-auto text-xs text-muted-foreground">{priorityLabels[ev.data.priority]}</span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       )}
     </div>
   )
