@@ -44,9 +44,36 @@ export function useCreateTask() {
 				.select()
 				.single();
 			if (error) throw error;
-			return data as TaskRow;
+			const task = data as TaskRow;
+
+			if (task.customer_id) {
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
+				await supabase.from("activity_logs").insert({
+					actor_id: user?.id ?? null,
+					entity_type: "customer",
+					entity_id: task.customer_id,
+					action: "appointment_scheduled",
+					metadata: {
+						task_id: task.id,
+						title: task.title,
+						due_at: task.due_at,
+						priority: task.priority,
+					},
+				} as never);
+			}
+
+			return task;
 		},
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+		onSuccess: (_data, dto) => {
+			void qc.invalidateQueries({ queryKey: ["tasks"] });
+			if (dto.customer_id) {
+				void qc.invalidateQueries({
+					queryKey: ["activity", "customer", dto.customer_id],
+				});
+			}
+		},
 	});
 }
 

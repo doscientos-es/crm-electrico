@@ -72,6 +72,8 @@ export function getActivityLabel(
 		}
 		case "incident_deleted":
 			return `Incidencia eliminada: ${metadata.title ?? ""}`;
+		case "appointment_scheduled":
+			return `Cita programada: ${metadata.title ?? ""}`;
 		case "renewal_contact":
 			return "Contacto de renovación";
 		default:
