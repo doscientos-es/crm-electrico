@@ -66,6 +66,7 @@ export function AgendaRoute() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selected, setSelected] = useState<CalendarEvent | null>(null)
   const [prefillDate, setPrefillDate] = useState<string>('')
+  const [dayList, setDayList] = useState<{ date: string; events: CalendarEvent[] } | null>(null)
 
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
@@ -175,7 +176,13 @@ export function AgendaRoute() {
                           )
                         )}
                         {dayEvents.length > 3 && (
-                          <span className="block pl-1 text-xs text-muted-foreground">+{dayEvents.length - 3} más</span>
+                          <button
+                            type="button"
+                            className="block w-full pl-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+                            onClick={(e) => { e.stopPropagation(); setDayList({ date: dateStr, events: dayEvents }) }}
+                          >
+                            +{dayEvents.length - 3} más
+                          </button>
                         )}
                       </div>
                     </>
@@ -208,7 +215,62 @@ export function AgendaRoute() {
           onClose={() => setSelected(null)}
         />
       )}
+
+      {dayList && (
+        <DayEventsDialog
+          date={dayList.date}
+          events={dayList.events}
+          onSelect={(ev) => { setDayList(null); setSelected(ev) }}
+          onClose={() => setDayList(null)}
+        />
+      )}
     </div>
+  )
+}
+
+/* ── Day events list dialog ──────────────────────────────────────── */
+
+function DayEventsDialog({
+  date, events, onSelect, onClose,
+}: {
+  date: string
+  events: CalendarEvent[]
+  onSelect: (ev: CalendarEvent) => void
+  onClose: () => void
+}) {
+  const label = new Date(`${date}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()} title={`Eventos – ${label}`} size="sm">
+      <ul className="space-y-1.5">
+        {events.map((ev) =>
+          ev.kind === 'task' ? (
+            <li key={ev.data.id}>
+              <button
+                type="button"
+                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', priorityStyles[ev.data.priority])}
+                onClick={() => onSelect(ev)}
+              >
+                {ev.data.title}
+                <span className="ml-2 text-xs opacity-70">{priorityLabels[ev.data.priority]}</span>
+              </button>
+            </li>
+          ) : (
+            <li key={ev.data.id}>
+              <button
+                type="button"
+                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', contractEventStyle)}
+                onClick={() => onSelect(ev)}
+              >
+                <FileText className="mr-1 inline size-3.5" />
+                {ev.data.customer?.name ?? 'Contrato'}
+                <span className="ml-2 text-xs opacity-70">Vencimiento</span>
+              </button>
+            </li>
+          )
+        )}
+      </ul>
+    </Dialog>
   )
 }
 
