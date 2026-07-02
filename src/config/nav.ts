@@ -5,12 +5,21 @@ import {
 	FileArchive,
 	FileText,
 	Home,
+	type LucideIcon,
 	Settings,
 	ShieldCheck,
 	Zap,
 } from "lucide-react";
 
-export const navItems = [
+interface NavItem {
+	href: string;
+	label: string;
+	icon: LucideIcon;
+	description: string;
+	enabled?: boolean;
+}
+
+export const navItems: NavItem[] = [
 	{
 		href: "/dashboard",
 		label: "Dashboard",
@@ -59,7 +68,7 @@ export const navItems = [
 		icon: CalendarDays,
 		description:
 			"Calendario de reuniones, renovaciones y contactos programados.",
-		enabled: false, // TODO: activar cuando el cliente pague el módulo de Agenda
+		enabled: false,
 	},
 	{
 		href: "/settings",
