@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Copy, Download, FileText, Plus, Smartphone, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Download, FileText, Lock, Plus, Smartphone, Upload, User } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -33,6 +33,10 @@ const statusLabels: Record<TaskStatus, string> = {
 }
 
 const contractEventStyle = 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'
+
+// Distinción visual entre tareas con cliente (agendadas) y tareas privadas
+const clientTaskAccent = 'border-l-2 border-l-emerald-500'
+const privateTaskAccent = 'border-l-2 border-l-slate-400 dark:border-l-slate-500'
 
 const CALENDAR_SYNC_ENABLED = true
 
@@ -103,20 +107,17 @@ function buildEventsByDay(tasks: TaskWithCustomer[], contracts: ContractForCalen
 
 export function AgendaRoute() {
   const today = new Date()
-  const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
-  const [createOpen, setCreateOpen] = useState(false)
+  const [view, setView] = useState<CalendarView>('month')
+  const [cursor, setCursor] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1))
   const [selected, setSelected] = useState<CalendarEvent | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
   const [prefillDate, setPrefillDate] = useState<string>('')
   const [dayList, setDayList] = useState<{ date: string; events: CalendarEvent[] } | null>(null)
-  const [showRenewals, setShowRenewals] = useState(true)
 
-  const year = cursor.getFullYear()
-  const month = cursor.getMonth()
   const ym = toYearMonth(cursor)
 
   const { profile } = useAuth()
-  const { data: tasks = [] } = useTasks({ month: ym })
-  const { data: contracts = [] } = useContractsByMonth(ym)
+  const { data: exportTasks = [] } = useTasks({ month: ym })
   const importIcal = useImportIcalTasks()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: calFeedUrl } = useCalendarFeedUrl(profile?.id)
@@ -144,37 +145,57 @@ export function AgendaRoute() {
   }
 
   function handleExport() {
-    const content = generateIcs(tasks)
+    const content = generateIcs(exportTasks)
     const date = new Date().toISOString().slice(0, 10)
     downloadIcs(`agenda-crm-${date}.ics`, content)
     toast.success('Archivo .ics descargado.')
   }
 
-  const eventsByDay = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>()
-    const add = (day: string, ev: CalendarEvent) => {
-      if (!map.has(day)) map.set(day, [])
-      const bucket = map.get(day)
-      if (bucket) bucket.push(ev)
+  function prev() {
+    setCursor((c) => {
+      if (view === 'month') return new Date(c.getFullYear(), c.getMonth() - 1, 1)
+      if (view === 'week') return addDays(c, -7)
+      return addDays(c, -1)
+    })
+  }
+  function next() {
+    setCursor((c) => {
+      if (view === 'month') return new Date(c.getFullYear(), c.getMonth() + 1, 1)
+      if (view === 'week') return addDays(c, 7)
+      return addDays(c, 1)
+    })
+  }
+  function goToday() {
+    if (view === 'month') setCursor(new Date(today.getFullYear(), today.getMonth(), 1))
+    else if (view === 'week') setCursor(getWeekStart(today))
+    else setCursor(new Date(today))
+  }
+
+  function switchView(v: CalendarView) {
+    if (v === view) return
+    setView(v)
+    if (v === 'week') setCursor(getWeekStart(cursor))
+    else if (v === 'month') setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), 1))
+  }
+
+  const periodLabel = useMemo(() => {
+    if (view === 'month') return cursor.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    if (view === 'week') {
+      const ws = getWeekStart(cursor)
+      const we = addDays(ws, 6)
+      const s = ws.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+      const e = we.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+      return `${s} – ${e}`
     }
-    for (const t of tasks) add(t.due_at.slice(0, 10), { kind: 'task', data: t })
-    if (showRenewals) {
-      for (const c of contracts) if (c.ends_at) add(c.ends_at.slice(0, 10), { kind: 'contract', data: c })
-    }
-    return map
-  }, [tasks, contracts, showRenewals])
-
-  const weeks = buildCalendarGrid(year, month)
-
-  const monthLabel = cursor.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-
-  function prev() { setCursor(new Date(year, month - 1, 1)) }
-  function next() { setCursor(new Date(year, month + 1, 1)) }
+    return cursor.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  }, [view, cursor])
 
   function openCreate(dateStr?: string) {
     setPrefillDate(dateStr ?? toDateStr(today))
     setCreateOpen(true)
   }
+
+  const VIEW_LABELS: Record<CalendarView, string> = { month: 'Mes', week: 'Semana', day: 'Día' }
 
   return (
     <div className="h-full overflow-y-auto">
