@@ -48,12 +48,12 @@ export function Dialog({
         <DialogPrimitive.Overlay className="animate-fade-in fixed inset-0 z-40 bg-black/50" />
         <DialogPrimitive.Content
           className={cn(
-            'animate-zoom-in fixed left-1/2 top-1/2 z-50 grid max-h-[90dvh] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background shadow-xl',
+            'animate-zoom-in fixed left-1/2 top-1/2 z-50 grid max-h-[90dvh] w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-background shadow-xl',
             sizeClasses[size],
             className,
           )}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-6 py-4">
+          <div className="sticky top-0 z-10 flex min-w-0 items-center justify-between border-b border-border bg-background px-6 py-4">
             <div>
               <DialogPrimitive.Title className="text-base font-semibold leading-none text-foreground">{title}</DialogPrimitive.Title>
               {description && (
@@ -66,7 +66,7 @@ export function Dialog({
               </Button>
             </DialogPrimitive.Close>
           </div>
-          <div className="p-6">{children}</div>
+          <div className="min-w-0 p-6">{children}</div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

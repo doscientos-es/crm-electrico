@@ -149,7 +149,7 @@ export function ContractsRoute() {
             ))}
           </Select>
         </Field>
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-3 space-x-2">
           <Field label="Inicio" className="w-36">
             <Input type="date" value={startsFrom} onChange={(e) => setDateParam('startsFrom', e.target.value)} />
           </Field>

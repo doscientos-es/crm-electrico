@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, Copy, FileText, Lock, Plus, Smartphone, User } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, FileText, Lock, Plus, Smartphone, User } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
 import { CustomerCombobox } from '../components/forms/CustomerCombobox'
@@ -10,7 +11,7 @@ import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { downloadIcs, generateIcs } from '../lib/ical'
 import { cn } from '../lib/utils'
-import { type ContractForCalendar, useContractsByMonth } from '../services/contracts.service'
+import { type ContractForCalendar, useContractsByDateRange, useContractsByMonth } from '../services/contracts.service'
 import { useCalendarFeedUrl } from '../services/profiles.service'
 import { type TaskWithCustomer, useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../services/tasks.service'
 import type { TaskPriority, TaskStatus } from '../types/database.types'
@@ -96,8 +97,9 @@ function getWeekStart(d: Date): Date {
 function buildEventsByDay(tasks: TaskWithCustomer[], contracts: ContractForCalendar[]): Map<string, CalendarEvent[]> {
   const map = new Map<string, CalendarEvent[]>()
   const add = (day: string, ev: CalendarEvent) => {
-    if (!map.has(day)) map.set(day, [])
-    map.get(day)!.push(ev)
+    const arr = map.get(day) ?? []
+    arr.push(ev)
+    map.set(day, arr)
   }
   for (const t of tasks) add(t.due_at.slice(0, 10), { kind: 'task', data: t })
   for (const c of contracts) if (c.ends_at) add(c.ends_at.slice(0, 10), { kind: 'contract', data: c })
@@ -112,8 +114,6 @@ export function AgendaRoute() {
   const [createOpen, setCreateOpen] = useState(false)
   const [prefillDate, setPrefillDate] = useState<string>('')
   const [dayList, setDayList] = useState<{ date: string; events: CalendarEvent[] } | null>(null)
-
-  const ym = toYearMonth(cursor)
 
   const { profile } = useAuth()
   const { data: calFeedUrl } = useCalendarFeedUrl(profile?.id)
@@ -314,58 +314,61 @@ function MonthView({
           <div key={d} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">{d}</div>
         ))}
       </div>
-      {weeks.map((week, wi) => (
-        <div key={`week-${wi}`} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
-          {week.map((date, di) => {
-            const dateStr = date ? toDateStr(date) : ''
-            const dayEvents = dateStr ? (eventsByDay.get(dateStr) ?? []) : []
-            const isToday = dateStr === todayStr
-            return (
-              <div
-                key={date ? dateStr : `empty-${wi}-${di}`}
-                className={cn(
-                  'min-h-24 p-1.5 text-xs',
-                  date ? 'cursor-pointer hover:bg-muted/30 transition-colors' : 'bg-muted/10',
-                )}
-                onClick={() => date && onOpenCreate(dateStr)}
-                role={date ? 'button' : undefined}
-                tabIndex={date ? 0 : undefined}
-                onKeyDown={(e) => e.key === 'Enter' && date && onOpenCreate(dateStr)}
-              >
-                {date && (
-                  <>
-                    <span className={cn(
-                      'mb-1 flex size-6 items-center justify-center rounded-full text-xs font-medium',
-                      isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
-                    )}>
-                      {date.getDate()}
-                    </span>
-                    <div className="space-y-0.5">
-                      {dayEvents.slice(0, 3).map((ev) => (
-                        <EventChip
-                          key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}
-                          ev={ev}
-                          size="xs"
-                          onClick={(e) => { e.stopPropagation(); onSelect(ev) }}
-                        />
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <button
-                          type="button"
-                          className="block w-full pl-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
-                          onClick={(e) => { e.stopPropagation(); onDayList({ date: dateStr, events: dayEvents }) }}
-                        >
-                          +{dayEvents.length - 3} más
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ))}
+      {weeks.map((week) => {
+        const weekKey = week.find(Boolean)?.toISOString().slice(0, 10) ?? 'overflow'
+        return (
+          <div key={weekKey} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
+            {week.map((date, di) => {
+              const dateStr = date ? toDateStr(date) : ''
+              const dayEvents = dateStr ? (eventsByDay.get(dateStr) ?? []) : []
+              const isToday = dateStr === todayStr
+              return (
+                <div
+                  key={date ? dateStr : `empty-${weekKey}-${di}`}
+                  className={cn(
+                    'min-h-24 p-1.5 text-xs',
+                    date ? 'cursor-pointer hover:bg-muted/30 transition-colors' : 'bg-muted/10',
+                  )}
+                  onClick={() => date && onOpenCreate(dateStr)}
+                  role={date ? 'button' : undefined}
+                  tabIndex={date ? 0 : undefined}
+                  onKeyDown={(e) => e.key === 'Enter' && date && onOpenCreate(dateStr)}
+                >
+                  {date && (
+                    <>
+                      <span className={cn(
+                        'mb-1 flex size-6 items-center justify-center rounded-full text-xs font-medium',
+                        isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                      )}>
+                        {date.getDate()}
+                      </span>
+                      <div className="space-y-0.5">
+                        {dayEvents.slice(0, 3).map((ev) => (
+                          <EventChip
+                            key={ev.kind === 'task' ? ev.data.id : `c-${ev.data.id}`}
+                            ev={ev}
+                            size="xs"
+                            onClick={(e) => { e.stopPropagation(); onSelect(ev) }}
+                          />
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <button
+                            type="button"
+                            className="block w-full pl-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+                            onClick={(e) => { e.stopPropagation(); onDayList({ date: dateStr, events: dayEvents }) }}
+                          >
+                            +{dayEvents.length - 3} más
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -546,29 +549,27 @@ function DayEventsDialog({
             <li key={ev.data.id}>
               <button
                 type="button"
-                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', ev.data.customer_id ? clientTaskStyle : privateTaskStyle)}
+                className={cn('flex w-full min-w-0 items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm font-medium', ev.data.customer_id ? clientTaskStyle : privateTaskStyle)}
                 onClick={() => onSelect(ev)}
               >
-                {ev.data.customer_id
-                  ? <User className="mr-1 inline size-3.5" />
-                  : <Lock className="mr-1 inline size-3.5" />}
+                {ev.data.customer_id ? <User className="shrink-0 size-3.5" /> : <Lock className="shrink-0 size-3.5" />}
                 {formatEventTime(ev.data.due_at) && (
-                  <span className="mr-1.5 text-xs opacity-70">{formatEventTime(ev.data.due_at)}</span>
+                  <span className="shrink-0 text-xs opacity-70">{formatEventTime(ev.data.due_at)}</span>
                 )}
-                {ev.data.title}
-                <span className="ml-2 text-xs opacity-70">{ev.data.customer?.name ?? 'Privada'} · {priorityLabels[ev.data.priority]}</span>
+                <span className="min-w-0 flex-1 truncate">{ev.data.title}</span>
+                <span className="max-w-[45%] shrink-0 truncate text-xs opacity-70">{ev.data.customer?.name ?? 'Privada'} · {priorityLabels[ev.data.priority]}</span>
               </button>
             </li>
           ) : (
             <li key={ev.data.id}>
               <button
                 type="button"
-                className={cn('block w-full truncate rounded px-2 py-1.5 text-left text-sm font-medium', contractEventStyle)}
+                className={cn('flex w-full min-w-0 items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm font-medium', contractEventStyle)}
                 onClick={() => onSelect(ev)}
               >
-                <FileText className="mr-1 inline size-3.5" />
-                {ev.data.customer?.name ?? 'Contrato'}
-                <span className="ml-2 text-xs opacity-70">Vencimiento</span>
+                <FileText className="shrink-0 size-3.5" />
+                <span className="min-w-0 flex-1 truncate">{ev.data.customer?.name ?? 'Contrato'}</span>
+                <span className="shrink-0 text-xs opacity-70">Vencimiento</span>
               </button>
             </li>
           )
@@ -621,7 +622,6 @@ function CreateTaskDialog({
             title: task.title,
             due_at: task.due_at,
             description: task.description,
-            ical_uid: task.ical_uid,
           }])
           downloadIcs(`evento-${task.id}.ics`, ics)
         },
@@ -712,7 +712,6 @@ function TaskDetailDialog({
       title: task.title,
       due_at: task.due_at,
       description: task.description,
-      ical_uid: task.ical_uid,
     }])
     downloadIcs(`evento-${task.id}.ics`, ics)
   }
@@ -850,8 +849,28 @@ function ContractExpiryDialog({
             </div>
           )}
         </div>
-        <div className="flex justify-end">
-          <Button type="button" variant="ghost" onClick={onClose}>Cerrar</Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {contract.customer && (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/customers/${contract.customer.id}`} onClick={onClose}>
+                  <User className="size-3.5" />
+                  Ver cliente
+                  <ArrowUpRight className="size-3.5 opacity-50" />
+                </Link>
+              </Button>
+            )}
+            {contract.customer && (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/contracts?q=${encodeURIComponent(contract.customer.name)}`} onClick={onClose}>
+                  <FileText className="size-3.5" />
+                  Ver contratos
+                  <ArrowUpRight className="size-3.5 opacity-50" />
+                </Link>
+              </Button>
+            )}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cerrar</Button>
         </div>
       </div>
     </Dialog>

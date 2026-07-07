@@ -21,14 +21,15 @@ const schema = z
 type Values = z.infer<typeof schema>
 
 export function SetPasswordRoute() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Values>({
     resolver: zodResolver(schema),
   })
 
-  // If not coming from an auth link, redirect to login
+  // Wait for Supabase to process the invite token from the URL before deciding
+  if (isLoading) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
   async function onSubmit(values: Values) {
