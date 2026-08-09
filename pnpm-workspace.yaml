@@ -1,0 +1,4 @@
+allowBuilds:
+  # msw no necesita ejecutar scripts de instalacion para este proyecto.
+  msw: false
+  supabase: true

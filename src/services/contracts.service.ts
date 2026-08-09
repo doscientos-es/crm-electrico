@@ -68,6 +68,8 @@ function contractColumns(includeCompanyCommission = true) {
 export interface ContractsListParams {
 	search?: string;
 	status?: ContractStatus;
+	assignedTo?: string;
+	provider?: string;
 	startsFrom?: string;
 	startsTo?: string;
 	endsFrom?: string;
@@ -245,6 +247,8 @@ export function useAllContracts(params: ContractsListParams = {}) {
 	const {
 		search,
 		status,
+		assignedTo,
+		provider,
 		startsFrom,
 		startsTo,
 		endsFrom,
@@ -267,19 +271,23 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				page,
 				pageSize,
 				includeCompanyCommission,
+				assignedTo,
+				provider,
 			},
 		],
 		queryFn: async () => {
 			let q = supabase
 				.from("contracts")
 				.select(
-					`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company)`,
+					`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company)`,
 					{ count: "exact" },
 				)
 				.order("created_at", { ascending: false })
 				.range(page * pageSize, page * pageSize + pageSize - 1);
 
 			if (status) q = q.eq("status", status);
+			if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
+			if (provider) q = q.eq("provider", provider);
 			if (startsFrom) q = q.gte("starts_at", startsFrom);
 			if (startsTo) q = q.lte("starts_at", startsTo);
 			if (endsFrom) q = q.gte("ends_at", endsFrom);
@@ -310,6 +318,27 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				data: (data ?? []) as unknown as ContractWithCustomer[],
 				count: count ?? 0,
 			};
+		},
+	});
+}
+
+export function useContractProviders() {
+	return useQuery<string[]>({
+		queryKey: ["contracts", "providers"],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("contracts")
+				.select("provider")
+				.not("provider", "is", null)
+				.order("provider");
+			if (error) throw error;
+			return Array.from(
+				new Set(
+					(data ?? [])
+						.map((contract) => contract.provider)
+						.filter((provider): provider is string => !!provider),
+				),
+			);
 		},
 	});
 }
@@ -416,6 +445,8 @@ export function useContractsByMonth(month: string) {
 export interface ContractsExportFilter {
 	search?: string;
 	status?: ContractStatus;
+	assignedTo?: string;
+	provider?: string;
 	startsFrom?: string;
 	endsTo?: string;
 	dateFrom?: string;
@@ -438,6 +469,8 @@ export async function fetchAllContractsForExport(
 	const {
 		search,
 		status,
+		assignedTo,
+		provider,
 		startsFrom,
 		endsTo,
 		dateFrom,
@@ -447,7 +480,7 @@ export async function fetchAllContractsForExport(
 	let q = supabase
 		.from("contracts")
 		.select(
-			`${contractColumns(includeCompanyCommission)}, customer:customers(id, name, company, assigned_to)`,
+			`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
 		)
 		.order("created_at", { ascending: false });
 	if (search)
@@ -455,6 +488,8 @@ export async function fetchAllContractsForExport(
 			`cups.ilike.%${search}%,provider.ilike.%${search}%,sales_channel.ilike.%${search}%,product.ilike.%${search}%`,
 		);
 	if (status) q = q.eq("status", status);
+	if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
+	if (provider) q = q.eq("provider", provider);
 	if (startsFrom) q = q.gte("starts_at", startsFrom);
 	if (endsTo) q = q.lte("ends_at", endsTo);
 	if (dateFrom) q = q.gte("created_at", dateFrom);

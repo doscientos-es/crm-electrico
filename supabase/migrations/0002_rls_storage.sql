@@ -22,6 +22,23 @@ set search_path = public
 stable
 as $$ select public.current_role() = any(roles) $$;
 
+-- Helpers used by the contracts, documents and incidents policies introduced
+-- in subsequent migrations. Keep these as invoker functions: current_role()
+-- already performs the privileged profile lookup needed by RLS.
+create or replace function public.is_authenticated()
+returns boolean
+language sql
+security invoker
+stable
+as $$ select (select auth.uid()) is not null $$;
+
+create or replace function public.get_my_role()
+returns app_role
+language sql
+security invoker
+stable
+as $$ select public.current_role() $$;
+
 alter table public.organizations enable row level security;
 alter table public.profiles enable row level security;
 alter table public.leads enable row level security;

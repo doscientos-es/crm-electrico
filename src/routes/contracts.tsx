@@ -14,7 +14,8 @@ import { useDebounce } from '../hooks/use-debounce'
 import { exportToCSV } from '../lib/export'
 import { formatDate, money } from '../lib/formatters'
 import { canViewCompanyCommission } from '../lib/permissions'
-import { type ContractWithCustomer, fetchAllContractsForExport, useAllContracts } from '../services/contracts.service'
+import { type ContractWithCustomer, fetchAllContractsForExport, useAllContracts, useContractProviders } from '../services/contracts.service'
+import { useProfiles } from '../services/profiles.service'
 import type { ContractStatus } from '../types/database.types'
 
 const PAGE_SIZE = 25
@@ -37,6 +38,8 @@ export function ContractsRoute() {
       const rows = await fetchAllContractsForExport({
         search: debouncedSearch || undefined,
         status: status !== 'all' ? status as ContractStatus : undefined,
+        assignedTo: owner !== 'all' ? owner : undefined,
+        provider: provider !== 'all' ? provider : undefined,
         startsFrom: startsFrom || undefined,
         endsTo: endsTo || undefined,
         includeCompanyCommission: showCompanyCommission,
@@ -81,6 +84,8 @@ export function ContractsRoute() {
 
   const search = params.get('q') ?? ''
   const status = params.get('status') ?? 'all'
+  const owner = params.get('owner') ?? 'all'
+  const provider = params.get('provider') ?? 'all'
   const startsFrom = params.get('startsFrom') ?? ''
   const endsTo = params.get('endsTo') ?? ''
   const page = Math.max(1, Number(params.get('page') ?? '1'))
@@ -91,6 +96,12 @@ export function ContractsRoute() {
   function setStatus(v: string) {
     setParams((p) => { const n = new URLSearchParams(p); setParam(n, 'status', v !== 'all' ? v : undefined); n.delete('page'); return n }, { replace: true })
   }
+  function setOwner(v: string) {
+    setParams((p) => { const n = new URLSearchParams(p); setParam(n, 'owner', v !== 'all' ? v : undefined); n.delete('page'); return n }, { replace: true })
+  }
+  function setProvider(v: string) {
+    setParams((p) => { const n = new URLSearchParams(p); setParam(n, 'provider', v !== 'all' ? v : undefined); n.delete('page'); return n }, { replace: true })
+  }
   function setDateParam(key: string, v: string) {
     setParams((p) => { const n = new URLSearchParams(p); setParam(n, key, v || undefined); n.delete('page'); return n }, { replace: true })
   }
@@ -98,12 +109,16 @@ export function ContractsRoute() {
     setParams((prev) => { const n = new URLSearchParams(prev); if (p > 1) n.set('page', String(p)); else n.delete('page'); return n }, { replace: true })
   }
 
-  const hasFilters = !!(search || status !== 'all' || startsFrom || endsTo)
+  const hasFilters = !!(search || status !== 'all' || owner !== 'all' || provider !== 'all' || startsFrom || endsTo)
   const debouncedSearch = useDebounce(search, 250)
+  const { data: profiles } = useProfiles()
+  const { data: providers } = useContractProviders()
 
   const { data: result, isLoading } = useAllContracts({
     search: debouncedSearch || undefined,
     status: status !== 'all' ? status as ContractStatus : undefined,
+    assignedTo: owner !== 'all' ? owner : undefined,
+    provider: provider !== 'all' ? provider : undefined,
     startsFrom: startsFrom || undefined,
     endsTo: endsTo || undefined,
     page: page - 1,
@@ -151,6 +166,22 @@ export function ContractsRoute() {
             {Object.entries(contractStatusLabels).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
+          </Select>
+        </Field>
+        {currentUser?.role !== 'sales' && (
+          <Field label="Comercial" className="w-44">
+            <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
+              <option value="all">Todos</option>
+              {(profiles ?? [])
+                .filter((profile) => ['owner', 'admin', 'sales'].includes(profile.role))
+                .map((profile) => <option key={profile.id} value={profile.id}>{profile.full_name}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="Comercializadora" className="w-52">
+          <Select value={provider} onChange={(e) => setProvider(e.target.value)}>
+            <option value="all">Todas</option>
+            {(providers ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
           </Select>
         </Field>
         <div className="flex items-end gap-3">

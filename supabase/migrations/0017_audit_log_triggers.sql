@@ -16,8 +16,8 @@ declare
   v_meta jsonb := '{}'::jsonb;
 begin
   if TG_OP = 'INSERT' then
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', NEW.id, 'customer_created', jsonb_build_object(
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(NEW.organization_id, 'customer', NEW.id, 'customer_created', jsonb_build_object(
       'name',   NEW.name,
       'status', NEW.status,
       'type',   NEW.type
@@ -30,8 +30,8 @@ begin
     if OLD.email      is distinct from NEW.email      then v_meta := v_meta || jsonb_build_object('field', 'email');                                                        end if;
     if OLD.phone      is distinct from NEW.phone      then v_meta := v_meta || jsonb_build_object('field', 'phone');                                                        end if;
 
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', NEW.id, 'customer_updated', v_meta);
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(NEW.organization_id, 'customer', NEW.id, 'customer_updated', v_meta);
   end if;
 
   return null;
@@ -53,12 +53,14 @@ as $$
 declare
   v_meta      jsonb;
   v_cid       uuid;
+  v_org_id    uuid;
 begin
   v_cid := coalesce(NEW.customer_id, OLD.customer_id);
+  select organization_id into v_org_id from public.customers where id = v_cid;
 
   if TG_OP = 'INSERT' then
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'contract_created', jsonb_build_object(
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'contract_created', jsonb_build_object(
       'contract_id', NEW.id,
       'provider',    NEW.provider,
       'status',      NEW.status,
@@ -72,12 +74,12 @@ begin
     if OLD.provider is distinct from NEW.provider then v_meta := v_meta || jsonb_build_object('provider', NEW.provider);                           end if;
     if OLD.ends_at  is distinct from NEW.ends_at  then v_meta := v_meta || jsonb_build_object('old_ends_at', OLD.ends_at, 'new_ends_at', NEW.ends_at); end if;
 
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'contract_updated', v_meta);
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'contract_updated', v_meta);
 
   elsif TG_OP = 'DELETE' then
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'contract_deleted', jsonb_build_object(
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'contract_deleted', jsonb_build_object(
       'contract_id', OLD.id,
       'provider',    OLD.provider,
       'status',      OLD.status
@@ -103,12 +105,14 @@ as $$
 declare
   v_meta  jsonb;
   v_cid   uuid;
+  v_org_id uuid;
 begin
   v_cid := coalesce(NEW.customer_id, OLD.customer_id);
+  select organization_id into v_org_id from public.customers where id = v_cid;
 
   if TG_OP = 'INSERT' then
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'incident_created', jsonb_build_object(
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'incident_created', jsonb_build_object(
       'incident_id', NEW.id,
       'title',       NEW.title,
       'priority',    NEW.priority,
@@ -121,12 +125,12 @@ begin
     if OLD.priority is distinct from NEW.priority then v_meta := v_meta || jsonb_build_object('old_priority', OLD.priority, 'new_priority', NEW.priority); end if;
     if OLD.title    is distinct from NEW.title    then v_meta := v_meta || jsonb_build_object('old_title',    OLD.title);                                   end if;
 
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'incident_updated', v_meta);
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'incident_updated', v_meta);
 
   elsif TG_OP = 'DELETE' then
-    insert into public.activity_logs(entity_type, entity_id, action, metadata)
-    values('customer', v_cid, 'incident_deleted', jsonb_build_object(
+    insert into public.activity_logs(organization_id, entity_type, entity_id, action, metadata)
+    values(v_org_id, 'customer', v_cid, 'incident_deleted', jsonb_build_object(
       'incident_id', OLD.id,
       'title',       OLD.title
     ));

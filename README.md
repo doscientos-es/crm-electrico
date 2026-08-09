@@ -38,6 +38,35 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+### Desarrollo aislado con Supabase local
+
+El proyecto puede ejecutar Supabase por Docker sin usar datos, URL ni claves de
+produccion. El archivo `.env.local` tiene prioridad sobre `.env` en Vite y esta
+ignorado por Git.
+
+```bash
+pnpm install
+pnpm supabase:start
+pnpm db:local:env
+pnpm dev
+```
+
+La primera ejecucion descarga los contenedores. Las migraciones y `seed.sql` se
+aplican a la base local. Studio queda disponible en `http://127.0.0.1:57323`.
+
+Comandos utiles:
+
+```bash
+pnpm supabase:status       # URL y estado de los servicios locales
+pnpm db:local:reset        # reinicia solo la base local y reaplica migraciones/seed
+pnpm supabase:stop         # detiene el stack sin eliminar sus datos locales
+```
+
+No ejecutes `supabase link`, `supabase db push` ni `supabase config push` para
+trabajar en local: esos comandos pueden dirigirse a un proyecto remoto. Los
+scripts `db:backup` y `db:restore` existentes siguen usando `.env`; reserva
+`.env.local` y los comandos `db:local:*` para el entorno aislado.
+
 ## Comandos
 
 ```bash
