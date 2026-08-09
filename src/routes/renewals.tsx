@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
+import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { RenewalContactDialog } from '../features/renewals/RenewalContactDialog'
 import { useDebounce } from '../hooks/use-debounce'
@@ -15,7 +16,8 @@ import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-w
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
 import { cn } from '../lib/utils'
 import { getContactChannel, useRenewalContacts } from '../services/activity.service'
-import { useContractsDueForRenewal } from '../services/contracts.service'
+import { useContractProviders, useContractsDueForRenewal } from '../services/contracts.service'
+import { useProfiles } from '../services/profiles.service'
 
 type StageFilter = 'all' | 'due' | 'urgent'
 
@@ -34,12 +36,17 @@ function DaysBadge({ days }: { days: number | undefined }) {
 }
 
 export function RenewalsRoute() {
+  const { profile: currentUser } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
 
   const requestedStage = params.get('stage')
   const stage: StageFilter = requestedStage === 'due' || requestedStage === 'urgent' ? requestedStage : 'all'
   const search = params.get('q') ?? ''
+  const owner = params.get('owner') ?? 'all'
+  const provider = params.get('provider') ?? 'all'
+  const startsFrom = params.get('startsFrom') ?? ''
+  const endsTo = params.get('endsTo') ?? ''
   const debouncedSearch = useDebounce(search, 250)
 
   function setStage(value: StageFilter) {
@@ -48,8 +55,18 @@ export function RenewalsRoute() {
   function setSearch(value: string) {
     setParams((p) => { const n = new URLSearchParams(p); if (value) n.set('q', value); else n.delete('q'); n.delete('page'); return n })
   }
+  function setFilter(key: 'owner' | 'provider' | 'startsFrom' | 'endsTo', value: string, allValue?: string) {
+    setParams((p) => {
+      const n = new URLSearchParams(p)
+      if (!value || value === allValue) n.delete(key); else n.set(key, value)
+      n.delete('page')
+      return n
+    }, { replace: true })
+  }
 
   const { data: contracts = [] } = useContractsDueForRenewal(60)
+  const { data: profiles } = useProfiles()
+  const { data: providers } = useContractProviders()
   const customerIds = useMemo(
     () => contracts.flatMap((contract) => contract.customer?.id ? [contract.customer.id] : []),
     [contracts],
@@ -72,9 +89,13 @@ export function RenewalsRoute() {
       const customerCompany = contract.customer?.company?.toLowerCase() ?? ''
       const cups = contract.cups?.toLowerCase() ?? ''
       const matchesSearch = !q || customerName.includes(q) || customerCompany.includes(q) || cups.includes(q)
-      return inStage && matchesSearch
+      const matchesOwner = owner === 'all' || contract.customer?.assigned_to === owner
+      const matchesProvider = provider === 'all' || contract.provider === provider
+      const matchesStart = !startsFrom || (contract.starts_at ?? '') >= startsFrom
+      const matchesEnd = !endsTo || (contract.ends_at ?? '') <= endsTo
+      return inStage && matchesSearch && matchesOwner && matchesProvider && matchesStart && matchesEnd
     })
-  }, [contracts, stage, debouncedSearch])
+  }, [contracts, stage, debouncedSearch, owner, provider, startsFrom, endsTo])
 
   const pagination = usePagination(renewalQueue, 25)
 
@@ -103,6 +124,28 @@ export function RenewalsRoute() {
             <option value="due">Para contactar</option>
             <option value="urgent">Urgentes (≤30 días)</option>
           </Select>
+        </Field>
+        {currentUser?.role !== 'sales' && (
+          <Field label="Comercial" className="w-44">
+            <Select value={owner} onChange={(e) => setFilter('owner', e.target.value, 'all')}>
+              <option value="all">Todos</option>
+              {(profiles ?? [])
+                .filter((profile) => ['owner', 'admin', 'sales'].includes(profile.role))
+                .map((profile) => <option key={profile.id} value={profile.id}>{profile.full_name}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="Comercializadora" className="w-52">
+          <Select value={provider} onChange={(e) => setFilter('provider', e.target.value, 'all')}>
+            <option value="all">Todas</option>
+            {(providers ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+          </Select>
+        </Field>
+        <Field label="Inicio" className="w-36">
+          <Input type="date" value={startsFrom} onChange={(e) => setFilter('startsFrom', e.target.value)} />
+        </Field>
+        <Field label="Fin" className="w-36">
+          <Input type="date" value={endsTo} onChange={(e) => setFilter('endsTo', e.target.value)} />
         </Field>
       </div>
 
