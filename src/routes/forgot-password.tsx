@@ -10,7 +10,7 @@ import { Field, Input } from '../components/ui/input'
 import { appBrand } from '../config/nav'
 import { supabase } from '../lib/supabase'
 
-const schema = z.object({ email: z.string().email('Email inválido') })
+const schema = z.object({ email: z.string().trim().email('Email inválido') })
 type Values = z.infer<typeof schema>
 
 export function ForgotPasswordRoute() {
@@ -22,11 +22,15 @@ export function ForgotPasswordRoute() {
 
   async function onSubmit(values: Values) {
     setServerError(null)
-    const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-      redirectTo: `${window.location.origin}/set-password`,
-    })
-    if (error) setServerError(error.message)
-    else setSent(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      })
+      if (error) setServerError(error.message)
+      else setSent(true)
+    } catch {
+      setServerError('No se ha podido solicitar el enlace. Comprueba tu conexión e inténtalo de nuevo.')
+    }
   }
 
   return (
@@ -43,7 +47,7 @@ export function ForgotPasswordRoute() {
           {sent ? (
             <div className="grid gap-4">
               <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                Email enviado. Revisa tu bandeja de entrada.
+                Si existe una cuenta con ese email, recibirás un enlace. Revisa también la carpeta de spam.
               </p>
               <Link to="/login" className="text-center text-sm underline underline-offset-4">
                 Volver al login
