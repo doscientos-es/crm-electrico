@@ -140,8 +140,6 @@ export function ContractsRoute() {
     'CUPS',
     'Inicio',
     'Fin',
-    'Liquidación',
-    'Fecha de liquidación',
     ...(showCompanyCommission ? ['Comisión empresa'] : []),
     'Comisión comercial',
   ]
@@ -248,8 +246,6 @@ export function ContractsRoute() {
               <Td variant="muted" className="whitespace-nowrap text-sm">{contract.cups ?? '-'}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
-              <Td className="whitespace-nowrap">{settlementLabel(contract.settlement_status)}</Td>
-              <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.settlement_date ?? undefined)}</Td>
               {showCompanyCommission && (
                 <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
               )}
