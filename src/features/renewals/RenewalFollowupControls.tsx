@@ -29,10 +29,10 @@ export function RenewalStatusControls({ contractId, status, canEdit }: {
   )
 }
 
-function NotesDialog({ customerId, customerName, notes, onClose }: {
-  customerId: string; customerName: string; notes: string | null; onClose: () => void
+function NotesDialog({ customerId, customerName, notes, updatedAt, onClose }: {
+  customerId: string; customerName: string; notes: string | null; updatedAt: string; onClose: () => void
 }) {
-  const [originalNotes] = useState(notes)
+  const [originalUpdatedAt] = useState(updatedAt)
   const [value, setValue] = useState(notes ?? '')
   const update = useUpdateCustomerNotes()
   const onError = useToastError()
@@ -40,7 +40,7 @@ function NotesDialog({ customerId, customerName, notes, onClose }: {
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (update.isPending) return
-    update.mutate({ id: customerId, notes: value.trim() ? value : null, previousNotes: originalNotes }, {
+    update.mutate({ id: customerId, notes: value.trim() ? value : null, expectedUpdatedAt: originalUpdatedAt }, {
       onSuccess: () => { toast.success('Notas del cliente actualizadas'); onClose() }, onError,
     })
   }
@@ -56,15 +56,15 @@ function NotesDialog({ customerId, customerName, notes, onClose }: {
   )
 }
 
-export function RenewalCustomerNotes({ customerId, customerName, notes, canEdit }: {
-  customerId: string; customerName: string; notes: string | null; canEdit: boolean
+export function RenewalCustomerNotes({ customerId, customerName, notes, updatedAt, canEdit }: {
+  customerId: string; customerName: string; notes: string | null; updatedAt: string; canEdit: boolean
 }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="grid min-w-40 gap-1" onClick={(event) => event.stopPropagation()}>
       <span className="max-w-52 truncate text-sm text-muted-foreground" title={notes ?? undefined}>{notes || 'Sin notas'}</span>
       {canEdit && <Button type="button" variant="outline" size="xs" onClick={() => setOpen(true)}>Editar notas</Button>}
-      {open && <NotesDialog customerId={customerId} customerName={customerName} notes={notes} onClose={() => setOpen(false)} />}
+      {open && <NotesDialog customerId={customerId} customerName={customerName} notes={notes} updatedAt={updatedAt} onClose={() => setOpen(false)} />}
     </div>
   )
 }

@@ -151,12 +151,11 @@ export function useUpdateCustomer() {
 export function useUpdateCustomerNotes() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ id, notes, previousNotes }: { id: string; notes: string | null; previousNotes: string | null }) => {
-			let query = supabase.from("customers").update({ notes } as never).eq("id", id);
-			query = previousNotes === null ? query.is("notes", null) : query.eq("notes", previousNotes);
-			const { data, error } = await query.select("id").maybeSingle();
+		mutationFn: async ({ id, notes, expectedUpdatedAt }: { id: string; notes: string | null; expectedUpdatedAt: string }) => {
+			const { data, error } = await supabase.from("customers").update({ notes } as never)
+				.eq("id", id).eq("updated_at", expectedUpdatedAt).select("id").maybeSingle();
 			if (error) throw error;
-			if (!data) throw new Error("Las notas han cambiado o no tienes permiso. Recarga e inténtalo de nuevo.");
+			if (!data) throw new Error("El cliente ha cambiado o no tienes permiso. Recarga e inténtalo de nuevo.");
 		},
 		onSuccess: (_data, { id }) => {
 			qc.invalidateQueries({ queryKey: queryKeys.customers() });

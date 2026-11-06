@@ -42,15 +42,15 @@ describe('seguimiento de renovaciones', () => {
 
   it('impide editar tanto estados como notas a usuarios de solo lectura', () => {
     act(() => root.render(<><RenewalStatusControls contractId="c1" status="pending" canEdit={false} />
-      <RenewalCustomerNotes customerId="u1" customerName="Cliente" notes="Nota existente" canEdit={false} /></>))
+      <RenewalCustomerNotes customerId="u1" customerName="Cliente" notes="Nota existente" updatedAt="v1" canEdit={false} /></>))
     expect([...container.querySelectorAll('button')].every((button) => button.disabled)).toBe(true)
     expect(container.textContent).toContain('Nota existente')
     expect(container.textContent).not.toContain('Editar notas')
   })
 
   it('edita las notas del cliente sin perder la versión inicial si cambian mientras el diálogo está abierto', () => {
-    const render = (notes: string) => root.render(<RenewalCustomerNotes customerId="u1" customerName="Cliente" notes={notes} canEdit />)
-    act(() => render('Nota inicial'))
+    const render = (notes: string, updatedAt: string) => root.render(<RenewalCustomerNotes customerId="u1" customerName="Cliente" notes={notes} updatedAt={updatedAt} canEdit />)
+    act(() => render('Nota inicial', 'v1'))
     act(() => container.querySelector('button')!.click())
     const textarea = container.querySelector('textarea')!
     expect(textarea.value).toBe('Nota inicial')
@@ -58,10 +58,10 @@ describe('seguimiento de renovaciones', () => {
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Nueva nota')
       textarea.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    act(() => render('Nota cambiada por otro usuario'))
+    act(() => render('Nota cambiada por otro usuario', 'v2'))
     act(() => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
     expect(mocks.updateNotes).toHaveBeenCalledWith(
-      { id: 'u1', notes: 'Nueva nota', previousNotes: 'Nota inicial' }, expect.any(Object),
+      { id: 'u1', notes: 'Nueva nota', expectedUpdatedAt: 'v1' }, expect.any(Object),
     )
   })
 })

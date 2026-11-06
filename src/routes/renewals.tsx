@@ -176,7 +176,7 @@ export function RenewalsRoute() {
                   <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
                 </Td>
                 <Td><RenewalStatusControls contractId={contract.id} status={contract.renewal_followup_status} canEdit={canEdit} /></Td>
-                <Td>{contract.customer ? <RenewalCustomerNotes customerId={contract.customer.id} customerName={contract.customer.name} notes={contract.customer.notes} canEdit={canEdit} /> : '—'}</Td>
+                <Td>{contract.customer ? <RenewalCustomerNotes customerId={contract.customer.id} customerName={contract.customer.name} notes={contract.customer.notes} updatedAt={contract.customer.updated_at} canEdit={canEdit} /> : '—'}</Td>
               </Tr>
             )
           })}

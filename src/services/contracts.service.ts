@@ -24,6 +24,7 @@ export type ContractWithCustomerInfo = ContractRow & {
 		company: string | null;
 		assigned_to: string | null;
 		notes: string | null;
+		updated_at: string;
 	} | null;
 };
 
@@ -415,7 +416,7 @@ export function useContractsDueForRenewal(alertDays = 60) {
 			for (let offset = 0; ; offset += pageSize) {
 				const { data, error } = await supabase
 					.from("contracts")
-					.select("*, customer:customers(id, name, company, assigned_to, notes)")
+					.select("*, customer:customers(id, name, company, assigned_to, notes, updated_at)")
 					.eq("status", "active")
 					.not("ends_at", "is", null)
 					.lte("ends_at", alertDateStr)

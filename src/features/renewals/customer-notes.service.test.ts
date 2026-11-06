@@ -21,19 +21,19 @@ import { useUpdateCustomerNotes } from '../../services/customers.service'
 describe('persistencia de notas del cliente', () => {
   beforeEach(() => { mocks.calls.length = 0; mocks.result.data = { id: 'customer' } })
 
-  it('actualiza solo si las notas anteriores siguen iguales', async () => {
+  it('actualiza solo si la versión del cliente sigue igual', async () => {
     const mutation = useUpdateCustomerNotes() as unknown as { mutationFn: (input: unknown) => Promise<void> }
-    await mutation.mutationFn({ id: 'customer', notes: 'Nueva', previousNotes: 'Anterior' })
+    await mutation.mutationFn({ id: 'customer', notes: 'Nueva', expectedUpdatedAt: 'v1' })
     expect(mocks.calls).toContainEqual(['update', { notes: 'Nueva' }])
     expect(mocks.calls).toContainEqual(['eq', 'id', 'customer'])
-    expect(mocks.calls).toContainEqual(['eq', 'notes', 'Anterior'])
+    expect(mocks.calls).toContainEqual(['eq', 'updated_at', 'v1'])
   })
 
   it('detecta conflictos y conserva las notas existentes', async () => {
     mocks.result.data = null
     const mutation = useUpdateCustomerNotes() as unknown as { mutationFn: (input: unknown) => Promise<void> }
-    await expect(mutation.mutationFn({ id: 'customer', notes: 'Nueva', previousNotes: null }))
-      .rejects.toThrow('Las notas han cambiado o no tienes permiso')
-    expect(mocks.calls).toContainEqual(['is', 'notes', null])
+    await expect(mutation.mutationFn({ id: 'customer', notes: 'Nueva', expectedUpdatedAt: 'v1' }))
+      .rejects.toThrow('El cliente ha cambiado o no tienes permiso')
+    expect(mocks.calls).toContainEqual(['eq', 'updated_at', 'v1'])
   })
 })
