@@ -143,6 +143,25 @@ export function useUpdateCustomer() {
 		onSuccess: (_d, vars) => {
 			qc.invalidateQueries({ queryKey: queryKeys.customers() });
 			qc.invalidateQueries({ queryKey: queryKeys.customer(vars.id) });
+			qc.invalidateQueries({ queryKey: ["contracts", "renewal"] });
+		},
+	});
+}
+
+export function useUpdateCustomerNotes() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ id, notes, previousNotes }: { id: string; notes: string | null; previousNotes: string | null }) => {
+			let query = supabase.from("customers").update({ notes } as never).eq("id", id);
+			query = previousNotes === null ? query.is("notes", null) : query.eq("notes", previousNotes);
+			const { data, error } = await query.select("id").maybeSingle();
+			if (error) throw error;
+			if (!data) throw new Error("Las notas han cambiado o no tienes permiso. Recarga e inténtalo de nuevo.");
+		},
+		onSuccess: (_data, { id }) => {
+			qc.invalidateQueries({ queryKey: queryKeys.customers() });
+			qc.invalidateQueries({ queryKey: queryKeys.customer(id) });
+			qc.invalidateQueries({ queryKey: ["contracts", "renewal"] });
 		},
 	});
 }

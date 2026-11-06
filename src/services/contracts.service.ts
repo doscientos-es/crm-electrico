@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "../lib/supabase";
 import type { SettlementStatus } from "../features/settlements/settlement";
+import type { RenewalFollowupStatus } from "../features/renewals/renewal-followup";
 import type { ContractStatus } from "../types/database.types";
 import type { InsertDto, Tables, UpdateDto } from "../types/database.types";
 import { queryKeys } from "./query-keys";
@@ -9,6 +10,7 @@ import { queryKeys } from "./query-keys";
 export type ContractRow = Tables<"contracts"> & {
 	settlement_status?: SettlementStatus | null;
 	settlement_date?: string | null;
+	renewal_followup_status?: RenewalFollowupStatus | null;
 };
 
 export type ContractWithCustomer = ContractRow & {
@@ -21,6 +23,7 @@ export type ContractWithCustomerInfo = ContractRow & {
 		name: string;
 		company: string | null;
 		assigned_to: string | null;
+		notes: string | null;
 	} | null;
 };
 
@@ -380,7 +383,7 @@ export function useUpdateContract() {
 		mutationFn: async ({
 			id,
 			...payload
-		}: UpdateDto<"contracts"> & { id: string }) => {
+		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null }) => {
 			const { data, error } = await supabase
 				.from("contracts")
 				.update(payload as never)
@@ -412,7 +415,7 @@ export function useContractsDueForRenewal(alertDays = 60) {
 			for (let offset = 0; ; offset += pageSize) {
 				const { data, error } = await supabase
 					.from("contracts")
-					.select("*, customer:customers(id, name, company, assigned_to)")
+					.select("*, customer:customers(id, name, company, assigned_to, notes)")
 					.eq("status", "active")
 					.not("ends_at", "is", null)
 					.lte("ends_at", alertDateStr)

@@ -8,10 +8,12 @@ import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
+import { RenewalCustomerNotes, RenewalStatusControls } from '../features/renewals/RenewalFollowupControls'
 import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate } from '../lib/formatters'
+import { can } from '../lib/permissions'
 import { cn } from '../lib/utils'
 import { useContractProviders, useContractsDueForRenewal } from '../services/contracts.service'
 import { useProfiles } from '../services/profiles.service'
@@ -34,6 +36,7 @@ function DaysBadge({ days }: { days: number | undefined }) {
 
 export function RenewalsRoute() {
   const { profile: currentUser } = useAuth()
+  const canEdit = can(currentUser?.role ?? 'viewer', 'customers:write')
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
 
@@ -147,7 +150,7 @@ export function RenewalsRoute() {
         <DataTable
           fillHeight
           className="flex-1 min-h-0"
-          headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Estado contrato']}
+          headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Estado contrato', 'Seguimiento manual', 'Notas del cliente']}
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage }}
         >
           {pagination.items.map((contract) => {
@@ -172,6 +175,8 @@ export function RenewalsRoute() {
                 <Td>
                   <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
                 </Td>
+                <Td><RenewalStatusControls contractId={contract.id} status={contract.renewal_followup_status} canEdit={canEdit} /></Td>
+                <Td>{contract.customer ? <RenewalCustomerNotes customerId={contract.customer.id} customerName={contract.customer.name} notes={contract.customer.notes} canEdit={canEdit} /> : '—'}</Td>
               </Tr>
             )
           })}
