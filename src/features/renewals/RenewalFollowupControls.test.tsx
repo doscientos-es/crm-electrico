@@ -25,14 +25,17 @@ describe('seguimiento de renovaciones', () => {
 
   it('solo cambia el seguimiento al pulsar un botón y nunca modifica el estado del contrato', () => {
     act(() => root.render(<RenewalStatusControls contractId="c1" status={null} canEdit />))
-    expect(container.textContent).toContain('Sin marcar')
+    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Sin marcar')
     expect(mocks.updateContract).not.toHaveBeenCalled()
     const buttons = container.querySelectorAll('button')
+    expect(buttons[0].getAttribute('aria-label')).toBe('Pendiente de renovar')
+    expect(buttons[1].getAttribute('aria-label')).toBe('Renovación vencida / en pausa')
     act(() => buttons[1].click())
     expect(mocks.updateContract).toHaveBeenCalledWith(
       { id: 'c1', renewal_followup_status: 'paused' }, expect.any(Object),
     )
     act(() => root.render(<RenewalStatusControls contractId="c1" status="paused" canEdit />))
+    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Renovación vencida / en pausa')
     expect(buttons[1].getAttribute('aria-pressed')).toBe('true')
     act(() => buttons[0].click())
     expect(mocks.updateContract).toHaveBeenLastCalledWith(
@@ -45,13 +48,25 @@ describe('seguimiento de renovaciones', () => {
       <RenewalCustomerNotes customerId="u1" customerName="Cliente" notes="Nota existente" updatedAt="v1" canEdit={false} /></>))
     expect([...container.querySelectorAll('button')].every((button) => button.disabled)).toBe(true)
     expect(container.textContent).toContain('Nota existente')
-    expect(container.textContent).not.toContain('Editar notas')
+    expect(container.querySelector('[aria-label="Editar notas del cliente"]')).toBeNull()
+  })
+
+  it('permite usar los controles sin activar la navegación de la fila', () => {
+    const navigate = vi.fn()
+    act(() => root.render(<div onClick={navigate}>
+      <RenewalStatusControls contractId="c1" status={null} canEdit />
+      <RenewalCustomerNotes customerId="u1" customerName="Cliente" notes={null} updatedAt="v1" canEdit />
+    </div>))
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Pendiente de renovar"]')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Editar notas del cliente"]')!.click())
+    expect(navigate).not.toHaveBeenCalled()
+    expect(container.querySelector('textarea')).not.toBeNull()
   })
 
   it('edita las notas del cliente sin perder la versión inicial si cambian mientras el diálogo está abierto', () => {
     const render = (notes: string, updatedAt: string) => root.render(<RenewalCustomerNotes customerId="u1" customerName="Cliente" notes={notes} updatedAt={updatedAt} canEdit />)
     act(() => render('Nota inicial', 'v1'))
-    act(() => container.querySelector('button')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Editar notas del cliente"]')!.click())
     const textarea = container.querySelector('textarea')!
     expect(textarea.value).toBe('Nota inicial')
     act(() => {

@@ -1,3 +1,4 @@
+import { Clock, Pause, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
@@ -14,15 +15,17 @@ export function RenewalStatusControls({ contractId, status, canEdit }: {
   const update = useUpdateContract()
   const onError = useToastError()
   return (
-    <div className="grid gap-1" onClick={(event) => event.stopPropagation()}>
-      {!status && <span className="text-xs text-muted-foreground">Sin marcar</span>}
+    <div role="group" aria-label={`Seguimiento: ${status ? renewalFollowupLabels[status] : 'Sin marcar'}`}
+      className="flex items-center gap-1 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
       {(Object.entries(renewalFollowupLabels) as [RenewalFollowupStatus, string][]).map(([value, label]) => (
         <Button key={value} type="button" size="xs" variant={status === value ? 'default' : 'outline'}
+          className={status === value ? 'disabled:opacity-100' : undefined} aria-label={label} title={label}
           aria-pressed={status === value} disabled={!canEdit || update.isPending || status === value}
           onClick={() => update.mutate({ id: contractId, renewal_followup_status: value }, {
             onSuccess: () => toast.success('Seguimiento de renovación actualizado'), onError,
           })}>
-          {label}
+          {value === 'pending' ? <Clock aria-hidden="true" /> : <Pause aria-hidden="true" />}
+          {value === 'pending' ? 'Pendiente' : 'En pausa'}
         </Button>
       ))}
     </div>
@@ -61,9 +64,10 @@ export function RenewalCustomerNotes({ customerId, customerName, notes, updatedA
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="grid min-w-40 gap-1" onClick={(event) => event.stopPropagation()}>
-      <span className="max-w-52 truncate text-sm text-muted-foreground" title={notes ?? undefined}>{notes || 'Sin notas'}</span>
-      {canEdit && <Button type="button" variant="outline" size="xs" onClick={() => setOpen(true)}>Editar notas</Button>}
+    <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
+      <span className="max-w-40 truncate text-sm text-muted-foreground" title={notes ?? undefined}>{notes || 'Sin notas'}</span>
+      {canEdit && <Button type="button" variant="ghost" size="icon-xs" aria-label="Editar notas del cliente"
+        title="Editar notas del cliente" onClick={() => setOpen(true)}><Pencil aria-hidden="true" /></Button>}
       {open && <NotesDialog customerId={customerId} customerName={customerName} notes={notes} updatedAt={updatedAt} onClose={() => setOpen(false)} />}
     </div>
   )
