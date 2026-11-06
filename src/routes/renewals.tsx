@@ -1,4 +1,4 @@
-import { Mail, Phone, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/data-table/Toolbar'
@@ -8,14 +8,11 @@ import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
-import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
-import { RenewalContactDialog } from '../features/renewals/RenewalContactDialog'
 import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
-import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
+import { formatDate } from '../lib/formatters'
 import { cn } from '../lib/utils'
-import { getContactChannel, useRenewalContacts } from '../services/activity.service'
 import { useContractProviders, useContractsDueForRenewal } from '../services/contracts.service'
 import { useProfiles } from '../services/profiles.service'
 
@@ -85,18 +82,6 @@ export function RenewalsRoute() {
   }, [contracts, stage, debouncedSearch, owner, provider, startsFrom, endsTo])
 
   const pagination = usePagination(renewalQueue, 25)
-  const customerIds = useMemo(
-    () => pagination.items.flatMap((contract) => contract.customer?.id ? [contract.customer.id] : []),
-    [pagination.items],
-  )
-  const { data: renewalContacts = [], isLoading: contactsLoading, isError: contactsError } = useRenewalContacts(customerIds)
-  const latestContactByCustomer = useMemo(() => {
-    const latest = new Map<string, (typeof renewalContacts)[number]>()
-    for (const contact of renewalContacts) {
-      if (!latest.has(contact.entity_id)) latest.set(contact.entity_id, contact)
-    }
-    return latest
-  }, [renewalContacts])
 
   return (
     <div className="flex flex-col h-full">
@@ -162,14 +147,11 @@ export function RenewalsRoute() {
         <DataTable
           fillHeight
           className="flex-1 min-h-0"
-          headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Último contacto', 'Estado contrato', 'Acciones']}
+          headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Estado contrato']}
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage }}
         >
           {pagination.items.map((contract) => {
             const days = getDaysToContractEnd(contract)
-            const customerId = contract.customer?.id
-            const latestContact = customerId ? latestContactByCustomer.get(customerId) : undefined
-            const contactChannel = latestContact ? getContactChannel(latestContact) : null
             return (
               <Tr
                 key={contract.id}
@@ -187,44 +169,8 @@ export function RenewalsRoute() {
                 <Td variant="muted">{contract.cups ?? '—'}</Td>
                 <Td variant="muted">{formatDate(contract.ends_at ?? undefined)}</Td>
                 <Td><DaysBadge days={days} /></Td>
-                <Td className="min-w-44">
-                  {contactsError ? (
-                    <span className="text-xs text-destructive">Error al cargar</span>
-                  ) : contactsLoading ? (
-                    <span className="text-xs text-muted-foreground">Cargando…</span>
-                  ) : latestContact ? (
-                    <div title={formatDateTime(latestContact.created_at)}>
-                      <p className="flex items-center gap-1.5 whitespace-nowrap text-sm text-foreground">
-                        {contactChannel === 'email' ? <Mail className="size-3.5" /> : <Phone className="size-3.5" />}
-                        {relativeTime(latestContact.created_at)}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {latestContact.actor?.full_name ?? 'Usuario no disponible'}
-                      </p>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Sin contacto</span>
-                  )}
-                </Td>
                 <Td>
                   <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
-                </Td>
-                <Td>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
-                    {customerId && (
-                      <>
-                        <RenewalContactDialog
-                          customerId={customerId}
-                          customerName={contract.customer?.name ?? 'Cliente'}
-                          contractId={contract.id}
-                          contacts={renewalContacts}
-                          contactsLoading={contactsLoading}
-                          contactsError={contactsError}
-                        />
-                        <ContractFormDialog customerId={customerId} prefillFrom={contract} />
-                      </>
-                    )}
-                  </div>
                 </Td>
               </Tr>
             )
