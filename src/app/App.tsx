@@ -4,6 +4,7 @@ import { ErrorBoundary } from '../components/feedback/ErrorBoundary'
 import { PageSkeleton } from '../components/feedback/Skeleton'
 import { AppShell } from '../components/layout/AppShell'
 import { ProtectedRoute } from '../features/auth/ProtectedRoute'
+import { SettlementAccess } from '../features/settlements/SettlementAccess'
 import { lazyWithRetry } from '../lib/lazy'
 
 const LoginRoute = lazyWithRetry(() => import('../routes/login').then((m) => ({ default: m.LoginRoute })))
@@ -62,7 +63,7 @@ export function App() {
         <Route path="/customers" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><CustomersRoute /></ErrorBoundary></Suspense>} />
         <Route path="/customers/:id" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={4} tableCols={3} />}><ErrorBoundary level="page"><CustomerDetailRoute /></ErrorBoundary></Suspense>} />
         <Route path="/contracts" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractsRoute /></ErrorBoundary></Suspense>} />
-        <Route path="/settlements" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><SettlementsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/settlements" element={<SettlementAccess><Suspense fallback={routeFallback}><ErrorBoundary level="page"><SettlementsRoute /></ErrorBoundary></Suspense></SettlementAccess>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />

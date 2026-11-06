@@ -2,7 +2,7 @@ import { Menu, Search, Settings } from 'lucide-react'
 import { Suspense, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import logo from '../../assets/media/logo.png'
-import { appBrand, navItems } from '../../config/nav'
+import { appBrand, navItems, visibleNavItems } from '../../config/nav'
 import { useAuth } from '../../features/auth/AuthContext'
 import { cn } from '../../lib/utils'
 import { useOrganization } from '../../services/organization.service'
@@ -32,7 +32,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-0.5">
-          {navItems.filter((item) => item.enabled !== false).map((item) => {
+          {visibleNavItems(profile?.role).map((item) => {
             const Icon = item.icon
             return (
               <li key={item.href}>

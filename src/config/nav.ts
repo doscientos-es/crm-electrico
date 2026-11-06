@@ -11,6 +11,8 @@ import {
 	Wallet,
 	Zap,
 } from "lucide-react";
+import { canViewSettlements } from "../lib/permissions";
+import type { AppRole } from "../types/database.types";
 
 interface NavItem {
 	href: string;
@@ -18,6 +20,7 @@ interface NavItem {
 	icon: LucideIcon;
 	description: string;
 	enabled?: boolean;
+	canAccess?: (role: AppRole | null | undefined) => boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -47,6 +50,7 @@ export const navItems: NavItem[] = [
 		label: "Mis liquidaciones",
 		icon: Wallet,
 		description: "Contratos pendientes de liquidar y liquidados.",
+		canAccess: canViewSettlements,
 	},
 	{
 		href: "/renewals",
@@ -85,6 +89,10 @@ export const navItems: NavItem[] = [
 			"Configuración de la organización, usuarios, roles y preferencias de la aplicación.",
 	},
 ];
+
+export function visibleNavItems(role: AppRole | null | undefined) {
+	return navItems.filter((item) => item.enabled !== false && (!item.canAccess || item.canAccess(role)));
+}
 
 export const appBrand = {
 	name: "Ahorrafácilluz CRM",

@@ -9,7 +9,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/media/logo.png'
-import { appBrand, navItems } from '../../config/nav'
+import { appBrand, visibleNavItems } from '../../config/nav'
+import { useAuth } from '../../features/auth/AuthContext'
 import { useCustomers } from '../../services/customers.service'
 import { useDocuments } from '../../services/documents.service'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot } from '../ui/dialog'
@@ -46,6 +47,7 @@ const categoryIconMap: Record<string, React.ElementType> = {
 }
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { profile } = useAuth()
   const { data: customersData } = useCustomers({ pageSize: 200 })
   const { data: documents = [] } = useDocuments()
   const customers = customersData?.data ?? []
@@ -72,8 +74,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const results = useMemo<ResultItem[]>(() => {
     const q = query.trim().toLowerCase()
 
-    const pages: ResultItem[] = navItems
-      .filter((item) => item.enabled !== false && (!q || item.label.toLowerCase().includes(q)))
+    const pages: ResultItem[] = visibleNavItems(profile?.role)
+      .filter((item) => !q || item.label.toLowerCase().includes(q))
       .map((item) => ({ id: `nav-${item.href}`, category: 'Páginas', categoryIcon: Home, label: item.label, href: item.href, icon: item.icon }))
 
     if (!q) return pages
@@ -95,7 +97,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       .map((d) => ({ id: `doc-${d.id}`, category: 'Documentos', categoryIcon: FileArchive, label: d.file_name, sublabel: d.type, href: '/documents', icon: FileArchive }))
 
     return [...pages, ...cust, ...docs]
-  }, [query, customers, documents])
+  }, [query, customers, documents, profile?.role])
 
   const grouped = useMemo(() => {
     const map = new Map<string, ResultItem[]>()

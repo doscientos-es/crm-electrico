@@ -15,6 +15,10 @@ export function canViewCompanyCommission(role: AppRole) {
 	return role === "owner" || role === "admin";
 }
 
+export function canViewSettlements(role: AppRole | null | undefined) {
+	return role === "owner" || role === "admin";
+}
+
 export function can(role: AppRole, action: string) {
 	if (role === "owner") return true;
 	if (action === "settings:write") return role === "admin";
