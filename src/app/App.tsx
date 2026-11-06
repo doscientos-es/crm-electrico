@@ -15,6 +15,7 @@ const CustomerDetailRoute = lazyWithRetry(() => import('../routes/customer-detai
 const RenewalsRoute = lazyWithRetry(() => import('../routes/renewals').then((m) => ({ default: m.RenewalsRoute })))
 const DocumentsRoute = lazyWithRetry(() => import('../routes/documents').then((m) => ({ default: m.DocumentsRoute })))
 const ContractsRoute = lazyWithRetry(() => import('../routes/contracts').then((m) => ({ default: m.ContractsRoute })))
+const SettlementsRoute = lazyWithRetry(() => import('../routes/settlements').then((m) => ({ default: m.SettlementsRoute })))
 const SettingsRoute = lazyWithRetry(() => import('../routes/settings').then((m) => ({ default: m.SettingsRoute })))
 const IncidentsRoute = lazyWithRetry(() => import('../routes/incidents').then((m) => ({ default: m.IncidentsRoute })))
 const AgendaRoute = lazyWithRetry(() => import('../routes/agenda').then((m) => ({ default: m.AgendaRoute })))
@@ -61,6 +62,7 @@ export function App() {
         <Route path="/customers" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><CustomersRoute /></ErrorBoundary></Suspense>} />
         <Route path="/customers/:id" element={<Suspense fallback={<PageSkeleton kpis={4} tableRows={4} tableCols={3} />}><ErrorBoundary level="page"><CustomerDetailRoute /></ErrorBoundary></Suspense>} />
         <Route path="/contracts" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractsRoute /></ErrorBoundary></Suspense>} />
+        <Route path="/settlements" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><SettlementsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />

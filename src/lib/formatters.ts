@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export const money = new Intl.NumberFormat('es-ES', {
@@ -13,7 +13,7 @@ export const decimal = new Intl.NumberFormat('es-ES', {
 
 export function formatDate(value?: string) {
   if (!value) return '-'
-  return format(new Date(value), 'dd MMM yyyy', { locale: es })
+  return format(parseISO(value), 'dd MMM yyyy', { locale: es })
 }
 
 export function formatDateTime(value?: string) {

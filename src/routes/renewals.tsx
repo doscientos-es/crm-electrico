@@ -19,7 +19,7 @@ import { getContactChannel, useRenewalContacts } from '../services/activity.serv
 import { useContractProviders, useContractsDueForRenewal } from '../services/contracts.service'
 import { useProfiles } from '../services/profiles.service'
 
-type StageFilter = 'all' | 'due' | 'urgent'
+type StageFilter = 'all' | 'due' | 'urgent' | 'overdue'
 
 function DaysBadge({ days }: { days: number | undefined }) {
   if (typeof days !== 'number') return <span className="text-muted-foreground">-</span>
@@ -41,7 +41,7 @@ export function RenewalsRoute() {
   const [params, setParams] = useSearchParams()
 
   const requestedStage = params.get('stage')
-  const stage: StageFilter = requestedStage === 'due' || requestedStage === 'urgent' ? requestedStage : 'all'
+  const stage: StageFilter = requestedStage === 'due' || requestedStage === 'urgent' || requestedStage === 'overdue' ? requestedStage : 'all'
   const search = params.get('q') ?? ''
   const owner = params.get('owner') ?? 'all'
   const provider = params.get('provider') ?? 'all'
@@ -64,22 +64,9 @@ export function RenewalsRoute() {
     }, { replace: true })
   }
 
-  const { data: contracts = [] } = useContractsDueForRenewal(60)
+  const { data: contracts = [], isLoading, isError } = useContractsDueForRenewal(60)
   const { data: profiles } = useProfiles()
   const { data: providers } = useContractProviders()
-  const customerIds = useMemo(
-    () => contracts.flatMap((contract) => contract.customer?.id ? [contract.customer.id] : []),
-    [contracts],
-  )
-  const { data: renewalContacts = [] } = useRenewalContacts(customerIds)
-  const latestContactByCustomer = useMemo(() => {
-    const latest = new Map<string, (typeof renewalContacts)[number]>()
-    for (const contact of renewalContacts) {
-      if (!latest.has(contact.entity_id)) latest.set(contact.entity_id, contact)
-    }
-    return latest
-  }, [renewalContacts])
-
   const renewalQueue = useMemo(() => {
     const q = debouncedSearch.toLowerCase()
     return contracts.filter((contract) => {
@@ -98,12 +85,24 @@ export function RenewalsRoute() {
   }, [contracts, stage, debouncedSearch, owner, provider, startsFrom, endsTo])
 
   const pagination = usePagination(renewalQueue, 25)
+  const customerIds = useMemo(
+    () => pagination.items.flatMap((contract) => contract.customer?.id ? [contract.customer.id] : []),
+    [pagination.items],
+  )
+  const { data: renewalContacts = [], isLoading: contactsLoading, isError: contactsError } = useRenewalContacts(customerIds)
+  const latestContactByCustomer = useMemo(() => {
+    const latest = new Map<string, (typeof renewalContacts)[number]>()
+    for (const contact of renewalContacts) {
+      if (!latest.has(contact.entity_id)) latest.set(contact.entity_id, contact)
+    }
+    return latest
+  }, [renewalContacts])
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title="Renovaciones"
-        description="Contratos activos con vencimiento en los próximos 60 días."
+        description="Contratos activos vencidos o con vencimiento en los próximos 60 días."
         action={
           <Button asChild variant="secondary">
             <Link to="/customers">Ir a clientes</Link>
@@ -121,6 +120,7 @@ export function RenewalsRoute() {
         <Field label="Urgencia" className="w-52">
           <Select value={stage} onChange={(e) => setStage(e.target.value as StageFilter)}>
             <option value="all">Todos</option>
+            <option value="overdue">Vencidos</option>
             <option value="due">Para contactar</option>
             <option value="urgent">Urgentes (≤30 días)</option>
           </Select>
@@ -149,16 +149,20 @@ export function RenewalsRoute() {
         </Field>
       </div>
 
-      {renewalQueue.length === 0 ? (
+      {isError ? (
+        <p className="text-sm text-destructive">No se pudieron cargar las renovaciones.</p>
+      ) : isLoading ? (
+        <p className="text-sm text-muted-foreground">Cargando renovaciones…</p>
+      ) : renewalQueue.length === 0 ? (
         <EmptyState
           title="Sin renovaciones pendientes"
-          description="No hay contratos activos con vencimiento en los próximos 60 días."
+          description="No hay contratos vencidos o próximos a vencer con los filtros actuales."
         />
       ) : (
         <DataTable
           fillHeight
           className="flex-1 min-h-0"
-          headers={['Cliente', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Último contacto', 'Estado contrato', 'Acciones']}
+          headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Último contacto', 'Estado contrato', 'Acciones']}
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage }}
         >
           {pagination.items.map((contract) => {
@@ -177,13 +181,18 @@ export function RenewalsRoute() {
                   <p className="font-medium text-foreground">{contract.customer?.name ?? '—'}</p>
                   <p className="text-xs text-muted-foreground">{contract.customer?.company ?? ''}</p>
                 </Td>
+                <Td variant="muted">{contract.customer?.assigned_to ? profiles?.find((profile) => profile.id === contract.customer?.assigned_to)?.full_name ?? 'No disponible' : 'Sin asignar'}</Td>
                 <Td variant="muted">{contract.provider ?? '—'}</Td>
                 <Td variant="muted">{contract.sales_channel ?? '—'}</Td>
                 <Td variant="muted">{contract.cups ?? '—'}</Td>
                 <Td variant="muted">{formatDate(contract.ends_at ?? undefined)}</Td>
                 <Td><DaysBadge days={days} /></Td>
                 <Td className="min-w-44">
-                  {latestContact ? (
+                  {contactsError ? (
+                    <span className="text-xs text-destructive">Error al cargar</span>
+                  ) : contactsLoading ? (
+                    <span className="text-xs text-muted-foreground">Cargando…</span>
+                  ) : latestContact ? (
                     <div title={formatDateTime(latestContact.created_at)}>
                       <p className="flex items-center gap-1.5 whitespace-nowrap text-sm text-foreground">
                         {contactChannel === 'email' ? <Mail className="size-3.5" /> : <Phone className="size-3.5" />}
@@ -209,6 +218,8 @@ export function RenewalsRoute() {
                           customerName={contract.customer?.name ?? 'Cliente'}
                           contractId={contract.id}
                           contacts={renewalContacts}
+                          contactsLoading={contactsLoading}
+                          contactsError={contactsError}
                         />
                         <ContractFormDialog customerId={customerId} prefillFrom={contract} />
                       </>

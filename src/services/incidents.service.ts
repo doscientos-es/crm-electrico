@@ -6,7 +6,7 @@ import { queryKeys } from "./query-keys";
 export type IncidentRow = Tables<"incidents">;
 
 export type IncidentWithCustomer = IncidentRow & {
-	customer: { id: string; name: string; company: string | null } | null;
+	customer: { id: string; name: string; company: string | null; assigned_to: string | null } | null;
 };
 
 export function useOpenIncidentsCount() {
@@ -57,13 +57,13 @@ export function useAllIncidents(filter: AllIncidentsFilter = {}) {
 		queryFn: async () => {
 			let q = supabase
 				.from("incidents")
-				.select("*, customer:customers(id, name, company)", { count: "exact" })
+				.select("*, customer:customers!inner(id, name, company, assigned_to)", { count: "exact" })
 				.order("created_at", { ascending: false });
 
-			if (status && status !== "all") {
-				q = q.eq("status", status as never);
-			} else if (!status || status === "open") {
+			if (!status || status === "open") {
 				q = q.not("status", "in", '("resolved","closed")');
+			} else if (status !== "all") {
+				q = q.eq("status", status as never);
 			}
 			// status === "all" → no additional filter
 

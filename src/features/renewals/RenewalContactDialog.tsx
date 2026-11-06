@@ -25,11 +25,15 @@ export function RenewalContactDialog({
   customerName,
   contractId,
   contacts,
+  contactsLoading = false,
+  contactsError = false,
 }: {
   customerId: string
   customerName: string
   contractId: string
   contacts: RenewalContactLog[]
+  contactsLoading?: boolean
+  contactsError?: boolean
 }) {
   const { profile } = useAuth()
   const logContact = useLogRenewalContact()
@@ -126,7 +130,11 @@ export function RenewalContactDialog({
 
       <section className="mt-6 border-t border-border pt-5">
         <h3 className="text-sm font-semibold text-foreground">Historial de contactos</h3>
-        {customerContacts.length === 0 ? (
+        {contactsError ? (
+          <p className="mt-3 text-sm text-destructive">No se pudo cargar el historial.</p>
+        ) : contactsLoading ? (
+          <p className="mt-3 text-sm text-muted-foreground">Cargando historial…</p>
+        ) : customerContacts.length === 0 ? (
           <p className="mt-3 rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
             Todavía no hay contactos registrados para esta renovación.
           </p>

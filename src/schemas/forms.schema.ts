@@ -42,8 +42,13 @@ export const contractSchema = z.object({
 	starts_at: z.string().optional(),
 	ends_at: z.string().optional(),
 	terminated_at: z.string().optional(),
+	settlement_status: z.enum(["", "pending", "paid"]).optional(),
+	settlement_date: z.string().optional(),
 	notes: z.string().optional(),
 	file_path: z.string().optional(),
+}).refine((values) => values.settlement_status !== "paid" || !!values.settlement_date, {
+	message: "Indica la fecha de liquidación",
+	path: ["settlement_date"],
 });
 
 export type ContractFormValues = z.infer<typeof contractSchema>;

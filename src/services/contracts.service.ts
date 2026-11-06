@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "../lib/supabase";
+import type { SettlementStatus } from "../features/settlements/settlement";
 import type { ContractStatus } from "../types/database.types";
 import type { InsertDto, Tables, UpdateDto } from "../types/database.types";
 import { queryKeys } from "./query-keys";
 
-export type ContractRow = Tables<"contracts">;
+export type ContractRow = Tables<"contracts"> & {
+	settlement_status?: SettlementStatus | null;
+	settlement_date?: string | null;
+};
 
 export type ContractWithCustomer = ContractRow & {
 	customer: { id: string; name: string; company: string | null } | null;
@@ -25,9 +30,12 @@ const contractColumnsWithoutCompanyCommission = [
 	"deal_id",
 	"proposal_id",
 	"status",
+	"settlement_status",
+	"settlement_date",
 	"signed_at",
 	"starts_at",
 	"ends_at",
+	"terminated_at",
 	"amount_eur",
 	"file_path",
 	"cups",
@@ -77,6 +85,8 @@ export interface ContractsListParams {
 	page?: number;
 	pageSize?: number;
 	includeCompanyCommission?: boolean;
+	settlementStatus?: SettlementStatus;
+	enabled?: boolean;
 }
 
 function invalidateContractCustomerQueries(
@@ -256,8 +266,11 @@ export function useAllContracts(params: ContractsListParams = {}) {
 		page = 0,
 		pageSize = 25,
 		includeCompanyCommission = true,
+		settlementStatus,
+		enabled = true,
 	} = params;
 	return useQuery<{ data: ContractWithCustomer[]; count: number }>({
+		enabled,
 		queryKey: [
 			"contracts",
 			"all",
@@ -273,6 +286,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				includeCompanyCommission,
 				assignedTo,
 				provider,
+				settlementStatus,
 			},
 		],
 		queryFn: async () => {
@@ -286,6 +300,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				.range(page * pageSize, page * pageSize + pageSize - 1);
 
 			if (status) q = q.eq("status", status);
+			if (settlementStatus) q = q.eq("settlement_status" as never, settlementStatus as never);
 			if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
 			if (provider) q = q.eq("provider", provider);
 			if (startsFrom) q = q.gte("starts_at", startsFrom);
@@ -380,30 +395,35 @@ export function useUpdateContract() {
 }
 
 /**
- * Fetches active contracts whose ends_at falls from today through the next
- * `alertDays` days. Ordered by ends_at ASC so the closest renewals appear first.
+ * Fetches overdue active contracts and those ending within `alertDays` days.
  */
 export function useContractsDueForRenewal(alertDays = 60) {
 	const today = new Date();
-	const todayStr = today.toISOString().slice(0, 10);
+	const todayStr = format(today, "yyyy-MM-dd");
 	const alertDate = new Date(today);
 	alertDate.setDate(alertDate.getDate() + alertDays);
-	const alertDateStr = alertDate.toISOString().slice(0, 10);
+	const alertDateStr = format(alertDate, "yyyy-MM-dd");
 
 	return useQuery<ContractWithCustomerInfo[]>({
 		queryKey: ["contracts", "renewal", alertDays, todayStr],
 		queryFn: async () => {
-			const { data, error } = await supabase
-				.from("contracts")
-				.select("*, customer:customers(id, name, company, assigned_to)")
-				.eq("status", "active")
-				.not("ends_at", "is", null)
-				.gte("ends_at", todayStr)
-				.lte("ends_at", alertDateStr)
-				.order("ends_at", { ascending: true });
-
-			if (error) throw error;
-			return (data ?? []) as ContractWithCustomerInfo[];
+			const contracts: ContractWithCustomerInfo[] = [];
+			const pageSize = 1000;
+			for (let offset = 0; ; offset += pageSize) {
+				const { data, error } = await supabase
+					.from("contracts")
+					.select("*, customer:customers(id, name, company, assigned_to)")
+					.eq("status", "active")
+					.not("ends_at", "is", null)
+					.lte("ends_at", alertDateStr)
+					.order("ends_at", { ascending: true })
+					.order("id", { ascending: true })
+					.range(offset, offset + pageSize - 1);
+				if (error) throw error;
+				const page = (data ?? []) as ContractWithCustomerInfo[];
+				contracts.push(...page);
+				if (page.length < pageSize) return contracts;
+			}
 		},
 	});
 }

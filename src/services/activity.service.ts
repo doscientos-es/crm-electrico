@@ -145,16 +145,23 @@ export function useRenewalContacts(customerIds: string[]) {
 		queryFn: async () => {
 			if (ids.length === 0) return [];
 
-			const { data, error } = await supabase
-				.from("activity_logs")
-				.select("*, actor:profiles!activity_logs_actor_id_fkey(full_name)")
-				.eq("entity_type", "customer")
-				.eq("action", "renewal_contact")
-				.in("entity_id", ids)
-				.order("created_at", { ascending: false });
-
-			if (error) throw error;
-			return data as ActivityLogWithActor[];
+			const contacts: ActivityLogWithActor[] = [];
+			const pageSize = 1000;
+			for (let offset = 0; ; offset += pageSize) {
+				const { data, error } = await supabase
+					.from("activity_logs")
+					.select("*, actor:profiles!activity_logs_actor_id_fkey(full_name)")
+					.eq("entity_type", "customer")
+					.eq("action", "renewal_contact")
+					.in("entity_id", ids)
+					.order("created_at", { ascending: false })
+					.order("id", { ascending: false })
+					.range(offset, offset + pageSize - 1);
+				if (error) throw error;
+				const page = (data ?? []) as ActivityLogWithActor[];
+				contacts.push(...page);
+				if (page.length < pageSize) return contacts;
+			}
 		},
 		enabled: ids.length > 0,
 	});

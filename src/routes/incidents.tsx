@@ -2,25 +2,17 @@ import { CheckCircle2, Search } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/data-table/Toolbar'
-import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
-import { incidentPriorityLabels, incidentStatusLabels } from '../config/constants'
 import { IncidentFormDialog } from '../features/incidents/IncidentFormDialog'
 import { useDebounce } from '../hooks/use-debounce'
 import { useToastError } from '../hooks/use-toast-error'
 import { formatDate, relativeTime } from '../lib/formatters'
 import { useAllIncidents, useResolveIncident } from '../services/incidents.service'
+import { useProfiles } from '../services/profiles.service'
 
 const PAGE_SIZE = 25
-
-const priorityColor: Record<string, string> = {
-  low: 'text-muted-foreground',
-  medium: 'text-yellow-600',
-  high: 'text-orange-600',
-  urgent: 'text-destructive font-semibold',
-}
 
 export function IncidentsRoute() {
   const [params, setParams] = useSearchParams()
@@ -36,8 +28,9 @@ export function IncidentsRoute() {
   function setPage(p: number) { setParams((prev) => { const n = new URLSearchParams(prev); if (p > 1) n.set('page', String(p)); else n.delete('page'); return n }, { replace: true }) }
 
   const debouncedSearch = useDebounce(search, 250)
+  const { data: profiles } = useProfiles()
 
-  const { data: result, isLoading } = useAllIncidents({
+  const { data: result, isLoading, isError } = useAllIncidents({
     search: debouncedSearch || undefined,
     status,
     priority: priority !== 'all' ? priority : undefined,
@@ -94,7 +87,9 @@ export function IncidentsRoute() {
         </Field>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-destructive">No se pudieron cargar las incidencias.</p>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando incidencias…</p>
       ) : incidents.length === 0 ? (
         <EmptyState
@@ -106,7 +101,7 @@ export function IncidentsRoute() {
         <DataTable
           fillHeight
           className="flex-1 min-h-0"
-          headers={['Cliente', 'Tipo / Título', 'Prioridad', 'Estado', 'Creada', { label: 'Acciones', align: 'right' }]}
+          headers={['Cliente', 'Motivo', 'Comercial responsable', 'Creada', { label: 'Acciones', align: 'right' }]}
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage }}
         >
           {incidents.map((incident) => (
@@ -123,15 +118,11 @@ export function IncidentsRoute() {
                   '—'
                 )}
               </Td>
-              <Td variant="muted">{incident.title}</Td>
-              <Td>
-                <span className={priorityColor[incident.priority] ?? ''}>
-                  {incidentPriorityLabels[incident.priority as keyof typeof incidentPriorityLabels] ?? incident.priority}
-                </span>
+              <Td variant="muted">
+                <p>{incident.title}</p>
+                {incident.description && <p className="text-xs text-muted-foreground">{incident.description}</p>}
               </Td>
-              <Td>
-                <StatusBadge value={incidentStatusLabels[incident.status as keyof typeof incidentStatusLabels] ?? incident.status} />
-              </Td>
+              <Td variant="muted">{incident.customer?.assigned_to ? profiles?.find((profile) => profile.id === incident.customer?.assigned_to)?.full_name ?? 'No disponible' : 'Sin asignar'}</Td>
               <Td variant="muted" className="whitespace-nowrap">
                 <span title={formatDate(incident.created_at)}>{relativeTime(incident.created_at)}</span>
               </Td>
@@ -140,7 +131,7 @@ export function IncidentsRoute() {
                   {incident.customer && (
                     <IncidentFormDialog customerId={incident.customer.id} incident={incident} />
                   )}
-                  <Button
+                  {!['resolved', 'closed'].includes(incident.status) && <Button
                     size="sm"
                     variant="outline"
                     disabled={resolveIncident.isPending}
@@ -149,7 +140,7 @@ export function IncidentsRoute() {
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Resolver
-                  </Button>
+                  </Button>}
                 </div>
               </Td>
             </Tr>

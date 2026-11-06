@@ -2,6 +2,7 @@ import {
 	addMonths,
 	differenceInCalendarDays,
 	isAfter,
+	parseISO,
 	startOfDay,
 } from "date-fns";
 import type { AppRole, Tables } from "../types/database.types";
@@ -62,7 +63,7 @@ export function getDaysToRenewal(customer: Customer, today = new Date()) {
 export function getDaysToContractEnd(contract: Contract, today = new Date()) {
 	if (!contract.ends_at) return undefined;
 	return differenceInCalendarDays(
-		startOfDay(new Date(contract.ends_at)),
+		startOfDay(parseISO(contract.ends_at)),
 		startOfDay(today),
 	);
 }

@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { addYears, format } from 'date-fns'
 import { CopyCheck, Euro, Loader2, MapPin, Pencil, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
@@ -92,6 +92,7 @@ export function ContractFormDialog({
     reset,
     getValues,
     setValue,
+    control,
     formState: { errors },
   } = useForm<ContractFormValues>({
     resolver: zodResolver(contractSchema) as never,
@@ -122,9 +123,12 @@ export function ContractFormDialog({
       starts_at: contract?.starts_at?.slice(0, 10) ?? '',
       ends_at: contract?.ends_at?.slice(0, 10) ?? '',
       terminated_at: contract?.terminated_at?.slice(0, 10) ?? '',
+      settlement_status: contract?.settlement_status ?? (isEditing ? '' : 'pending'),
+      settlement_date: contract?.settlement_date ?? '',
       notes: source?.notes ?? '',
     },
   })
+  const settlementStatus = useWatch({ control, name: 'settlement_status' })
 
   function onSubmit(values: ContractFormValues) {
     const payload = {
@@ -155,6 +159,10 @@ export function ContractFormDialog({
       starts_at: values.starts_at || null,
       ends_at: values.ends_at || null,
       terminated_at: values.terminated_at || null,
+      ...(showCompanyCommission && isEditing ? {
+        settlement_status: values.settlement_status || null,
+        settlement_date: values.settlement_status ? values.settlement_date || null : null,
+      } : {}),
       notes: values.notes || null,
     }
     const done = {
@@ -380,6 +388,22 @@ export function ContractFormDialog({
             <Input type="date" {...register('terminated_at')} />
           </Field>
         </div>
+
+        {isEditing && showCompanyCommission && (
+          <div className="grid items-start gap-4 md:grid-cols-2">
+            <SectionHeader title="Liquidación" />
+            <Field label="Estado de liquidación">
+              <Select {...register('settlement_status')}>
+                <option value="">Sin registrar</option>
+                <option value="pending">Pendiente de liquidar</option>
+                <option value="paid">Liquidado</option>
+              </Select>
+            </Field>
+            <Field label="Fecha de liquidación" error={errors.settlement_date?.message} required={settlementStatus === 'paid'}>
+              <Input type="date" {...register('settlement_date')} disabled={!settlementStatus} />
+            </Field>
+          </div>
+        )}
 
         {/* ── Notas ── */}
         <Field label="Notas" error={errors.notes?.message} hint="Condiciones especiales, observaciones u otras anotaciones relevantes">

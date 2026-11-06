@@ -8,6 +8,7 @@ import {
 	type LucideIcon,
 	Settings,
 	ShieldCheck,
+	Wallet,
 	Zap,
 } from "lucide-react";
 
@@ -40,6 +41,12 @@ export const navItems: NavItem[] = [
 		icon: FileText,
 		description:
 			"Listado global de todos los contratos. Busca por número, CUPS, comercializadora o producto.",
+	},
+	{
+		href: "/settlements",
+		label: "Mis liquidaciones",
+		icon: Wallet,
+		description: "Contratos pendientes de liquidar y liquidados.",
 	},
 	{
 		href: "/renewals",

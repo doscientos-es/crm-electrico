@@ -10,6 +10,7 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
+import { settlementLabel } from '../features/settlements/settlement'
 import { useDebounce } from '../hooks/use-debounce'
 import { exportToCSV } from '../lib/export'
 import { formatDate, money } from '../lib/formatters'
@@ -55,6 +56,8 @@ export function ContractsRoute() {
           Cliente: ct.customer?.name ?? '',
           Empresa: ct.customer?.company ?? '',
           Estado: contractStatusLabels[ct.status as keyof typeof contractStatusLabels] ?? ct.status,
+          'Estado de liquidación': settlementLabel(ct.settlement_status),
+          'Fecha de liquidación': ct.settlement_date ? formatDate(ct.settlement_date) : '',
           Comercializadora: ct.provider ?? '',
           'Canal de venta': ct.sales_channel ?? '',
           Producto: ct.product ?? '',
@@ -114,7 +117,7 @@ export function ContractsRoute() {
   const { data: profiles } = useProfiles()
   const { data: providers } = useContractProviders()
 
-  const { data: result, isLoading } = useAllContracts({
+  const { data: result, isLoading, isError } = useAllContracts({
     search: debouncedSearch || undefined,
     status: status !== 'all' ? status as ContractStatus : undefined,
     assignedTo: owner !== 'all' ? owner : undefined,
@@ -137,6 +140,8 @@ export function ContractsRoute() {
     'CUPS',
     'Inicio',
     'Fin',
+    'Liquidación',
+    'Fecha de liquidación',
     ...(showCompanyCommission ? ['Comisión empresa'] : []),
     'Comisión comercial',
   ]
@@ -198,7 +203,11 @@ export function ContractsRoute() {
         </div>
       </div>
 
-      {!isLoading && contracts.length === 0 ? (
+      {isError ? (
+        <p className="text-sm text-destructive">No se pudieron cargar los contratos.</p>
+      ) : isLoading ? (
+        <p className="text-sm text-muted-foreground">Cargando contratos…</p>
+      ) : contracts.length === 0 ? (
         <EmptyState
           title="Sin contratos"
           description={hasFilters ? 'Prueba a ajustar los filtros de búsqueda.' : 'Todavía no hay contratos registrados.'}
@@ -239,6 +248,8 @@ export function ContractsRoute() {
               <Td variant="muted" className="whitespace-nowrap text-sm">{contract.cups ?? '-'}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
               <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
+              <Td className="whitespace-nowrap">{settlementLabel(contract.settlement_status)}</Td>
+              <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.settlement_date ?? undefined)}</Td>
               {showCompanyCommission && (
                 <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
               )}
