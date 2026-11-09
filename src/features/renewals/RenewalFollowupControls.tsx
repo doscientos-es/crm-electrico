@@ -1,4 +1,4 @@
-import { Clock, Pause, Pencil } from 'lucide-react'
+import { AlertTriangle, Clock, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
@@ -24,8 +24,8 @@ export function RenewalStatusControls({ contractId, status, canEdit }: {
           onClick={() => update.mutate({ id: contractId, renewal_followup_status: value }, {
             onSuccess: () => toast.success('Seguimiento de renovación actualizado'), onError,
           })}>
-          {value === 'pending' ? <Clock aria-hidden="true" /> : <Pause aria-hidden="true" />}
-          {value === 'pending' ? 'Pendiente' : 'En pausa'}
+          {value === 'pending' ? <Clock aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
+          {value === 'pending' ? 'Pendiente' : 'Vencida'}
         </Button>
       ))}
     </div>

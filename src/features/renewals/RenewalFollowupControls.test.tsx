@@ -29,13 +29,14 @@ describe('seguimiento de renovaciones', () => {
     expect(mocks.updateContract).not.toHaveBeenCalled()
     const buttons = container.querySelectorAll('button')
     expect(buttons[0].getAttribute('aria-label')).toBe('Pendiente de renovar')
-    expect(buttons[1].getAttribute('aria-label')).toBe('Renovación vencida / en pausa')
+    expect(buttons[1].getAttribute('aria-label')).toBe('Renovación vencida')
+    expect(buttons[1].textContent).toBe('Vencida')
     act(() => buttons[1].click())
     expect(mocks.updateContract).toHaveBeenCalledWith(
       { id: 'c1', renewal_followup_status: 'paused' }, expect.any(Object),
     )
     act(() => root.render(<RenewalStatusControls contractId="c1" status="paused" canEdit />))
-    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Renovación vencida / en pausa')
+    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Renovación vencida')
     expect(buttons[1].getAttribute('aria-pressed')).toBe('true')
     act(() => buttons[0].click())
     expect(mocks.updateContract).toHaveBeenLastCalledWith(
