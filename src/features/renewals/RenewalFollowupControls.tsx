@@ -28,7 +28,7 @@ export function RenewalStatusControls({ contractId, status, renewalEndsAt, canEd
   return (
     <div role="group" aria-label={`Seguimiento: ${status ? renewalFollowupLabels[status] : 'Sin marcar'}`}
       className="flex items-center gap-1 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
-      <Button type="button" size="xs" variant={status === 'expired' || status === 'paused' ? 'default' : 'outline'}
+      <Button type="button" size="xs" variant="outline"
         aria-label="Renovación vencida" title="Marcar o editar renovación vencida"
         aria-pressed={status === 'expired' || status === 'paused'} disabled={!canEdit || update.isPending}
         onClick={() => { setDate(renewalEndsAt ?? ''); setOpen(true) }}>

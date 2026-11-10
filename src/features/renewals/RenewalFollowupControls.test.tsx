@@ -23,6 +23,13 @@ describe('seguimiento de renovaciones', () => {
   })
   afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals() })
 
+  it.each([null, 'pending', 'paused', 'expired'] as const)('muestra el botón sutil para el estado %s', (status) => {
+    act(() => root.render(<RenewalStatusControls contractId="c1" status={status} canEdit />))
+    const button = container.querySelector<HTMLButtonElement>('[aria-label="Renovación vencida"]')!
+    expect(button.dataset.variant).toBe('outline')
+    expect(button.getAttribute('aria-pressed')).toBe(String(status === 'paused' || status === 'expired'))
+  })
+
   it('requiere una fecha antes de guardar el seguimiento vencido sin modificar el contrato', () => {
     act(() => root.render(<RenewalStatusControls contractId="c1" status={null} canEdit />))
     expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Sin marcar')
