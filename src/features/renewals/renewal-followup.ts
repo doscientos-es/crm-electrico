@@ -7,7 +7,7 @@ export const activeExpiredFilter = 'active_renewal_expired'
 export const renewalFollowupLabels: Record<RenewalFollowupStatus, string> = {
   pending: 'Pendiente de renovar',
   paused: 'Renovación vencida',
-  expired: 'Activo pero renovación vencida',
+  expired: 'Activo renovación vencida',
 }
 
 export function getContractStatusLabel(contract: { status: string; renewal_followup_status?: RenewalFollowupStatus | null }) {

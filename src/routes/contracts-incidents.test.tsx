@@ -81,7 +81,7 @@ describe('listado de incidencias', () => {
     expect(mocks.useAllContracts).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'active', renewalFollowupStatus: 'expired' }))
     expect(container.querySelector('select')?.value).toBe('active_renewal_expired')
     expect(container.textContent).toContain('Cliente vencido')
-    expect(container.textContent).toContain('Activo pero renovación vencida')
+    expect(container.textContent).toContain('Activo renovación vencida')
     expect(container.textContent).not.toContain('Cliente activo')
     expect(container.textContent).not.toContain('Cliente cancelado')
     const exportButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Exportar Excel'))!

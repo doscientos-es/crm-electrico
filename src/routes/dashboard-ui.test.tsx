@@ -7,11 +7,13 @@ import { DashboardRoute } from './dashboard'
 
 vi.mock('../services/contracts.service', () => ({
   useContractsDueForRenewal: () => ({ data: [] }),
-  useContractStats: () => ({ data: {
-    total: 8, active: 3, activeRenewalExpired: 2, processing: 0, pendingSignature: 0,
-    pendingProcessing: 0, incident: 1, pendingRecovery: 0, cancelled: 1, terminated: 0,
-    urgentRenewals: 0, thisMonthEnding: 0,
-  } }),
+  useContractStats: () => ({
+    data: {
+      total: 8, active: 3, activeRenewalExpired: 2, processing: 0, pendingSignature: 0,
+      pendingProcessing: 0, incident: 1, pendingRecovery: 0, cancelled: 1, terminated: 0,
+      urgentRenewals: 0, thisMonthEnding: 0,
+    }
+  }),
 }))
 vi.mock('../services/customers.service', () => ({ useCustomerCount: () => ({ data: 3 }) }))
 
@@ -23,7 +25,7 @@ it('enlaza el contador de activos vencidos y mantiene una sola tarjeta de incide
   act(() => root.render(<MemoryRouter><DashboardRoute /></MemoryRouter>))
 
   const expired = container.querySelector<HTMLAnchorElement>('a[href="/contracts?status=active_renewal_expired"]')
-  expect(expired?.textContent).toContain('Activo pero renovación vencida')
+  expect(expired?.textContent).toContain('Activo renovación vencida')
   expect(expired?.textContent).toContain('2')
   const incidents = Array.from(container.querySelectorAll('a')).filter((link) => link.textContent?.includes('incidencia'))
   expect(incidents).toHaveLength(1)

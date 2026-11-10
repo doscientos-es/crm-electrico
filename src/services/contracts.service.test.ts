@@ -25,11 +25,12 @@ describe('consultas de contratos', () => {
   beforeEach(() => { mocks.calls.length = 0; mocks.pages.length = 0 })
   afterEach(() => vi.useRealTimers())
 
-  it('incluye contratos vencidos y limita los próximos a 60 días', async () => {
+  it('consulta solo contratos activos, con cualquier seguimiento, y limita los próximos a 60 días', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2025, 5, 15, 12))
     await runQuery(useContractsDueForRenewal(60))
     expect(mocks.calls).toContainEqual(['eq', 'status', 'active'])
+    expect(mocks.calls.some(([method, column]) => method === 'eq' && column === 'renewal_followup_status')).toBe(false)
     expect(mocks.calls).toContainEqual(['not', 'ends_at', 'is', null])
     expect(mocks.calls.some(([method, column]) => method === 'gte' && column === 'ends_at')).toBe(false)
     expect(mocks.calls).toContainEqual(['lte', 'ends_at', '2025-08-14'])

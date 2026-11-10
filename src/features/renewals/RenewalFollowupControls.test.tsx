@@ -54,7 +54,7 @@ describe('seguimiento de renovaciones', () => {
     )
     act(() => mocks.updateContract.mock.calls[0][1].onSuccess())
     act(() => root.render(<RenewalStatusControls contractId="c1" status="expired" renewalEndsAt="2027-06-15" canEdit />))
-    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Activo pero renovación vencida')
+    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Activo renovación vencida')
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true')
     act(() => buttons[0].click())
     expect(container.querySelector<HTMLInputElement>('input[type=date]')?.value).toBe('2027-06-15')

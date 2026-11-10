@@ -5,10 +5,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, expect, it, vi } from 'vitest'
 import { RenewalsRoute } from './renewals'
 
-const mocks = vi.hoisted(() => ({ contracts: [{
-  id: 'c1', customer_id: 'u1', customer: { id: 'u1', name: 'Cliente', company: null, assigned_to: null, notes: null, updated_at: 'v1' },
-  status: 'active', ends_at: '2025-01-01', starts_at: '2024-01-01', renewal_followup_status: 'expired', renewal_ends_at: '2026-01-15',
-}] }))
+const mocks = vi.hoisted(() => ({
+  contracts: [{
+    id: 'c1', customer_id: 'u1', customer: { id: 'u1', name: 'Cliente', company: null, assigned_to: null, notes: null, updated_at: 'v1' },
+    status: 'active', ends_at: '2025-01-01', starts_at: '2024-01-01', renewal_followup_status: 'expired', renewal_ends_at: '2026-01-15',
+  }]
+}))
 vi.mock('../features/auth/AuthContext', () => ({ useAuth: () => ({ profile: { role: 'sales' } }) }))
 vi.mock('../services/contracts.service', () => ({
   useContractsDueForRenewal: () => ({ data: mocks.contracts, isLoading: false, isError: false }),
@@ -33,7 +35,7 @@ it('muestra y filtra los días según la nueva fecha, sin cambiar el vencimiento
   expect(container.textContent).toContain('Cliente')
   expect(container.textContent).toContain('15 ene 2026')
   expect(container.textContent).toContain('14d')
-  expect(container.textContent).toContain('Activo pero renovación vencida')
+  expect(container.textContent).toContain('Activo renovación vencida')
   expect(container.textContent).not.toContain('01 ene 2025')
   expect(mocks.contracts[0].ends_at).toBe('2025-01-01')
 
