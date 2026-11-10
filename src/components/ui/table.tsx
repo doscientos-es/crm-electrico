@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, FileX2 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../../lib/utils";
+import { SkeletonTableRows } from "../feedback/Skeleton";
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -170,11 +171,15 @@ export function DataTable({
   className,
   pagination,
   fillHeight = false,
+  isLoading = false,
+  loadingLabel = "Cargando datos…",
 }: {
   headers: ColDef[];
   children: ReactNode;
   className?: string;
   pagination?: TablePaginationProps;
+  isLoading?: boolean;
+  loadingLabel?: string;
   /**
    * When true, the table fills its parent's bounded height (parent must supply
    * flex-1 min-h-0 or equivalent). The body scrolls internally; pagination stays
@@ -187,11 +192,13 @@ export function DataTable({
 }) {
   return (
     <div
+      aria-busy={isLoading || undefined}
       className={cn(
         "flex flex-col overflow-hidden rounded-lg border border-border bg-card",
         className,
       )}
     >
+      {isLoading && <span role="status" className="sr-only">{loadingLabel}</span>}
       <div className={fillHeight ? "flex-1 min-h-0 overflow-auto" : "overflow-x-auto"}>
         <table className="w-full min-w-190 border-collapse text-left text-sm">
           <TableHead className="sticky top-0 z-10">
@@ -217,10 +224,10 @@ export function DataTable({
               })}
             </tr>
           </TableHead>
-          <TableBody>{children}</TableBody>
+          <TableBody>{isLoading ? <SkeletonTableRows rows={6} cols={headers.length} /> : children}</TableBody>
         </table>
       </div>
-      {pagination && (
+      {pagination && !isLoading && (
         <div className="shrink-0">
           <TablePagination {...pagination} />
         </div>

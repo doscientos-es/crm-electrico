@@ -2,7 +2,7 @@ import { cn } from '../../lib/utils'
 
 /* ── Primitive ── */
 function Bone({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} />
+  return <div className={cn('motion-safe:animate-pulse rounded-md bg-muted', className)} />
 }
 
 /* ── Text lines ── */
@@ -37,7 +37,7 @@ export function SkeletonTableRows({ rows = 5, cols = 5 }: { rows?: number; cols?
   return (
     <>
       {Array.from({ length: rows }).map((_, r) => (
-        <tr key={r}>
+        <tr key={r} aria-hidden="true">
           {Array.from({ length: cols }).map((_, c) => (
             <td key={c} className="px-4 py-3">
               <Bone className={cn('h-4', c === 0 ? 'w-32' : 'w-20')} />

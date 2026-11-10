@@ -139,9 +139,7 @@ export function RenewalsRoute() {
 
       {isError ? (
         <p className="text-sm text-destructive">No se pudieron cargar las renovaciones.</p>
-      ) : isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando renovaciones…</p>
-      ) : renewalQueue.length === 0 ? (
+      ) : !isLoading && renewalQueue.length === 0 ? (
         <EmptyState
           title="Sin renovaciones pendientes"
           description="No hay contratos vencidos o próximos a vencer con los filtros actuales."
@@ -151,6 +149,8 @@ export function RenewalsRoute() {
           fillHeight
           className="flex-1 min-h-0"
           headers={['Cliente', 'Comercial responsable', 'Comercializadora', 'Canal de venta', 'CUPS', 'Vencimiento', 'Días', 'Estado contrato', 'Seguimiento manual', 'Notas del cliente']}
+          isLoading={isLoading}
+          loadingLabel="Cargando renovaciones…"
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage }}
         >
           {pagination.items.map((contract) => {

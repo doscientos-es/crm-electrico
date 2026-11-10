@@ -55,7 +55,7 @@ export function CustomersRoute() {
 
   const debouncedSearch = useDebounce(search, 250)
 
-  const { data: result, isLoading } = useCustomers({
+  const { data: result, isLoading, isError } = useCustomers({
     search: debouncedSearch || undefined,
     status: status !== 'all' ? status : undefined,
     assignedTo: owner !== 'all' ? owner : undefined,
@@ -164,7 +164,9 @@ export function CustomersRoute() {
         </div>
       </div>
 
-      {!isLoading && customers.length === 0 ? (
+      {isError ? (
+        <p className="text-sm text-destructive">No se pudieron cargar los clientes.</p>
+      ) : !isLoading && customers.length === 0 ? (
         <EmptyState
           title={total === 0 && !debouncedSearch && status === 'all' ? 'Sin clientes' : 'Sin resultados'}
           description={total === 0 && !debouncedSearch && status === 'all' ? 'Crea el primer cliente para empezar a gestionar la cartera.' : 'Prueba a ajustar los filtros de busqueda.'}
@@ -175,6 +177,8 @@ export function CustomersRoute() {
           fillHeight
           className="flex-1 min-h-0"
           headers={['Cliente', 'Estado', 'Contrato', 'Renovacion', 'Servicios', 'Comercial']}
+          isLoading={isLoading}
+          loadingLabel="Cargando clientes…"
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage }}
         >
           {customers.map((customer) => (

@@ -37,28 +37,29 @@ export function SettlementsRoute() {
         </Field>
       </div>
       {isError ? <p className="text-sm text-destructive">No se pudieron cargar las liquidaciones.</p>
-        : isLoading || !profile ? <p className="text-sm text-muted-foreground">Cargando liquidaciones…</p>
-          : contracts.length === 0 ? <EmptyState
-            title="Sin liquidaciones"
-            description={page > 1 ? 'No hay contratos en esta página.' : 'No hay contratos con este filtro.'}
-            action={page > 1 ? <Button variant="outline" onClick={() => setPage(1)}>Volver a la primera página</Button> : undefined}
-          />
-            : (
-              <DataTable fillHeight className="flex-1 min-h-0"
-                headers={['Cliente', 'CUPS', 'Comercializadora', 'Comisión comercial', 'Liquidación', 'Fecha de liquidación']}
-                pagination={{ page, pageSize: PAGE_SIZE, total: data?.count ?? 0, totalPages: Math.ceil((data?.count ?? 0) / PAGE_SIZE), onPageChange: setPage }}>
-                {contracts.map((contract) => (
-                  <Tr key={contract.id}>
-                    <Td variant="primary"><Link className="text-primary hover:underline" to={`/customers/${contract.customer_id}`}>{contract.customer?.name ?? '—'}</Link></Td>
-                    <Td variant="muted">{contract.cups ?? '—'}</Td>
-                    <Td variant="muted">{contract.provider ?? '—'}</Td>
-                    <Td variant="muted">{money.format(contract.commission_commercial_eur ?? 0)}</Td>
-                    <Td>{settlementLabel(contract.settlement_status)}</Td>
-                    <Td variant="muted">{formatDate(contract.settlement_date ?? undefined)}</Td>
-                  </Tr>
-                ))}
-              </DataTable>
-            )}
+        : !isLoading && profile && contracts.length === 0 ? <EmptyState
+          title="Sin liquidaciones"
+          description={page > 1 ? 'No hay contratos en esta página.' : 'No hay contratos con este filtro.'}
+          action={page > 1 ? <Button variant="outline" onClick={() => setPage(1)}>Volver a la primera página</Button> : undefined}
+        />
+          : (
+            <DataTable fillHeight className="flex-1 min-h-0"
+              headers={['Cliente', 'CUPS', 'Comercializadora', 'Comisión comercial', 'Liquidación', 'Fecha de liquidación']}
+              isLoading={isLoading || !profile}
+              loadingLabel="Cargando liquidaciones…"
+              pagination={{ page, pageSize: PAGE_SIZE, total: data?.count ?? 0, totalPages: Math.ceil((data?.count ?? 0) / PAGE_SIZE), onPageChange: setPage }}>
+              {contracts.map((contract) => (
+                <Tr key={contract.id}>
+                  <Td variant="primary"><Link className="text-primary hover:underline" to={`/customers/${contract.customer_id}`}>{contract.customer?.name ?? '—'}</Link></Td>
+                  <Td variant="muted">{contract.cups ?? '—'}</Td>
+                  <Td variant="muted">{contract.provider ?? '—'}</Td>
+                  <Td variant="muted">{money.format(contract.commission_commercial_eur ?? 0)}</Td>
+                  <Td>{settlementLabel(contract.settlement_status)}</Td>
+                  <Td variant="muted">{formatDate(contract.settlement_date ?? undefined)}</Td>
+                </Tr>
+              ))}
+            </DataTable>
+          )}
     </div>
   )
 }

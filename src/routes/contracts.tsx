@@ -215,9 +215,7 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
 
       {isError ? (
         <p className="text-sm text-destructive">No se pudieron cargar los contratos.</p>
-      ) : isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando contratos…</p>
-      ) : contracts.length === 0 ? (
+      ) : !isLoading && contracts.length === 0 ? (
         <EmptyState
           title="Sin contratos"
           description={hasFilters ? 'Prueba a ajustar los filtros de búsqueda.' : 'Todavía no hay contratos registrados.'}
@@ -227,6 +225,8 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
           fillHeight
           className="flex-1 min-h-0"
           headers={headers}
+          isLoading={isLoading}
+          loadingLabel={fixedStatus === 'incident' ? 'Cargando incidencias…' : 'Cargando contratos…'}
           pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage }}
         >
           {contracts.map((contract) => (

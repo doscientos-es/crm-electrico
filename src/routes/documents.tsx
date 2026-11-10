@@ -49,7 +49,7 @@ export function DocumentsRoute() {
 
   const debouncedSearch = useDebounce(search, 250)
 
-  const { data: result } = useAllDocuments({
+  const { data: result, isLoading, isError } = useAllDocuments({
     search: debouncedSearch || undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     page: page - 1,
@@ -149,11 +149,15 @@ export function DocumentsRoute() {
             </Field>
           </div>
 
-          {documents.length === 0 ? (
+          {isError ? (
+            <p className="text-sm text-destructive">No se pudieron cargar los documentos.</p>
+          ) : !isLoading && documents.length === 0 ? (
             <EmptyState title="Sin documentos" description="Sube un archivo (PDF, DNI, contrato) para un cliente y aparecera aqui." />
           ) : (
             <DataTable
               headers={['Archivo', 'Cliente', 'Tipo', 'Fecha', 'Ruta', { label: 'Acciones', align: 'right' }]}
+              isLoading={isLoading}
+              loadingLabel="Cargando documentos…"
               pagination={{ page, pageSize: PAGE_SIZE, total, totalPages, onPageChange: setPage }}
             >
               {documents.map((document: DocumentRow) => (
