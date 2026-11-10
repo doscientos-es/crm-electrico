@@ -94,7 +94,7 @@ export interface ContractsListParams {
 	page?: number;
 	pageSize?: number;
 	includeCompanyCommission?: boolean;
-	settlementStatus?: SettlementStatus;
+	settlementStatus?: SettlementStatus | "registered";
 	enabled?: boolean;
 }
 
@@ -320,7 +320,11 @@ export function useAllContracts(params: ContractsListParams = {}) {
 
 			if (status) q = q.eq("status", status);
 			if (renewalFollowupStatus) q = q.eq("renewal_followup_status" as never, renewalFollowupStatus as never);
-			if (settlementStatus) q = q.eq("settlement_status" as never, settlementStatus as never);
+			if (settlementStatus === "registered") {
+				q = q.in("settlement_status" as never, ["pending", "paid"] as never);
+			} else if (settlementStatus) {
+				q = q.eq("settlement_status" as never, settlementStatus as never);
+			}
 			if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
 			if (provider) q = q.eq("provider", provider);
 			if (startsFrom) q = q.gte("starts_at", startsFrom);

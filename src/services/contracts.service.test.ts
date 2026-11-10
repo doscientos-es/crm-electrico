@@ -54,6 +54,14 @@ describe('consultas de contratos', () => {
     expect(selection).not.toContain('commission_company_eur')
   })
 
+  it('consulta solo liquidaciones pendientes o pagadas cuando se solicitan las registradas', async () => {
+    const query = useAllContracts({ settlementStatus: 'registered', page: 1, pageSize: 25 })
+    expect((query as unknown as { queryKey: unknown[] }).queryKey).toContainEqual(expect.objectContaining({ settlementStatus: 'registered' }))
+    await runQuery(query)
+    expect(mocks.calls).toContainEqual(['in', 'settlement_status', ['pending', 'paid']])
+    expect(mocks.calls).toContainEqual(['range', 25, 49])
+  })
+
   it('consulta contratos con incidencia y recupera su motivo', async () => {
     await runQuery(useAllContracts({ status: 'incident', page: 1, pageSize: 25, includeCompanyCommission: false }))
     expect(mocks.calls).toContainEqual(['eq', 'status', 'incident'])

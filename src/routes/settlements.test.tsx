@@ -15,7 +15,9 @@ const mocks = vi.hoisted(() => {
   const useAllContracts = vi.fn((params: { assignedTo?: string; settlementStatus?: string }) => {
     const data = contracts.filter((contract) =>
       (!params.assignedTo || contract.customer.assigned_to === params.assignedTo)
-      && (!params.settlementStatus || contract.settlement_status === params.settlementStatus),
+      && (!params.settlementStatus || (params.settlementStatus === 'registered'
+        ? contract.settlement_status === 'pending' || contract.settlement_status === 'paid'
+        : contract.settlement_status === params.settlementStatus)),
     )
     return { data: { data, count: data.length }, isLoading: false, isError: false }
   })
@@ -37,13 +39,14 @@ describe('Mis liquidaciones', () => {
     act(() => root.render(<MemoryRouter><SettlementsRoute /></MemoryRouter>))
 
     expect(mocks.useAllContracts).toHaveBeenLastCalledWith(expect.objectContaining({
-      enabled: true, includeCompanyCommission: false, page: 0, pageSize: 25,
+      enabled: true, includeCompanyCommission: false, page: 0, pageSize: 25, settlementStatus: 'registered',
     }))
     expect(mocks.useAllContracts.mock.lastCall?.[0].assignedTo).toBeUndefined()
     expect(container.textContent).toContain('Cliente uno')
     expect(container.textContent).toContain('Cliente dos')
-    expect(container.textContent).toContain('Cliente histórico')
-    expect(container.textContent).toContain('Sin registrar')
+    expect(container.textContent).not.toContain('Cliente histórico')
+    expect(container.textContent).not.toContain('Sin registrar')
+    expect(container.textContent).toContain('1–2 de 2')
 
     const select = container.querySelector('select')!
     act(() => { select.value = 'pending'; select.dispatchEvent(new Event('change', { bubbles: true })) })
@@ -55,7 +58,13 @@ describe('Mis liquidaciones', () => {
     act(() => { select.value = 'paid'; select.dispatchEvent(new Event('change', { bubbles: true })) })
     expect(container.textContent).toContain('Cliente dos')
     expect(container.textContent).not.toContain('Cliente uno')
+    expect(container.textContent).not.toContain('Cliente histórico')
     expect(mocks.useAllContracts.mock.lastCall?.[0].settlementStatus).toBe('paid')
+
+    act(() => { select.value = 'all'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    expect(container.textContent).toContain('Cliente uno')
+    expect(container.textContent).toContain('Cliente dos')
+    expect(container.textContent).not.toContain('Cliente histórico')
 
     act(() => root.unmount())
     container.remove()

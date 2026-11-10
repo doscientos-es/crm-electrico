@@ -17,7 +17,7 @@ export function SettlementsRoute() {
   const [page, setPage] = useState(1)
   const { data, isLoading, isError } = useAllContracts({
     enabled: !!profile?.id,
-    settlementStatus: status === 'all' ? undefined : status,
+    settlementStatus: status === 'all' ? 'registered' : status,
     includeCompanyCommission: false,
     page: page - 1,
     pageSize: PAGE_SIZE,
