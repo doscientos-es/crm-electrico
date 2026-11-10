@@ -6,7 +6,8 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Supabase-generated types are checked by TypeScript during the build.
+  globalIgnores(['dist', 'src/types/database.types.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
