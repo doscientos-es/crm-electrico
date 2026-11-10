@@ -192,7 +192,6 @@ export function DataTable({
 }) {
   return (
     <div
-      aria-busy={isLoading || undefined}
       className={cn(
         "flex flex-col overflow-hidden rounded-lg border border-border bg-card",
         className,
@@ -200,7 +199,7 @@ export function DataTable({
     >
       {isLoading && <span role="status" className="sr-only">{loadingLabel}</span>}
       <div className={fillHeight ? "flex-1 min-h-0 overflow-auto" : "overflow-x-auto"}>
-        <table className="w-full min-w-190 border-collapse text-left text-sm">
+        <table aria-busy={isLoading || undefined} className="w-full min-w-190 border-collapse text-left text-sm">
           <TableHead className="sticky top-0 z-10">
             <tr>
               {headers.map((header) => {

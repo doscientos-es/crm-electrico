@@ -60,8 +60,8 @@ export function CustomerDetailRoute() {
   const [confirmDeleteCustomer, setConfirmDeleteCustomer] = useState(false)
 
   const { data: customer, isLoading } = useCustomer(id)
-  const { data: documents = [] } = useDocuments(id)
-  const { data: contracts = [] } = useContracts({ customerId: id, includeCompanyCommission: showCompanyCommission })
+  const { data: documents = [], isLoading: documentsLoading, isError: documentsError } = useDocuments(id)
+  const { data: contracts = [], isLoading: contractsLoading, isError: contractsError } = useContracts({ customerId: id, includeCompanyCommission: showCompanyCommission })
   const { data: activityLogs = [], isLoading: activityLoading } = useCustomerActivity(id ?? '')
   const { data: profiles = [] } = useProfiles()
   const deleteContract = useDeleteContract()
@@ -217,7 +217,9 @@ export function CustomerDetailRoute() {
           <h3 className="text-sm font-semibold text-foreground">Contratos energéticos</h3>
           <ContractFormDialog customerId={customer.id} />
         </div>
-        {contracts.length === 0 ? (
+        {contractsError ? (
+          <p className="text-sm text-destructive">No se pudieron cargar los contratos.</p>
+        ) : !contractsLoading && contracts.length === 0 ? (
           <EmptyState
             title="Sin contratos"
             description="Este cliente aún no tiene contratos energéticos registrados."
@@ -225,6 +227,8 @@ export function CustomerDetailRoute() {
         ) : (
           <DataTable
             headers={contractTableHeaders}
+            isLoading={contractsLoading}
+            loadingLabel="Cargando contratos…"
             pagination={{ page: contractsPagination.page, pageSize: contractsPagination.pageSize, total: contractsPagination.total, totalPages: contractsPagination.totalPages, onPageChange: contractsPagination.setPage }}
           >
             {contractsPagination.items.map((contract) => (
@@ -278,8 +282,10 @@ export function CustomerDetailRoute() {
             }
           />
         </div>
-        <DataTable
+        {documentsError ? <p className="text-sm text-destructive">No se pudieron cargar los documentos.</p> : <DataTable
           headers={['Archivo', 'Tipo', 'Fecha', 'Ruta', { label: 'Acciones', align: 'right' }]}
+          isLoading={documentsLoading}
+          loadingLabel="Cargando documentos…"
           pagination={{ page: documentsPagination.page, pageSize: documentsPagination.pageSize, total: documentsPagination.total, totalPages: documentsPagination.totalPages, onPageChange: documentsPagination.setPage }}
         >
           {documentsPagination.items.map((document) => (
@@ -317,7 +323,7 @@ export function CustomerDetailRoute() {
               </Td>
             </Tr>
           ))}
-        </DataTable>
+        </DataTable>}
       </section>
 
       {/* Activity history ─ all events */}
