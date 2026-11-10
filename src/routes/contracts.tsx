@@ -10,6 +10,7 @@ import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
 import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
+import { activeExpiredFilter, getContractStatusLabel, renewalFollowupLabels } from '../features/renewals/renewal-followup'
 import { settlementLabel } from '../features/settlements/settlement'
 import { useDebounce } from '../hooks/use-debounce'
 import { exportToCSV } from '../lib/export'
@@ -46,7 +47,8 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
     try {
       const rows = await fetchAllContractsForExport({
         search: debouncedSearch || undefined,
-        status: status !== 'all' ? status as ContractStatus : undefined,
+        status: contractStatus,
+        renewalFollowupStatus,
         assignedTo: owner !== 'all' ? owner : undefined,
         provider: provider !== 'all' ? provider : undefined,
         startsFrom: startsFrom || undefined,
@@ -57,13 +59,13 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
         toast.info('No hay contratos que exportar con los filtros actuales.')
         return
       }
-      const statusLabel = status !== 'all' ? contractStatusLabels[status as keyof typeof contractStatusLabels] ?? status : 'todos'
+      const statusLabel = status === activeExpiredFilter ? renewalFollowupLabels.expired : status !== 'all' ? contractStatusLabels[status as keyof typeof contractStatusLabels] ?? status : 'todos'
       const filename = `contratos_${statusLabel}_${new Date().toISOString().slice(0, 10)}`
       exportToCSV(
         rows.map((ct) => ({
           Cliente: ct.customer?.name ?? '',
           Empresa: ct.customer?.company ?? '',
-          Estado: contractStatusLabels[ct.status as keyof typeof contractStatusLabels] ?? ct.status,
+          Estado: getContractStatusLabel(ct),
           ...(fixedStatus === 'incident' ? { 'Motivo de incidencia': ct.incident_reason ?? '' } : {}),
           'Estado de liquidación': settlementLabel(ct.settlement_status),
           'Fecha de liquidación': ct.settlement_date ? formatDate(ct.settlement_date) : '',
@@ -96,6 +98,8 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
 
   const search = params.get('q') ?? ''
   const status = fixedStatus ?? params.get('status') ?? 'all'
+  const contractStatus = status === activeExpiredFilter ? 'active' : status !== 'all' ? status as ContractStatus : undefined
+  const renewalFollowupStatus = status === activeExpiredFilter ? 'expired' : undefined
   const owner = params.get('owner') ?? 'all'
   const provider = params.get('provider') ?? 'all'
   const startsFrom = params.get('startsFrom') ?? ''
@@ -128,7 +132,8 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
 
   const { data: result, isLoading, isError } = useAllContracts({
     search: debouncedSearch || undefined,
-    status: status !== 'all' ? status as ContractStatus : undefined,
+    status: contractStatus,
+    renewalFollowupStatus,
     assignedTo: owner !== 'all' ? owner : undefined,
     provider: provider !== 'all' ? provider : undefined,
     startsFrom: startsFrom || undefined,
@@ -180,6 +185,7 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
               {Object.entries(contractStatusLabels).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
+              <option value={activeExpiredFilter}>{renewalFollowupLabels.expired}</option>
             </Select>
           </Field>
         )}
@@ -248,7 +254,7 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
                 <p className="mt-0.5 truncate text-sm text-muted-foreground">{contract.customer?.company ?? ''}</p>
               </Td>
               <Td className="whitespace-nowrap">
-                <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
+                <StatusBadge value={getContractStatusLabel(contract)} />
               </Td>
               {fixedStatus === 'incident' && <Td className="whitespace-pre-wrap">{contract.incident_reason || 'Sin registrar'}</Td>}
               <Td className="max-w-48 align-middle">

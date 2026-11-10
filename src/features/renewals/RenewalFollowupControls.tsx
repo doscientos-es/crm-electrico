@@ -1,33 +1,48 @@
-import { AlertTriangle, Clock, Pencil } from 'lucide-react'
+import { AlertTriangle, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
-import { Field, Textarea } from '../../components/ui/input'
+import { Field, Input, Textarea } from '../../components/ui/input'
 import { useToastError } from '../../hooks/use-toast-error'
 import { useUpdateContract } from '../../services/contracts.service'
 import { useUpdateCustomerNotes } from '../../services/customers.service'
 import { renewalFollowupLabels, type RenewalFollowupStatus } from './renewal-followup'
 
-export function RenewalStatusControls({ contractId, status, canEdit }: {
-  contractId: string; status: RenewalFollowupStatus | null | undefined; canEdit: boolean
+export function RenewalStatusControls({ contractId, status, renewalEndsAt, canEdit }: {
+  contractId: string; status: RenewalFollowupStatus | null | undefined; renewalEndsAt?: string | null; canEdit: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const [date, setDate] = useState(renewalEndsAt ?? '')
   const update = useUpdateContract()
   const onError = useToastError()
+
+  function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!date || update.isPending) return
+    update.mutate({ id: contractId, renewal_followup_status: 'expired', renewal_ends_at: date }, {
+      onSuccess: () => { toast.success('Seguimiento de renovación actualizado'); setOpen(false) }, onError,
+    })
+  }
+
   return (
     <div role="group" aria-label={`Seguimiento: ${status ? renewalFollowupLabels[status] : 'Sin marcar'}`}
       className="flex items-center gap-1 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
-      {(Object.entries(renewalFollowupLabels) as [RenewalFollowupStatus, string][]).map(([value, label]) => (
-        <Button key={value} type="button" size="xs" variant={status === value ? 'default' : 'outline'}
-          className={status === value ? 'disabled:opacity-100' : undefined} aria-label={label} title={label}
-          aria-pressed={status === value} disabled={!canEdit || update.isPending || status === value}
-          onClick={() => update.mutate({ id: contractId, renewal_followup_status: value }, {
-            onSuccess: () => toast.success('Seguimiento de renovación actualizado'), onError,
-          })}>
-          {value === 'pending' ? <Clock aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
-          {value === 'pending' ? 'Pendiente' : 'Vencida'}
-        </Button>
-      ))}
+      <Button type="button" size="xs" variant={status === 'expired' || status === 'paused' ? 'default' : 'outline'}
+        aria-label="Renovación vencida" title="Marcar o editar renovación vencida"
+        aria-pressed={status === 'expired' || status === 'paused'} disabled={!canEdit || update.isPending}
+        onClick={() => { setDate(renewalEndsAt ?? ''); setOpen(true) }}>
+        <AlertTriangle aria-hidden="true" /> Vencida
+      </Button>
+      {open && <Dialog open onOpenChange={(value) => { if (!value && !update.isPending) setOpen(false) }}
+        title="Renovación vencida" description="Indica la fecha final de renovación para calcular los días restantes." size="sm">
+        <form className="grid gap-4" onSubmit={save}>
+          <Field label="Fecha final de renovación" required>
+            <Input type="date" required value={date} onChange={(event) => setDate(event.target.value)} />
+          </Field>
+          <Button type="submit" disabled={!date || update.isPending}>{update.isPending ? 'Guardando…' : 'Guardar'}</Button>
+        </form>
+      </Dialog>}
     </div>
   )
 }

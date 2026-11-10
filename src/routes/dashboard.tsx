@@ -34,6 +34,7 @@ export function DashboardRoute() {
     data: contractStats = {
       total: 0,
       active: 0,
+      activeRenewalExpired: 0,
       processing: 0,
       pendingSignature: 0,
       pendingProcessing: 0,

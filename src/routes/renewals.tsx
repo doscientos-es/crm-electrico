@@ -6,9 +6,9 @@ import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { Field, Input, Select } from '../components/ui/input'
 import { DataTable, EmptyState, Td, Tr } from '../components/ui/table'
-import { contractStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { RenewalCustomerNotes, RenewalStatusControls } from '../features/renewals/RenewalFollowupControls'
+import { getContractStatusLabel, getRenewalEndDate } from '../features/renewals/renewal-followup'
 import { useDebounce } from '../hooks/use-debounce'
 import { usePagination } from '../hooks/use-pagination'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
@@ -70,7 +70,8 @@ export function RenewalsRoute() {
   const renewalQueue = useMemo(() => {
     const q = debouncedSearch.toLowerCase()
     return contracts.filter((contract) => {
-      const currentStage = getContractRenewalStage(contract)
+      const renewalEndDate = getRenewalEndDate(contract)
+      const currentStage = getContractRenewalStage({ ...contract, ends_at: renewalEndDate })
       const inStage = stage === 'all' || currentStage === stage
       const customerName = contract.customer?.name?.toLowerCase() ?? ''
       const customerCompany = contract.customer?.company?.toLowerCase() ?? ''
@@ -79,7 +80,7 @@ export function RenewalsRoute() {
       const matchesOwner = owner === 'all' || contract.customer?.assigned_to === owner
       const matchesProvider = provider === 'all' || contract.provider === provider
       const matchesStart = !startsFrom || (contract.starts_at ?? '') >= startsFrom
-      const matchesEnd = !endsTo || (contract.ends_at ?? '') <= endsTo
+      const matchesEnd = !endsTo || (renewalEndDate ?? '') <= endsTo
       return inStage && matchesSearch && matchesOwner && matchesProvider && matchesStart && matchesEnd
     })
   }, [contracts, stage, debouncedSearch, owner, provider, startsFrom, endsTo])
@@ -154,7 +155,8 @@ export function RenewalsRoute() {
           pagination={{ page: pagination.page, pageSize: pagination.pageSize, total: pagination.total, totalPages: pagination.totalPages, onPageChange: pagination.setPage }}
         >
           {pagination.items.map((contract) => {
-            const days = getDaysToContractEnd(contract)
+            const renewalEndDate = getRenewalEndDate(contract)
+            const days = getDaysToContractEnd({ ...contract, ends_at: renewalEndDate })
             return (
               <Tr
                 key={contract.id}
@@ -170,12 +172,12 @@ export function RenewalsRoute() {
                 <Td variant="muted">{contract.provider ?? '—'}</Td>
                 <Td variant="muted">{contract.sales_channel ?? '—'}</Td>
                 <Td variant="muted">{contract.cups ?? '—'}</Td>
-                <Td variant="muted">{formatDate(contract.ends_at ?? undefined)}</Td>
+                <Td variant="muted">{formatDate(renewalEndDate ?? undefined)}</Td>
                 <Td><DaysBadge days={days} /></Td>
                 <Td>
-                  <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
+                  <StatusBadge value={getContractStatusLabel(contract)} />
                 </Td>
-                <Td><RenewalStatusControls contractId={contract.id} status={contract.renewal_followup_status} canEdit={canEdit} /></Td>
+                <Td><RenewalStatusControls contractId={contract.id} status={contract.renewal_followup_status} renewalEndsAt={contract.renewal_ends_at} canEdit={canEdit} /></Td>
                 <Td>{contract.customer ? <RenewalCustomerNotes customerId={contract.customer.id} customerName={contract.customer.name} notes={contract.customer.notes} updatedAt={contract.customer.updated_at} canEdit={canEdit} /> : '—'}</Td>
               </Tr>
             )

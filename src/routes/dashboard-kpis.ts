@@ -1,13 +1,14 @@
 import type { ContractStats } from "../services/contracts.service";
+import { activeExpiredFilter, renewalFollowupLabels } from "../features/renewals/renewal-followup";
 
 type ContractKpiMetric = keyof Pick<
 	ContractStats,
 	| "total"
 	| "active"
+	| "activeRenewalExpired"
 	| "processing"
 	| "pendingSignature"
 	| "pendingProcessing"
-	| "incident"
 	| "pendingRecovery"
 	| "cancelled"
 	| "terminated"
@@ -58,11 +59,11 @@ export const dashboardContractKpis: {
 		href: "/contracts?status=processing",
 	},
 	{
-		title: "Incidencias",
-		metric: "incident",
+		title: renewalFollowupLabels.expired,
+		metric: "activeRenewalExpired",
 		icon: "incident",
-		highlight: "danger",
-		href: "/contracts?status=incident",
+		highlight: "warning",
+		href: `/contracts?status=${activeExpiredFilter}`,
 	},
 	{
 		title: "Pendientes recuperar",

@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('../lib/supabase', () => ({ supabase: { from: () => mocks.query } }))
 vi.mock('@tanstack/react-query', () => ({ useQuery: (options: unknown) => options }))
 
-import { useAllContracts, useContractsDueForRenewal } from './contracts.service'
+import { fetchAllContractsForExport, useAllContracts, useContractStats, useContractsDueForRenewal } from './contracts.service'
 import { useRenewalContacts } from './activity.service'
 
 async function runQuery(result: unknown) {
@@ -62,6 +62,30 @@ describe('consultas de contratos', () => {
     expect(selection).toContain('incident_reason')
     expect(selection).toContain('customer:customers!inner')
     expect(selection).not.toContain('commission_company_eur')
+  })
+
+  it('filtra activos con seguimiento vencido tanto en la lista como al exportar', async () => {
+    const filter = { status: 'active' as const, renewalFollowupStatus: 'expired' as const }
+    const query = useAllContracts({ ...filter, page: 1, pageSize: 25 })
+    expect((query as unknown as { queryKey: unknown[] }).queryKey).toContainEqual(expect.objectContaining(filter))
+    await runQuery(query)
+    expect(mocks.calls).toContainEqual(['eq', 'status', 'active'])
+    expect(mocks.calls).toContainEqual(['eq', 'renewal_followup_status', 'expired'])
+    expect(mocks.calls).toContainEqual(['range', 25, 49])
+    expect(mocks.calls.find(([method]) => method === 'select')?.[1]).toContain('renewal_followup_status')
+
+    mocks.calls.length = 0
+    await fetchAllContractsForExport(filter)
+    expect(mocks.calls).toContainEqual(['eq', 'status', 'active'])
+    expect(mocks.calls).toContainEqual(['eq', 'renewal_followup_status', 'expired'])
+  })
+
+  it('cuenta los contratos activos con seguimiento vencido en el dashboard', async () => {
+    const stats = await runQuery(useContractStats()) as { activeRenewalExpired: number }
+    expect(stats.activeRenewalExpired).toBe(0)
+    const expiredIndex = mocks.calls.findIndex((call) => call[0] === 'eq' && call[1] === 'renewal_followup_status')
+    expect(mocks.calls[expiredIndex - 1]).toEqual(['eq', 'status', 'active'])
+    expect(mocks.calls[expiredIndex]).toEqual(['eq', 'renewal_followup_status', 'expired'])
   })
 
   it('recupera el historial completo de contactos, incluso con más de 1000 registros', async () => {

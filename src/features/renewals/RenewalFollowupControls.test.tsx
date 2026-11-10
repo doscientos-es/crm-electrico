@@ -23,25 +23,34 @@ describe('seguimiento de renovaciones', () => {
   })
   afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals() })
 
-  it('solo cambia el seguimiento al pulsar un botón y nunca modifica el estado del contrato', () => {
+  it('requiere una fecha antes de guardar el seguimiento vencido sin modificar el contrato', () => {
     act(() => root.render(<RenewalStatusControls contractId="c1" status={null} canEdit />))
     expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Sin marcar')
     expect(mocks.updateContract).not.toHaveBeenCalled()
     const buttons = container.querySelectorAll('button')
-    expect(buttons[0].getAttribute('aria-label')).toBe('Pendiente de renovar')
-    expect(buttons[1].getAttribute('aria-label')).toBe('Renovación vencida')
-    expect(buttons[1].textContent).toBe('Vencida')
-    act(() => buttons[1].click())
-    expect(mocks.updateContract).toHaveBeenCalledWith(
-      { id: 'c1', renewal_followup_status: 'paused' }, expect.any(Object),
-    )
-    act(() => root.render(<RenewalStatusControls contractId="c1" status="paused" canEdit />))
-    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Renovación vencida')
-    expect(buttons[1].getAttribute('aria-pressed')).toBe('true')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0].getAttribute('aria-label')).toBe('Renovación vencida')
     act(() => buttons[0].click())
-    expect(mocks.updateContract).toHaveBeenLastCalledWith(
-      { id: 'c1', renewal_followup_status: 'pending' }, expect.any(Object),
+    expect(mocks.updateContract).not.toHaveBeenCalled()
+    const input = container.querySelector<HTMLInputElement>('input[type=date]')!
+    expect(input.required).toBe(true)
+    act(() => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(mocks.updateContract).not.toHaveBeenCalled()
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '2027-06-15')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    act(() => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(mocks.updateContract).toHaveBeenCalledWith(
+      { id: 'c1', renewal_followup_status: 'expired', renewal_ends_at: '2027-06-15' }, expect.any(Object),
     )
+    act(() => mocks.updateContract.mock.calls[0][1].onSuccess())
+    act(() => root.render(<RenewalStatusControls contractId="c1" status="expired" renewalEndsAt="2027-06-15" canEdit />))
+    expect(container.querySelector('[role=group]')?.getAttribute('aria-label')).toBe('Seguimiento: Activo pero renovación vencida')
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true')
+    act(() => buttons[0].click())
+    expect(container.querySelector<HTMLInputElement>('input[type=date]')?.value).toBe('2027-06-15')
   })
 
   it('impide editar tanto estados como notas a usuarios de solo lectura', () => {
@@ -58,7 +67,7 @@ describe('seguimiento de renovaciones', () => {
       <RenewalStatusControls contractId="c1" status={null} canEdit />
       <RenewalCustomerNotes customerId="u1" customerName="Cliente" notes={null} updatedAt="v1" canEdit />
     </div>))
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Pendiente de renovar"]')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Renovación vencida"]')!.click())
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Editar notas del cliente"]')!.click())
     expect(navigate).not.toHaveBeenCalled()
     expect(container.querySelector('textarea')).not.toBeNull()

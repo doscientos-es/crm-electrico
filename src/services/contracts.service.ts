@@ -11,6 +11,7 @@ export type ContractRow = Tables<"contracts"> & {
 	settlement_status?: SettlementStatus | null;
 	settlement_date?: string | null;
 	renewal_followup_status?: RenewalFollowupStatus | null;
+	renewal_ends_at?: string | null;
 	incident_reason?: string | null;
 };
 
@@ -35,6 +36,7 @@ const contractColumnsWithoutCompanyCommission = [
 	"deal_id",
 	"proposal_id",
 	"status",
+	"renewal_followup_status",
 	"incident_reason",
 	"settlement_status",
 	"settlement_date",
@@ -82,6 +84,7 @@ function contractColumns(includeCompanyCommission = true) {
 export interface ContractsListParams {
 	search?: string;
 	status?: ContractStatus;
+	renewalFollowupStatus?: RenewalFollowupStatus;
 	assignedTo?: string;
 	provider?: string;
 	startsFrom?: string;
@@ -146,6 +149,7 @@ export function useContracts(
 export interface ContractStats {
 	total: number;
 	active: number;
+	activeRenewalExpired: number;
 	processing: number;
 	pendingSignature: number;
 	pendingProcessing: number;
@@ -178,6 +182,7 @@ export function useContractStats() {
 			const [
 				total,
 				active,
+				activeRenewalExpired,
 				processing,
 				pendingSignature,
 				pendingProcessing,
@@ -193,6 +198,11 @@ export function useContractStats() {
 					.from("contracts")
 					.select("*", { count: "exact", head: true })
 					.eq("status", "active"),
+				supabase
+					.from("contracts")
+					.select("*", { count: "exact", head: true })
+					.eq("status", "active")
+					.eq("renewal_followup_status" as never, "expired" as never),
 				supabase
 					.from("contracts")
 					.select("*", { count: "exact", head: true })
@@ -239,6 +249,7 @@ export function useContractStats() {
 			return {
 				total: requireCount(total, "total"),
 				active: requireCount(active, "activos"),
+				activeRenewalExpired: requireCount(activeRenewalExpired, "activos con renovación vencida"),
 				processing: requireCount(processing, "en tramitación"),
 				pendingSignature: requireCount(pendingSignature, "pendientes de firma"),
 				pendingProcessing: requireCount(
@@ -263,6 +274,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 	const {
 		search,
 		status,
+		renewalFollowupStatus,
 		assignedTo,
 		provider,
 		startsFrom,
@@ -283,6 +295,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 			{
 				search,
 				status,
+				renewalFollowupStatus,
 				startsFrom,
 				startsTo,
 				endsFrom,
@@ -306,6 +319,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 				.range(page * pageSize, page * pageSize + pageSize - 1);
 
 			if (status) q = q.eq("status", status);
+			if (renewalFollowupStatus) q = q.eq("renewal_followup_status" as never, renewalFollowupStatus as never);
 			if (settlementStatus) q = q.eq("settlement_status" as never, settlementStatus as never);
 			if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
 			if (provider) q = q.eq("provider", provider);
@@ -386,7 +400,7 @@ export function useUpdateContract() {
 		mutationFn: async ({
 			id,
 			...payload
-		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null; incident_reason?: string | null }) => {
+		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null; renewal_ends_at?: string | null; incident_reason?: string | null }) => {
 			const { data, error } = await supabase
 				.from("contracts")
 				.update(payload as never)
@@ -471,6 +485,7 @@ export function useContractsByMonth(month: string) {
 export interface ContractsExportFilter {
 	search?: string;
 	status?: ContractStatus;
+	renewalFollowupStatus?: RenewalFollowupStatus;
 	assignedTo?: string;
 	provider?: string;
 	startsFrom?: string;
@@ -495,6 +510,7 @@ export async function fetchAllContractsForExport(
 	const {
 		search,
 		status,
+		renewalFollowupStatus,
 		assignedTo,
 		provider,
 		startsFrom,
@@ -514,6 +530,7 @@ export async function fetchAllContractsForExport(
 			`cups.ilike.%${search}%,provider.ilike.%${search}%,sales_channel.ilike.%${search}%,product.ilike.%${search}%`,
 		);
 	if (status) q = q.eq("status", status);
+	if (renewalFollowupStatus) q = q.eq("renewal_followup_status" as never, renewalFollowupStatus as never);
 	if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
 	if (provider) q = q.eq("provider", provider);
 	if (startsFrom) q = q.gte("starts_at", startsFrom);
