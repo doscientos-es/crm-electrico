@@ -146,10 +146,9 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
   const contracts = result?.data ?? []
   const total = result?.count ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const headers = [
+  const headers = fixedStatus === 'incident' ? ['Cliente', 'Motivo', 'Comercial responsable', 'Creada', 'Acciones'] : [
     'Cliente',
     'Estado',
-    ...(fixedStatus === 'incident' ? ['Motivo de la incidencia'] : []),
     'Producto / Comercializadora',
     'Canal de venta',
     'CUPS',
@@ -253,22 +252,34 @@ function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
                 <p className="truncate text-sm font-medium text-foreground group-hover:underline">{contract.customer?.name ?? '-'}</p>
                 <p className="mt-0.5 truncate text-sm text-muted-foreground">{contract.customer?.company ?? ''}</p>
               </Td>
-              <Td className="whitespace-nowrap">
-                <StatusBadge value={getContractStatusLabel(contract)} />
-              </Td>
-              {fixedStatus === 'incident' && <Td className="whitespace-pre-wrap">{contract.incident_reason || 'Sin registrar'}</Td>}
-              <Td className="max-w-48 align-middle">
-                <p className="truncate text-sm font-medium text-foreground">{contract.product ?? '-'}</p>
-                <p className="mt-0.5 truncate text-sm text-muted-foreground">{contract.provider ?? ''}</p>
-              </Td>
-              <Td variant="muted" className="max-w-40 truncate">{contract.sales_channel ?? '-'}</Td>
-              <Td variant="muted" className="whitespace-nowrap text-sm">{contract.cups ?? '-'}</Td>
-              <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
-              <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
-              {showCompanyCommission && (
-                <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
+              {fixedStatus === 'incident' ? (
+                <>
+                  <Td className="whitespace-pre-wrap">{contract.incident_reason || 'Sin registrar'}</Td>
+                  <Td variant="muted">{contract.customer?.assigned_to ? profiles?.find((profile) => profile.id === contract.customer?.assigned_to)?.full_name ?? 'No disponible' : 'Sin asignar'}</Td>
+                  <Td variant="muted" className="whitespace-nowrap" title="Fecha de creación del contrato">{formatDate(contract.created_at ?? undefined)}</Td>
+                  <Td>
+                    <Button type="button" variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); setEditingContract(contract) }}>
+                      Ver contrato
+                    </Button>
+                  </Td>
+                </>
+              ) : (
+                <>
+                  <Td className="whitespace-nowrap"><StatusBadge value={getContractStatusLabel(contract)} /></Td>
+                  <Td className="max-w-48 align-middle">
+                    <p className="truncate text-sm font-medium text-foreground">{contract.product ?? '-'}</p>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{contract.provider ?? ''}</p>
+                  </Td>
+                  <Td variant="muted" className="max-w-40 truncate">{contract.sales_channel ?? '-'}</Td>
+                  <Td variant="muted" className="whitespace-nowrap text-sm">{contract.cups ?? '-'}</Td>
+                  <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.starts_at ?? undefined)}</Td>
+                  <Td variant="muted" className="whitespace-nowrap">{formatDate(contract.ends_at ?? undefined)}</Td>
+                  {showCompanyCommission && (
+                    <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_company_eur ?? 0)}</Td>
+                  )}
+                  <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_commercial_eur ?? 0)}</Td>
+                </>
               )}
-              <Td variant="muted" className="whitespace-nowrap">{money.format(contract.commission_commercial_eur ?? 0)}</Td>
             </Tr>
           ))}
         </DataTable>

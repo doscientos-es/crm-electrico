@@ -60,7 +60,8 @@ describe('consultas de contratos', () => {
     expect(mocks.calls).toContainEqual(['range', 25, 49])
     const selection = mocks.calls.find(([method]) => method === 'select')?.[1] as string
     expect(selection).toContain('incident_reason')
-    expect(selection).toContain('customer:customers!inner')
+    expect(selection).toContain('customer:customers!inner(id, name, company, assigned_to)')
+    expect(selection).toContain('created_at')
     expect(selection).not.toContain('commission_company_eur')
   })
 

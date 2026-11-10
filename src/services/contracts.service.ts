@@ -16,7 +16,7 @@ export type ContractRow = Tables<"contracts"> & {
 };
 
 export type ContractWithCustomer = ContractRow & {
-	customer: { id: string; name: string; company: string | null } | null;
+	customer: { id: string; name: string; company: string | null; assigned_to: string | null } | null;
 };
 
 export type ContractWithCustomerInfo = ContractRow & {
@@ -312,7 +312,7 @@ export function useAllContracts(params: ContractsListParams = {}) {
 			let q = supabase
 				.from("contracts")
 				.select(
-					`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company)`,
+					`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
 					{ count: "exact" },
 				)
 				.order("created_at", { ascending: false })
