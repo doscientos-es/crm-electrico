@@ -30,6 +30,20 @@ vi.mock('../services/contracts.service', () => ({
 describe('listado de incidencias', () => {
   afterEach(() => { vi.clearAllMocks(); vi.unstubAllGlobals() })
 
+  it('muestra el skeleton de contratos mientras carga la lista', () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+    mocks.useAllContracts.mockReturnValueOnce({ data: { data: [], count: 0 }, isLoading: true, isError: false })
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => root.render(<MemoryRouter><IncidentsRoute /></MemoryRouter>))
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('Cargando incidencias…')
+    expect(container.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(6)
+    expect(container.textContent).not.toContain('Sin contratos')
+    act(() => root.unmount())
+    container.remove()
+  })
+
   it('fija el estado, muestra el motivo y permite abrir el contrato', () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const container = document.createElement('div')
