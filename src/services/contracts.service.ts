@@ -367,7 +367,7 @@ export function useContractProviders() {
 export function useCreateContract() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: async (payload: InsertDto<"contracts">) => {
+		mutationFn: async (payload: InsertDto<"contracts"> & { incident_reason?: string | null }) => {
 			const { data, error } = await supabase
 				.from("contracts")
 				.insert(payload as never)

@@ -25,7 +25,7 @@ function setParam(p: URLSearchParams, key: string, value: string | undefined) {
   if (value) p.set(key, value); else p.delete(key)
 }
 
-export function ContractsRoute() {
+export function ContractsRoute({ fixedStatus }: { fixedStatus?: ContractStatus } = {}) {
   const { profile: currentUser } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -56,6 +56,7 @@ export function ContractsRoute() {
           Cliente: ct.customer?.name ?? '',
           Empresa: ct.customer?.company ?? '',
           Estado: contractStatusLabels[ct.status as keyof typeof contractStatusLabels] ?? ct.status,
+          ...(fixedStatus === 'incident' ? { 'Motivo de incidencia': ct.incident_reason ?? '' } : {}),
           'Estado de liquidación': settlementLabel(ct.settlement_status),
           'Fecha de liquidación': ct.settlement_date ? formatDate(ct.settlement_date) : '',
           Comercializadora: ct.provider ?? '',
@@ -86,7 +87,7 @@ export function ContractsRoute() {
   }
 
   const search = params.get('q') ?? ''
-  const status = params.get('status') ?? 'all'
+  const status = fixedStatus ?? params.get('status') ?? 'all'
   const owner = params.get('owner') ?? 'all'
   const provider = params.get('provider') ?? 'all'
   const startsFrom = params.get('startsFrom') ?? ''
@@ -135,6 +136,7 @@ export function ContractsRoute() {
   const headers = [
     'Cliente',
     'Estado',
+    ...(fixedStatus === 'incident' ? ['Motivo de la incidencia'] : []),
     'Producto / Comercializadora',
     'Canal de venta',
     'CUPS',
@@ -147,8 +149,8 @@ export function ContractsRoute() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title="Contratos"
-        description="Listado global de todos los contratos. Busca por CUPS, comercializadora, canal de venta o producto."
+        title={fixedStatus === 'incident' ? 'Incidencias' : 'Contratos'}
+        description={fixedStatus === 'incident' ? 'Contratos en estado de incidencia.' : 'Listado global de todos los contratos. Busca por CUPS, comercializadora, canal de venta o producto.'}
       />
 
       <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-end">
@@ -163,14 +165,16 @@ export function ContractsRoute() {
             />
           </div>
         </Field>
-        <Field label="Estado" className="w-44">
-          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Todos</option>
-            {Object.entries(contractStatusLabels).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </Select>
-        </Field>
+        {!fixedStatus && (
+          <Field label="Estado" className="w-44">
+            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="all">Todos</option>
+              {Object.entries(contractStatusLabels).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
         {currentUser?.role !== 'sales' && (
           <Field label="Comercial" className="w-44">
             <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
@@ -238,6 +242,7 @@ export function ContractsRoute() {
               <Td className="whitespace-nowrap">
                 <StatusBadge value={contractStatusLabels[contract.status as keyof typeof contractStatusLabels] ?? contract.status} />
               </Td>
+              {fixedStatus === 'incident' && <Td className="whitespace-pre-wrap">{contract.incident_reason || 'Sin registrar'}</Td>}
               <Td className="max-w-48 align-middle">
                 <p className="truncate text-sm font-medium text-foreground">{contract.product ?? '-'}</p>
                 <p className="mt-0.5 truncate text-sm text-muted-foreground">{contract.provider ?? ''}</p>
