@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, CheckCircle2, Clock, FileText, Loader2, Mail, MessageSquare, Pencil, Phone, RefreshCw, Trash2, Upload, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, Clock, FileText, Loader2, Mail, MessageSquare, Pencil, Phone, RefreshCw, Trash2, Upload, UserPlus } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -8,11 +8,10 @@ import { FileViewerDialog } from '../components/documents/FileViewerDialog'
 import { StatusBadge } from '../components/feedback/StatusBadge'
 import { Button } from '../components/ui/button'
 import { DataTable, EmptyState, Td, Tr, TruncatePath } from '../components/ui/table'
-import { contractStatusLabels, customerStatusLabels, incidentPriorityLabels, incidentStatusLabels } from '../config/constants'
+import { contractStatusLabels, customerStatusLabels } from '../config/constants'
 import { useAuth } from '../features/auth/AuthContext'
 import { ContractFormDialog } from '../features/contracts/ContractFormDialog'
 import { CustomerFormDialog } from '../features/customers/CustomerFormDialog'
-import { IncidentFormDialog } from '../features/incidents/IncidentFormDialog'
 import { usePagination } from '../hooks/use-pagination'
 import { getDaysToContractEnd } from '../lib/customer-workflow'
 import { formatDate, formatDateTime, relativeTime } from '../lib/formatters'
@@ -22,7 +21,6 @@ import { type ActivityLogWithActor, getActivityLabel, getContactChannel, getCont
 import { useContracts, useDeleteContract } from '../services/contracts.service'
 import { useCustomer, useDeleteCustomer } from '../services/customers.service'
 import { useDeleteDocument, useDocuments } from '../services/documents.service'
-import { useIncidents, useResolveIncident } from '../services/incidents.service'
 import { useProfiles } from '../services/profiles.service'
 
 function getActivityIcon(action: string, log: ActivityLogWithActor) {
@@ -69,12 +67,8 @@ export function CustomerDetailRoute() {
   const deleteContract = useDeleteContract()
   const deleteDocument = useDeleteDocument()
   const deleteCustomer = useDeleteCustomer()
-  const { data: incidents = [] } = useIncidents(id)
-  const resolveIncident = useResolveIncident()
-
   const contractsPagination = usePagination(contracts, 25)
   const documentsPagination = usePagination(documents, 25)
-  const incidentsPagination = usePagination(incidents, 25)
 
   const owner = useMemo(
     () => profiles.find((p) => p.id === customer?.assigned_to),
@@ -324,57 +318,6 @@ export function CustomerDetailRoute() {
             </Tr>
           ))}
         </DataTable>
-      </section>
-
-      {/* Incidents */}
-      <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">Incidencias abiertas</h3>
-          <IncidentFormDialog customerId={customer.id} />
-        </div>
-        {incidents.length === 0 ? (
-          <EmptyState
-            title="Sin incidencias"
-            description="Este cliente no tiene incidencias abiertas."
-          />
-        ) : (
-          <DataTable
-            headers={['Tipo / Título', 'Prioridad', 'Estado', 'Creada', { label: 'Acciones', align: 'right' }]}
-            pagination={{ page: incidentsPagination.page, pageSize: incidentsPagination.pageSize, total: incidentsPagination.total, totalPages: incidentsPagination.totalPages, onPageChange: incidentsPagination.setPage }}
-          >
-            {incidentsPagination.items.map((incident) => (
-              <Tr key={incident.id} hover>
-                <Td variant="primary">{incident.title}</Td>
-                <Td variant="muted">
-                  {incidentPriorityLabels[incident.priority as keyof typeof incidentPriorityLabels] ?? incident.priority}
-                </Td>
-                <Td>
-                  <StatusBadge value={incidentStatusLabels[incident.status as keyof typeof incidentStatusLabels] ?? incident.status} />
-                </Td>
-                <Td variant="muted">{relativeTime(incident.created_at)}</Td>
-                <Td align="right">
-                  <div className="flex items-center justify-end gap-1">
-                    <IncidentFormDialog customerId={customer.id} incident={incident} />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={resolveIncident.isPending}
-                      onClick={() =>
-                        resolveIncident.mutate(incident.id, {
-                          onSuccess: () => toast.success('Incidencia resuelta'),
-                        })
-                      }
-                      className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Resolver
-                    </Button>
-                  </div>
-                </Td>
-              </Tr>
-            ))}
-          </DataTable>
-        )}
       </section>
 
       {/* Activity history ─ all events */}

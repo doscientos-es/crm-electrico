@@ -70,8 +70,7 @@ export const navItems: NavItem[] = [
 		href: "/incidents",
 		label: "Incidencias",
 		icon: AlertTriangle,
-		description:
-			"Incidencias abiertas de clientes: falta de factura, DNI, firma u otros problemas pendientes.",
+		description: "Contratos con incidencias y su motivo.",
 	},
 	{
 		href: "/agenda",

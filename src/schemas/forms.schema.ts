@@ -15,6 +15,7 @@ export const contractSchema = z.object({
 			"terminated",
 		])
 		.default("pending_processing"),
+	incident_reason: z.string().optional(),
 	cups: z.string().optional(),
 	provider: z.string().optional(),
 	sales_channel: z.string().optional(),
@@ -49,6 +50,9 @@ export const contractSchema = z.object({
 }).refine((values) => values.settlement_status !== "paid" || !!values.settlement_date, {
 	message: "Indica la fecha de liquidación",
 	path: ["settlement_date"],
+}).refine((values) => values.status !== "incident" || !!values.incident_reason?.trim(), {
+	message: "Indica el motivo de la incidencia",
+	path: ["incident_reason"],
 });
 
 export type ContractFormValues = z.infer<typeof contractSchema>;

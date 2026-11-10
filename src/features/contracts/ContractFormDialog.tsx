@@ -99,6 +99,7 @@ export function ContractFormDialog({
     defaultValues: {
       customer_id: customerId,
       status: (contract?.status as ContractFormValues['status']) ?? 'pending_processing',
+      incident_reason: contract?.status === 'incident' ? contract.incident_reason ?? '' : '',
       // dates are never copied on renewal — they must be set fresh
       cups: source?.cups ?? '',
       provider: source?.provider ?? '',
@@ -129,11 +130,13 @@ export function ContractFormDialog({
     },
   })
   const settlementStatus = useWatch({ control, name: 'settlement_status' })
+  const contractStatus = useWatch({ control, name: 'status' })
 
   function onSubmit(values: ContractFormValues) {
     const payload = {
       customer_id: customerId,
       status: values.status,
+      ...(values.status === 'incident' ? { incident_reason: values.incident_reason?.trim() } : {}),
       cups: values.cups || null,
       provider: values.provider || null,
       sales_channel: values.sales_channel || null,
@@ -221,6 +224,12 @@ export function ContractFormDialog({
               ))}
             </Select>
           </Field>
+
+          {contractStatus === 'incident' && (
+            <Field label="Motivo de la incidencia" error={errors.incident_reason?.message} required>
+              <Textarea {...register('incident_reason')} placeholder="Describe el motivo de la incidencia…" />
+            </Field>
+          )}
 
           <Field
             label="CUPS"

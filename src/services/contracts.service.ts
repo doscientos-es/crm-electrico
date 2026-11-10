@@ -11,6 +11,7 @@ export type ContractRow = Tables<"contracts"> & {
 	settlement_status?: SettlementStatus | null;
 	settlement_date?: string | null;
 	renewal_followup_status?: RenewalFollowupStatus | null;
+	incident_reason?: string | null;
 };
 
 export type ContractWithCustomer = ContractRow & {
@@ -34,6 +35,7 @@ const contractColumnsWithoutCompanyCommission = [
 	"deal_id",
 	"proposal_id",
 	"status",
+	"incident_reason",
 	"settlement_status",
 	"settlement_date",
 	"signed_at",
@@ -384,7 +386,7 @@ export function useUpdateContract() {
 		mutationFn: async ({
 			id,
 			...payload
-		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null }) => {
+		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null; incident_reason?: string | null }) => {
 			const { data, error } = await supabase
 				.from("contracts")
 				.update(payload as never)

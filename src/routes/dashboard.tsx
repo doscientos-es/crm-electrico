@@ -8,7 +8,6 @@ import { appBrand } from '../config/nav'
 import { getContractRenewalStage, getDaysToContractEnd } from '../lib/customer-workflow'
 import { useContractStats, useContractsDueForRenewal } from '../services/contracts.service'
 import { useCustomerCount } from '../services/customers.service'
-import { useOpenIncidentsCount } from '../services/incidents.service'
 import { dashboardContractKpis, type ContractKpiIcon } from './dashboard-kpis'
 
 const renewalStageStyle: Record<string, { label: string; className: string }> = {
@@ -30,7 +29,6 @@ const contractKpiIcons: Record<ContractKpiIcon, React.ReactNode> = {
 
 export function DashboardRoute() {
   const { data: activeCustomerCount = 0 } = useCustomerCount({ status: 'active' })
-  const { data: openIncidentsCount = 0 } = useOpenIncidentsCount()
   const { data: renewalContracts = [] } = useContractsDueForRenewal(60)
   const {
     data: contractStats = {
@@ -53,9 +51,9 @@ export function DashboardRoute() {
       activeCount: activeCustomerCount,
       urgentCount: contractStats.urgentRenewals,
       thisMonthCount: contractStats.thisMonthEnding,
-      incidents: openIncidentsCount,
+      incidents: contractStats.incident,
     }
-  }, [activeCustomerCount, contractStats, openIncidentsCount])
+  }, [activeCustomerCount, contractStats])
 
   const urgentRenewals = useMemo(
     () =>
@@ -112,7 +110,7 @@ export function DashboardRoute() {
         <Kpi title="Clientes activos" value={kpis.activeCount} icon={<Activity />} href="/customers?status=active" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
         <Kpi title="Contratos urgentes" value={kpis.urgentCount} icon={<CalendarClock />} href="/renewals?stage=urgent" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
         <Kpi title="Vencen este mes" value={kpis.thisMonthCount} icon={<Users />} href="/renewals" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
-        <Kpi title="Incidencias abiertas" value={kpis.incidents} icon={<AlertTriangle />} highlight={kpis.incidents > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
+        <Kpi title="Contratos con incidencia" value={kpis.incidents} icon={<AlertTriangle />} highlight={kpis.incidents > 0 ? 'danger' : undefined} href="/incidents" cellBg="bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-950/50 dark:hover:bg-rose-900/50" />
       </section>
 
       {/* KPIs — Contratos */}

@@ -16,7 +16,6 @@ export function SettlementsRoute() {
   const [status, setStatus] = useState<'all' | SettlementStatus>('all')
   const [page, setPage] = useState(1)
   const { data, isLoading, isError } = useAllContracts({
-    assignedTo: profile?.id,
     enabled: !!profile?.id,
     settlementStatus: status === 'all' ? undefined : status,
     includeCompanyCommission: false,
@@ -27,7 +26,7 @@ export function SettlementsRoute() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Mis liquidaciones" description="Liquidaciones de los contratos de tus clientes asignados." />
+      <PageHeader title="Mis liquidaciones" description="Liquidaciones de los contratos de todos los clientes." />
       <div className="mb-6">
         <Field label="Liquidación" className="w-52">
           <Select value={status} onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1) }}>
