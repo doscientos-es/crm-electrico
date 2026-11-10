@@ -25,7 +25,15 @@ function setParam(p: URLSearchParams, key: string, value: string | undefined) {
   if (value) p.set(key, value); else p.delete(key)
 }
 
-export function ContractsRoute({ fixedStatus }: { fixedStatus?: ContractStatus } = {}) {
+export function ContractsRoute() {
+  return <ContractsList />
+}
+
+export function IncidentsRoute() {
+  return <ContractsList fixedStatus="incident" />
+}
+
+function ContractsList({ fixedStatus }: { fixedStatus?: ContractStatus }) {
   const { profile: currentUser } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()

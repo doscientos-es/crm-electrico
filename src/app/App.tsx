@@ -16,6 +16,7 @@ const CustomerDetailRoute = lazyWithRetry(() => import('../routes/customer-detai
 const RenewalsRoute = lazyWithRetry(() => import('../routes/renewals').then((m) => ({ default: m.RenewalsRoute })))
 const DocumentsRoute = lazyWithRetry(() => import('../routes/documents').then((m) => ({ default: m.DocumentsRoute })))
 const ContractsRoute = lazyWithRetry(() => import('../routes/contracts').then((m) => ({ default: m.ContractsRoute })))
+const IncidentsRoute = lazyWithRetry(() => import('../routes/contracts').then((m) => ({ default: m.IncidentsRoute })))
 const SettlementsRoute = lazyWithRetry(() => import('../routes/settlements').then((m) => ({ default: m.SettlementsRoute })))
 const SettingsRoute = lazyWithRetry(() => import('../routes/settings').then((m) => ({ default: m.SettingsRoute })))
 const AgendaRoute = lazyWithRetry(() => import('../routes/agenda').then((m) => ({ default: m.AgendaRoute })))
@@ -65,7 +66,7 @@ export function App() {
         <Route path="/settlements" element={<SettlementAccess><Suspense fallback={routeFallback}><ErrorBoundary level="page"><SettlementsRoute /></ErrorBoundary></Suspense></SettlementAccess>} />
         <Route path="/renewals" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><RenewalsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/documents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><DocumentsRoute /></ErrorBoundary></Suspense>} />
-        <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><ContractsRoute fixedStatus="incident" /></ErrorBoundary></Suspense>} />
+        <Route path="/incidents" element={<Suspense fallback={routeFallback}><ErrorBoundary level="page"><IncidentsRoute /></ErrorBoundary></Suspense>} />
         <Route path="/agenda" element={<Suspense fallback={<PageSkeleton kpis={0} tableRows={0} />}><ErrorBoundary level="page"><AgendaRoute /></ErrorBoundary></Suspense>} />
 
         <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />

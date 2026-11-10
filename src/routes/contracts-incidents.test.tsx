@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ContractsRoute } from './contracts'
+import { IncidentsRoute } from './contracts'
 
 const mocks = vi.hoisted(() => {
   const contracts = [
@@ -35,7 +35,7 @@ describe('listado de incidencias', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
-    act(() => root.render(<MemoryRouter initialEntries={['/incidents?status=active']}><ContractsRoute fixedStatus="incident" /></MemoryRouter>))
+    act(() => root.render(<MemoryRouter initialEntries={['/incidents?status=active']}><IncidentsRoute /></MemoryRouter>))
 
     expect(mocks.useAllContracts).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'incident', includeCompanyCommission: false }))
     expect(container.textContent).toContain('Cliente uno')
