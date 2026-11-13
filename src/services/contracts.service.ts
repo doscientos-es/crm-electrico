@@ -1,164 +1,162 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { supabase } from "../lib/supabase";
-import type { SettlementStatus } from "../features/settlements/settlement";
-import type { RenewalFollowupStatus } from "../features/renewals/renewal-followup";
-import type { ContractStatus } from "../types/database.types";
-import type { InsertDto, Tables, UpdateDto } from "../types/database.types";
-import { queryKeys } from "./query-keys";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { format } from 'date-fns'
 
-export type ContractRow = Tables<"contracts"> & {
-	settlement_status?: SettlementStatus | null;
-	settlement_date?: string | null;
-	renewal_followup_status?: RenewalFollowupStatus | null;
-	renewal_ends_at?: string | null;
-	incident_reason?: string | null;
-};
+import type { RenewalFollowupStatus } from '../features/renewals/renewal-followup'
+import type { SettlementStatus } from '../features/settlements/settlement'
+import { supabase } from '../lib/supabase'
+import type { ContractStatus } from '../types/database.types'
+import type { InsertDto, Tables, UpdateDto } from '../types/database.types'
+import { queryKeys } from './query-keys'
+
+export type ContractRow = Tables<'contracts'> & {
+  settlement_status?: SettlementStatus | null
+  settlement_date?: string | null
+  renewal_followup_status?: RenewalFollowupStatus | null
+  renewal_ends_at?: string | null
+  incident_reason?: string | null
+}
 
 export type ContractWithCustomer = ContractRow & {
-	customer: { id: string; name: string; company: string | null; assigned_to: string | null } | null;
-};
+  customer: { id: string; name: string; company: string | null; assigned_to: string | null } | null
+}
 
 export type ContractWithCustomerInfo = ContractRow & {
-	customer: {
-		id: string;
-		name: string;
-		company: string | null;
-		assigned_to: string | null;
-		notes: string | null;
-		updated_at: string;
-	} | null;
-};
+  customer: {
+    id: string
+    name: string
+    company: string | null
+    assigned_to: string | null
+    notes: string | null
+    updated_at: string
+  } | null
+}
 
 const contractColumnsWithoutCompanyCommission = [
-	"id",
-	"customer_id",
-	"deal_id",
-	"proposal_id",
-	"status",
-	"renewal_followup_status",
-	"incident_reason",
-	"settlement_status",
-	"settlement_date",
-	"signed_at",
-	"starts_at",
-	"ends_at",
-	"terminated_at",
-	"amount_eur",
-	"file_path",
-	"cups",
-	"provider",
-	"sales_channel",
-	"product",
-	"tariff_type",
-	"power_kw",
-	"annual_consumption_kwh",
-	"energy_price_eur",
-	"power_price_p1_eur",
-	"power_price_p2_eur",
-	"power_price_p3_eur",
-	"power_price_p4_eur",
-	"power_price_p5_eur",
-	"power_price_p6_eur",
-	"commission_eur",
-	"commission_commercial_eur",
-	"supply_address",
-	"supply_city",
-	"supply_province",
-	"supply_postal_code",
-	"notes",
-	"created_at",
-	"updated_at",
-	"created_by",
-].join(",");
+  'id',
+  'customer_id',
+  'deal_id',
+  'proposal_id',
+  'status',
+  'renewal_followup_status',
+  'renewal_ends_at',
+  'incident_reason',
+  'settlement_status',
+  'settlement_date',
+  'signed_at',
+  'starts_at',
+  'ends_at',
+  'terminated_at',
+  'amount_eur',
+  'file_path',
+  'cups',
+  'provider',
+  'sales_channel',
+  'product',
+  'tariff_type',
+  'power_kw',
+  'annual_consumption_kwh',
+  'energy_price_eur',
+  'power_price_p1_eur',
+  'power_price_p2_eur',
+  'power_price_p3_eur',
+  'power_price_p4_eur',
+  'power_price_p5_eur',
+  'power_price_p6_eur',
+  'commission_eur',
+  'commission_commercial_eur',
+  'supply_address',
+  'supply_city',
+  'supply_province',
+  'supply_postal_code',
+  'notes',
+  'created_at',
+  'updated_at',
+  'created_by',
+].join(',')
 
 function contractColumns(includeCompanyCommission = true) {
-	return includeCompanyCommission
-		? contractColumnsWithoutCompanyCommission.replace(
-				"commission_commercial_eur",
-				"commission_company_eur,commission_commercial_eur",
-			)
-		: contractColumnsWithoutCompanyCommission;
+  return includeCompanyCommission
+    ? contractColumnsWithoutCompanyCommission.replace(
+        'commission_commercial_eur',
+        'commission_company_eur,commission_commercial_eur',
+      )
+    : contractColumnsWithoutCompanyCommission
 }
 
 export interface ContractsListParams {
-	search?: string;
-	status?: ContractStatus;
-	renewalFollowupStatus?: RenewalFollowupStatus;
-	assignedTo?: string;
-	provider?: string;
-	startsFrom?: string;
-	startsTo?: string;
-	endsFrom?: string;
-	endsTo?: string;
-	page?: number;
-	pageSize?: number;
-	includeCompanyCommission?: boolean;
-	settlementStatus?: SettlementStatus | "registered";
-	enabled?: boolean;
+  search?: string
+  status?: ContractStatus
+  renewalFollowupStatus?: RenewalFollowupStatus
+  assignedTo?: string
+  provider?: string
+  salesChannel?: string
+  settlementFrom?: string
+  settlementTo?: string
+  startsFrom?: string
+  startsTo?: string
+  endsFrom?: string
+  endsTo?: string
+  page?: number
+  pageSize?: number
+  includeCompanyCommission?: boolean
+  settlementStatus?: SettlementStatus | 'registered'
+  enabled?: boolean
 }
 
-function invalidateContractCustomerQueries(
-	qc: ReturnType<typeof useQueryClient>,
-) {
-	qc.invalidateQueries({ queryKey: ["contracts"], exact: false });
-	qc.invalidateQueries({ queryKey: ["customers"], exact: false });
-	qc.invalidateQueries({ queryKey: ["customer"], exact: false });
-	// stats query uses staleTime:0 but explicit invalidation ensures
-	// dashboard refreshes immediately after any mutation in the same session
-	qc.invalidateQueries({ queryKey: ["contracts", "stats"], exact: false });
+function invalidateContractCustomerQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['contracts'], exact: false })
+  qc.invalidateQueries({ queryKey: ['customers'], exact: false })
+  qc.invalidateQueries({ queryKey: ['customer'], exact: false })
+  // stats query uses staleTime:0 but explicit invalidation ensures
+  // dashboard refreshes immediately after any mutation in the same session
+  qc.invalidateQueries({ queryKey: ['contracts', 'stats'], exact: false })
 }
 
 function requireCount(
-	result: { count: number | null; error: { message: string } | null },
-	label: string,
+  result: { count: number | null; error: { message: string } | null },
+  label: string,
 ) {
-	if (result.error) throw result.error;
-	if (result.count === null) {
-		throw new Error(`No se pudo calcular el contador de contratos: ${label}`);
-	}
-	return result.count;
+  if (result.error) throw result.error
+  if (result.count === null) {
+    throw new Error(`No se pudo calcular el contador de contratos: ${label}`)
+  }
+  return result.count
 }
 
 export function useContracts(
-	filterOrId?:
-		| string
-		| { customerId?: string; includeCompanyCommission?: boolean },
+  filterOrId?: string | { customerId?: string; includeCompanyCommission?: boolean },
 ) {
-	const customerId =
-		typeof filterOrId === "string" ? filterOrId : filterOrId?.customerId;
-	const includeCompanyCommission =
-		typeof filterOrId === "string"
-			? true
-			: (filterOrId?.includeCompanyCommission ?? true);
-	return useQuery<ContractRow[]>({
-		queryKey: queryKeys.contracts({ customerId, includeCompanyCommission }),
-		queryFn: async () => {
-			let q = supabase
-				.from("contracts")
-				.select(contractColumns(includeCompanyCommission))
-				.order("created_at", { ascending: false });
-			if (customerId) q = q.eq("customer_id", customerId);
-			const { data, error } = await q;
-			if (error) throw error;
-			return data as unknown as ContractRow[];
-		},
-	});
+  const customerId = typeof filterOrId === 'string' ? filterOrId : filterOrId?.customerId
+  const includeCompanyCommission =
+    typeof filterOrId === 'string' ? true : (filterOrId?.includeCompanyCommission ?? true)
+  return useQuery<ContractRow[]>({
+    queryKey: queryKeys.contracts({ customerId, includeCompanyCommission }),
+    queryFn: async () => {
+      let q = supabase
+        .from('contracts')
+        .select(contractColumns(includeCompanyCommission))
+        .order('created_at', { ascending: false })
+      if (customerId) q = q.eq('customer_id', customerId)
+      const { data, error } = await q
+      if (error) throw error
+      return data as unknown as ContractRow[]
+    },
+  })
 }
 
 export interface ContractStats {
-	total: number;
-	active: number;
-	activeRenewalExpired: number;
-	processing: number;
-	pendingSignature: number;
-	pendingProcessing: number;
-	incident: number;
-	pendingRecovery: number;
-	cancelled: number;
-	terminated: number;
-	urgentRenewals: number;
-	thisMonthEnding: number;
+  total: number
+  active: number
+  activeRenewalExpired: number
+  processing: number
+  pendingSignature: number
+  pendingProcessing: number
+  incident: number
+  pendingRecovery: number
+  cancelled: number
+  terminated: number
+  urgentRenewals: number
+  thisMonthEnding: number
 }
 
 /**
@@ -166,393 +164,413 @@ export interface ContractStats {
  * Uses staleTime: 0 to always reflect real DB state on mount.
  */
 export function useContractStats() {
-	const today = new Date();
-	const todayStr = today.toISOString().slice(0, 10);
-	const thisMonth = today.toISOString().slice(0, 7);
-	const [year, month] = thisMonth.split("-").map(Number);
-	const monthEnd = `${thisMonth}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
-	const urgentLimit = new Date(today);
-	urgentLimit.setDate(urgentLimit.getDate() + 30);
-	const urgentLimitStr = urgentLimit.toISOString().slice(0, 10);
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const thisMonth = today.toISOString().slice(0, 7)
+  const [year, month] = thisMonth.split('-').map(Number)
+  const monthEnd = `${thisMonth}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`
+  const urgentLimit = new Date(today)
+  urgentLimit.setDate(urgentLimit.getDate() + 30)
+  const urgentLimitStr = urgentLimit.toISOString().slice(0, 10)
 
-	return useQuery<ContractStats>({
-		queryKey: ["contracts", "stats", todayStr, thisMonth, urgentLimitStr],
-		staleTime: 0,
-		queryFn: async () => {
-			const [
-				total,
-				active,
-				activeRenewalExpired,
-				processing,
-				pendingSignature,
-				pendingProcessing,
-				incident,
-				pendingRecovery,
-				cancelled,
-				terminated,
-				urgentRenewals,
-				thisMonthEnding,
-			] = await Promise.all([
-				supabase.from("contracts").select("*", { count: "exact", head: true }),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "active"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "active")
-					.eq("renewal_followup_status" as never, "expired" as never),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "processing"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "pending_signature"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "pending_processing"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "incident"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "pending_recovery"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "cancelled"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "terminated"),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "active")
-					.not("ends_at", "is", null)
-					.gte("ends_at", todayStr)
-					.lte("ends_at", urgentLimitStr),
-				supabase
-					.from("contracts")
-					.select("*", { count: "exact", head: true })
-					.eq("status", "active")
-					.gte("ends_at", todayStr)
-					.lte("ends_at", monthEnd),
-			]);
+  return useQuery<ContractStats>({
+    queryKey: ['contracts', 'stats', todayStr, thisMonth, urgentLimitStr],
+    staleTime: 0,
+    queryFn: async () => {
+      const [
+        total,
+        active,
+        activeRenewalExpired,
+        processing,
+        pendingSignature,
+        pendingProcessing,
+        incident,
+        pendingRecovery,
+        cancelled,
+        terminated,
+        urgentRenewals,
+        thisMonthEnding,
+      ] = await Promise.all([
+        supabase.from('contracts').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .eq('renewal_followup_status' as never, 'expired' as never),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'processing'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending_signature'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending_processing'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'incident'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending_recovery'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'cancelled'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'terminated'),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .not('ends_at', 'is', null)
+          .gte('ends_at', todayStr)
+          .lte('ends_at', urgentLimitStr),
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .gte('ends_at', todayStr)
+          .lte('ends_at', monthEnd),
+      ])
 
-			return {
-				total: requireCount(total, "total"),
-				active: requireCount(active, "activos"),
-				activeRenewalExpired: requireCount(activeRenewalExpired, "activos con renovación vencida"),
-				processing: requireCount(processing, "en tramitación"),
-				pendingSignature: requireCount(pendingSignature, "pendientes de firma"),
-				pendingProcessing: requireCount(
-					pendingProcessing,
-					"pendientes de tramitar",
-				),
-				incident: requireCount(incident, "incidencias"),
-				pendingRecovery: requireCount(
-					pendingRecovery,
-					"pendientes de recuperar",
-				),
-				cancelled: requireCount(cancelled, "cancelados"),
-				terminated: requireCount(terminated, "baja"),
-				urgentRenewals: requireCount(urgentRenewals, "urgentes"),
-				thisMonthEnding: requireCount(thisMonthEnding, "vencen este mes"),
-			};
-		},
-	});
+      return {
+        total: requireCount(total, 'total'),
+        active: requireCount(active, 'activos'),
+        activeRenewalExpired: requireCount(activeRenewalExpired, 'activos con renovación vencida'),
+        processing: requireCount(processing, 'en tramitación'),
+        pendingSignature: requireCount(pendingSignature, 'pendientes de firma'),
+        pendingProcessing: requireCount(pendingProcessing, 'pendientes de tramitar'),
+        incident: requireCount(incident, 'incidencias'),
+        pendingRecovery: requireCount(pendingRecovery, 'pendientes de recuperar'),
+        cancelled: requireCount(cancelled, 'cancelados'),
+        terminated: requireCount(terminated, 'baja'),
+        urgentRenewals: requireCount(urgentRenewals, 'urgentes'),
+        thisMonthEnding: requireCount(thisMonthEnding, 'vencen este mes'),
+      }
+    },
+  })
 }
 
 export function useAllContracts(params: ContractsListParams = {}) {
-	const {
-		search,
-		status,
-		renewalFollowupStatus,
-		assignedTo,
-		provider,
-		startsFrom,
-		startsTo,
-		endsFrom,
-		endsTo,
-		page = 0,
-		pageSize = 25,
-		includeCompanyCommission = true,
-		settlementStatus,
-		enabled = true,
-	} = params;
-	return useQuery<{ data: ContractWithCustomer[]; count: number }>({
-		enabled,
-		queryKey: [
-			"contracts",
-			"all",
-			{
-				search,
-				status,
-				renewalFollowupStatus,
-				startsFrom,
-				startsTo,
-				endsFrom,
-				endsTo,
-				page,
-				pageSize,
-				includeCompanyCommission,
-				assignedTo,
-				provider,
-				settlementStatus,
-			},
-		],
-		queryFn: async () => {
-			let q = supabase
-				.from("contracts")
-				.select(
-					`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
-					{ count: "exact" },
-				)
-				.order("created_at", { ascending: false })
-				.range(page * pageSize, page * pageSize + pageSize - 1);
+  const { enabled = true, ...filters } = params
+  return useQuery<{ data: ContractWithCustomer[]; count: number }>({
+    enabled,
+    queryKey: ['contracts', 'all', filters],
+    queryFn: () => fetchContractsPage(filters),
+  })
+}
 
-			if (status) q = q.eq("status", status);
-			if (renewalFollowupStatus) q = q.eq("renewal_followup_status" as never, renewalFollowupStatus as never);
-			if (settlementStatus === "registered") {
-				q = q.in("settlement_status" as never, ["pending", "paid"] as never);
-			} else if (settlementStatus) {
-				q = q.eq("settlement_status" as never, settlementStatus as never);
-			}
-			if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
-			if (provider) q = q.eq("provider", provider);
-			if (startsFrom) q = q.gte("starts_at", startsFrom);
-			if (startsTo) q = q.lte("starts_at", startsTo);
-			if (endsFrom) q = q.gte("ends_at", endsFrom);
-			if (endsTo) q = q.lte("ends_at", endsTo);
-			if (search) {
-				const orFilters = [
-					`cups.ilike.%${search}%`,
-					`provider.ilike.%${search}%`,
-					`sales_channel.ilike.%${search}%`,
-					`product.ilike.%${search}%`,
-				];
-				const { data: matchedCustomers } = await supabase
-					.from("customers")
-					.select("id")
-					.or(`name.ilike.%${search}%,company.ilike.%${search}%`);
-				const customerIds = ((matchedCustomers ?? []) as { id: string }[]).map(
-					(c) => c.id,
-				);
-				if (customerIds.length > 0) {
-					orFilters.push(`customer_id.in.(${customerIds.join(",")})`);
-				}
-				q = q.or(orFilters.join(","));
-			}
+async function fetchContractsPage(params: ContractsListParams) {
+  const {
+    search,
+    status,
+    renewalFollowupStatus,
+    assignedTo,
+    provider,
+    salesChannel,
+    settlementFrom,
+    settlementTo,
+    startsFrom,
+    startsTo,
+    endsFrom,
+    endsTo,
+    page = 0,
+    pageSize = 25,
+    includeCompanyCommission = true,
+    settlementStatus,
+  } = params
+  let q = supabase
+    .from('contracts')
+    .select(
+      `${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
+      { count: 'exact' },
+    )
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(page * pageSize, page * pageSize + pageSize - 1)
 
-			const { data, error, count } = await q;
-			if (error) throw error;
-			return {
-				data: (data ?? []) as unknown as ContractWithCustomer[],
-				count: count ?? 0,
-			};
-		},
-	});
+  if (status) q = q.eq('status', status)
+  if (renewalFollowupStatus)
+    q = q.eq('renewal_followup_status' as never, renewalFollowupStatus as never)
+  if (settlementStatus === 'registered') {
+    q = q.in('settlement_status' as never, ['pending', 'paid'] as never)
+  } else if (settlementStatus) {
+    q = q.eq('settlement_status' as never, settlementStatus as never)
+  }
+  if (assignedTo) q = q.eq('customer.assigned_to', assignedTo)
+  if (provider) q = q.eq('provider', provider)
+  if (salesChannel) q = q.eq('sales_channel', salesChannel)
+  if (settlementFrom) q = q.gte('settlement_date' as never, settlementFrom as never)
+  if (settlementTo) q = q.lte('settlement_date' as never, settlementTo as never)
+  if (startsFrom) q = q.gte('starts_at', startsFrom)
+  if (startsTo) q = q.lte('starts_at', startsTo)
+  if (endsFrom) q = q.gte('ends_at', endsFrom)
+  if (endsTo) q = q.lte('ends_at', endsTo)
+  if (search) {
+    const orFilters = [
+      `cups.ilike.%${search}%`,
+      `provider.ilike.%${search}%`,
+      `sales_channel.ilike.%${search}%`,
+      `product.ilike.%${search}%`,
+    ]
+    const { data: matchedCustomers } = await supabase
+      .from('customers')
+      .select('id')
+      .or(`name.ilike.%${search}%,company.ilike.%${search}%`)
+    const customerIds = ((matchedCustomers ?? []) as { id: string }[]).map((c) => c.id)
+    if (customerIds.length > 0) {
+      orFilters.push(`customer_id.in.(${customerIds.join(',')})`)
+    }
+    q = q.or(orFilters.join(','))
+  }
+
+  const { data, error, count } = await q
+  if (error) throw error
+  return {
+    data: (data ?? []) as unknown as ContractWithCustomer[],
+    count: count ?? 0,
+  }
+}
+
+export async function fetchAllSettlementsForExport(filters: ContractsListParams) {
+  const rows: ContractWithCustomer[] = []
+  const pageSize = 1000
+  for (let page = 0; ; page++) {
+    const result = await fetchContractsPage({
+      ...filters,
+      includeCompanyCommission: false,
+      page,
+      pageSize,
+    })
+    rows.push(...result.data)
+    if (result.data.length < pageSize) return rows
+  }
 }
 
 export function useContractProviders() {
-	return useQuery<string[]>({
-		queryKey: ["contracts", "providers"],
-		queryFn: async () => {
-			const { data, error } = await supabase
-				.from("contracts")
-				.select("provider")
-				.not("provider", "is", null)
-				.order("provider");
-			if (error) throw error;
-			return Array.from(
-				new Set(
-					(data ?? [])
-						.map((contract) => contract.provider)
-						.filter((provider): provider is string => !!provider),
-				),
-			);
-		},
-	});
+  return useQuery<string[]>({
+    queryKey: ['contracts', 'providers'],
+    queryFn: () => fetchContractOptions('provider'),
+  })
+}
+
+export function useContractSalesChannels() {
+  return useQuery<string[]>({
+    queryKey: ['contracts', 'sales-channels'],
+    queryFn: () => fetchContractOptions('sales_channel'),
+  })
+}
+
+async function fetchContractOptions(column: 'provider' | 'sales_channel') {
+  const options = new Set<string>()
+  const pageSize = 1000
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from('contracts')
+      .select('provider,sales_channel')
+      .not(column, 'is', null)
+      .order(column)
+      .order('id')
+      .range(offset, offset + pageSize - 1)
+    if (error) throw error
+    for (const row of data ?? []) if (row[column]) options.add(row[column])
+    if ((data ?? []).length < pageSize) return Array.from(options)
+  }
 }
 
 export function useCreateContract() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: async (payload: InsertDto<"contracts"> & { incident_reason?: string | null }) => {
-			const { data, error } = await supabase
-				.from("contracts")
-				.insert(payload as never)
-				.select()
-				.single();
-			if (error) throw error;
-			return data as ContractRow;
-		},
-		onSuccess: () => invalidateContractCustomerQueries(qc),
-	});
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (
+      payload: InsertDto<'contracts'> & {
+        incident_reason?: string | null
+        renewal_followup_status?: RenewalFollowupStatus | null
+        renewal_ends_at?: string | null
+      },
+    ) => {
+      const { data, error } = await supabase
+        .from('contracts')
+        .insert(payload as never)
+        .select()
+        .single()
+      if (error) throw error
+      return data as ContractRow
+    },
+    onSuccess: () => invalidateContractCustomerQueries(qc),
+  })
 }
 
 export function useUpdateContract() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: async ({
-			id,
-			...payload
-		}: UpdateDto<"contracts"> & { id: string; renewal_followup_status?: RenewalFollowupStatus | null; renewal_ends_at?: string | null; incident_reason?: string | null }) => {
-			const { data, error } = await supabase
-				.from("contracts")
-				.update(payload as never)
-				.eq("id", id)
-				.select()
-				.single();
-			if (error) throw error;
-			return data as ContractRow;
-		},
-		onSuccess: () => invalidateContractCustomerQueries(qc),
-	});
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...payload
+    }: UpdateDto<'contracts'> & {
+      id: string
+      renewal_followup_status?: RenewalFollowupStatus | null
+      renewal_ends_at?: string | null
+      incident_reason?: string | null
+    }) => {
+      const { data, error } = await supabase
+        .from('contracts')
+        .update(payload as never)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data as ContractRow
+    },
+    onSuccess: () => invalidateContractCustomerQueries(qc),
+  })
 }
 
 /**
  * Fetches overdue active contracts and those ending within `alertDays` days.
  */
 export function useContractsDueForRenewal(alertDays = 60) {
-	const today = new Date();
-	const todayStr = format(today, "yyyy-MM-dd");
-	const alertDate = new Date(today);
-	alertDate.setDate(alertDate.getDate() + alertDays);
-	const alertDateStr = format(alertDate, "yyyy-MM-dd");
+  const today = new Date()
+  const todayStr = format(today, 'yyyy-MM-dd')
+  const alertDate = new Date(today)
+  alertDate.setDate(alertDate.getDate() + alertDays)
+  const alertDateStr = format(alertDate, 'yyyy-MM-dd')
 
-	return useQuery<ContractWithCustomerInfo[]>({
-		queryKey: ["contracts", "renewal", alertDays, todayStr],
-		queryFn: async () => {
-			const contracts: ContractWithCustomerInfo[] = [];
-			const pageSize = 1000;
-			for (let offset = 0; ; offset += pageSize) {
-				const { data, error } = await supabase
-					.from("contracts")
-					.select("*, customer:customers(id, name, company, assigned_to, notes, updated_at)")
-					.eq("status", "active")
-					.not("ends_at", "is", null)
-					.lte("ends_at", alertDateStr)
-					.order("ends_at", { ascending: true })
-					.order("id", { ascending: true })
-					.range(offset, offset + pageSize - 1);
-				if (error) throw error;
-				const page = (data ?? []) as ContractWithCustomerInfo[];
-				contracts.push(...page);
-				if (page.length < pageSize) return contracts;
-			}
-		},
-	});
+  return useQuery<ContractWithCustomerInfo[]>({
+    queryKey: ['contracts', 'renewal', alertDays, todayStr],
+    queryFn: async () => {
+      const contracts: ContractWithCustomerInfo[] = []
+      const pageSize = 1000
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from('contracts')
+          .select('*, customer:customers(id, name, company, assigned_to, notes, updated_at)')
+          .eq('status', 'active')
+          .or(`ends_at.lte.${alertDateStr},renewal_followup_status.eq.expired`)
+          .order('ends_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(offset, offset + pageSize - 1)
+        if (error) throw error
+        const page = (data ?? []) as ContractWithCustomerInfo[]
+        contracts.push(...page)
+        if (page.length < pageSize) return contracts
+      }
+    },
+  })
 }
 
 export type ContractForCalendar = {
-	id: string;
-	ends_at: string;
-	provider: string | null;
-	sales_channel: string | null;
-	product: string | null;
-	status: ContractStatus;
-	customer: { id: string; name: string; company: string | null } | null;
-};
+  id: string
+  ends_at: string
+  provider: string | null
+  sales_channel: string | null
+  product: string | null
+  status: ContractStatus
+  customer: { id: string; name: string; company: string | null } | null
+}
 
 export function useContractsByMonth(month: string) {
-	return useQuery<ContractForCalendar[]>({
-		queryKey: ["contracts", "calendar", month],
-		queryFn: async () => {
-			const [year, m] = month.split("-").map(Number);
-			const start = `${month}-01`;
-			const lastDay = new Date(year, m, 0).getDate();
-			const end = `${month}-${String(lastDay).padStart(2, "0")}`;
-			const { data, error } = await supabase
-				.from("contracts")
-				.select(
-					"id, ends_at, provider, sales_channel, product, status, customer:customers(id, name, company)",
-				)
-				.not("ends_at", "is", null)
-				.gte("ends_at", start)
-				.lte("ends_at", end)
-				.order("ends_at", { ascending: true });
-			if (error) throw error;
-			return (data ?? []) as ContractForCalendar[];
-		},
-		enabled: !!month,
-	});
+  return useQuery<ContractForCalendar[]>({
+    queryKey: ['contracts', 'calendar', month],
+    queryFn: async () => {
+      const [year, m] = month.split('-').map(Number)
+      const start = `${month}-01`
+      const lastDay = new Date(year, m, 0).getDate()
+      const end = `${month}-${String(lastDay).padStart(2, '0')}`
+      const { data, error } = await supabase
+        .from('contracts')
+        .select(
+          'id, ends_at, provider, sales_channel, product, status, customer:customers(id, name, company)',
+        )
+        .not('ends_at', 'is', null)
+        .gte('ends_at', start)
+        .lte('ends_at', end)
+        .order('ends_at', { ascending: true })
+      if (error) throw error
+      return (data ?? []) as ContractForCalendar[]
+    },
+    enabled: !!month,
+  })
 }
 
 export interface ContractsExportFilter {
-	search?: string;
-	status?: ContractStatus;
-	renewalFollowupStatus?: RenewalFollowupStatus;
-	assignedTo?: string;
-	provider?: string;
-	startsFrom?: string;
-	endsTo?: string;
-	dateFrom?: string;
-	dateTo?: string;
-	includeCompanyCommission?: boolean;
+  search?: string
+  status?: ContractStatus
+  renewalFollowupStatus?: RenewalFollowupStatus
+  assignedTo?: string
+  provider?: string
+  startsFrom?: string
+  endsTo?: string
+  dateFrom?: string
+  dateTo?: string
+  includeCompanyCommission?: boolean
 }
 
 export type ContractExportRow = ContractRow & {
-	customer: {
-		id: string;
-		name: string;
-		company: string | null;
-		assigned_to: string | null;
-	} | null;
-};
+  customer: {
+    id: string
+    name: string
+    company: string | null
+    assigned_to: string | null
+  } | null
+}
 
 export async function fetchAllContractsForExport(
-	filter: ContractsExportFilter = {},
+  filter: ContractsExportFilter = {},
 ): Promise<ContractExportRow[]> {
-	const {
-		search,
-		status,
-		renewalFollowupStatus,
-		assignedTo,
-		provider,
-		startsFrom,
-		endsTo,
-		dateFrom,
-		dateTo,
-		includeCompanyCommission = true,
-	} = filter;
-	let q = supabase
-		.from("contracts")
-		.select(
-			`${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
-		)
-		.order("created_at", { ascending: false });
-	if (search)
-		q = q.or(
-			`cups.ilike.%${search}%,provider.ilike.%${search}%,sales_channel.ilike.%${search}%,product.ilike.%${search}%`,
-		);
-	if (status) q = q.eq("status", status);
-	if (renewalFollowupStatus) q = q.eq("renewal_followup_status" as never, renewalFollowupStatus as never);
-	if (assignedTo) q = q.eq("customer.assigned_to", assignedTo);
-	if (provider) q = q.eq("provider", provider);
-	if (startsFrom) q = q.gte("starts_at", startsFrom);
-	if (endsTo) q = q.lte("ends_at", endsTo);
-	if (dateFrom) q = q.gte("created_at", dateFrom);
-	if (dateTo) q = q.lte("created_at", dateTo);
-	const { data, error } = await q;
-	if (error) throw error;
-	return (data ?? []) as unknown as ContractExportRow[];
+  const {
+    search,
+    status,
+    renewalFollowupStatus,
+    assignedTo,
+    provider,
+    startsFrom,
+    endsTo,
+    dateFrom,
+    dateTo,
+    includeCompanyCommission = true,
+  } = filter
+  let q = supabase
+    .from('contracts')
+    .select(
+      `${contractColumns(includeCompanyCommission)}, customer:customers!inner(id, name, company, assigned_to)`,
+    )
+    .order('created_at', { ascending: false })
+  if (search)
+    q = q.or(
+      `cups.ilike.%${search}%,provider.ilike.%${search}%,sales_channel.ilike.%${search}%,product.ilike.%${search}%`,
+    )
+  if (status) q = q.eq('status', status)
+  if (renewalFollowupStatus)
+    q = q.eq('renewal_followup_status' as never, renewalFollowupStatus as never)
+  if (assignedTo) q = q.eq('customer.assigned_to', assignedTo)
+  if (provider) q = q.eq('provider', provider)
+  if (startsFrom) q = q.gte('starts_at', startsFrom)
+  if (endsTo) q = q.lte('ends_at', endsTo)
+  if (dateFrom) q = q.gte('created_at', dateFrom)
+  if (dateTo) q = q.lte('created_at', dateTo)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as unknown as ContractExportRow[]
 }
 
 export function useDeleteContract() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: async (id: string) => {
-			const { error } = await supabase.from("contracts").delete().eq("id", id);
-			if (error) throw error;
-		},
-		onSuccess: () => invalidateContractCustomerQueries(qc),
-	});
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contracts').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => invalidateContractCustomerQueries(qc),
+  })
 }

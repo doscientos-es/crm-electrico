@@ -1,9 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addYears, format } from 'date-fns'
-import { CopyCheck, Euro, Loader2, MapPin, Pencil, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
+import {
+  CopyCheck,
+  Euro,
+  Loader2,
+  MapPin,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Zap,
+} from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
+
 import { Button } from '../../components/ui/button'
 import { Dialog } from '../../components/ui/dialog'
 import { Field, Input, InputGroup, Select, Textarea } from '../../components/ui/input'
@@ -11,15 +22,23 @@ import { contractStatusLabels } from '../../config/constants'
 import { useToastError } from '../../hooks/use-toast-error'
 import { canViewCompanyCommission } from '../../lib/permissions'
 import { type ContractFormValues, contractSchema } from '../../schemas/forms.schema'
-import { type ContractRow, useCreateContract, useDeleteContract, useUpdateContract } from '../../services/contracts.service'
+import {
+  type ContractRow,
+  useCreateContract,
+  useDeleteContract,
+  useUpdateContract,
+} from '../../services/contracts.service'
 import { useCustomer } from '../../services/customers.service'
 import { useAuth } from '../auth/AuthContext'
+import { activeExpiredFilter, renewalFollowupLabels } from '../renewals/renewal-followup'
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="col-span-full border-t pt-4 first:border-t-0 first:pt-0">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-      {description && <p className="mt-0.5 text-xs text-muted-foreground/70">{description}</p>}
+      <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+        {title}
+      </p>
+      {description && <p className="text-muted-foreground/70 mt-0.5 text-xs">{description}</p>}
     </div>
   )
 }
@@ -66,12 +85,14 @@ export function ContractFormDialog({
   // Falls back to legacy supply fields for customers created before the move.
   const customerAddress = customer
     ? (() => {
-      const address = customer.mailing_address ?? customer.address ?? ''
-      const postal_code = customer.mailing_postal_code ?? customer.postal_code ?? ''
-      const city = customer.mailing_city ?? customer.city ?? ''
-      const province = customer.mailing_province ?? customer.province ?? ''
-      return address || postal_code || city || province ? { address, postal_code, city, province } : null
-    })()
+        const address = customer.mailing_address ?? customer.address ?? ''
+        const postal_code = customer.mailing_postal_code ?? customer.postal_code ?? ''
+        const city = customer.mailing_city ?? customer.city ?? ''
+        const province = customer.mailing_province ?? customer.province ?? ''
+        return address || postal_code || city || province
+          ? { address, postal_code, city, province }
+          : null
+      })()
     : null
   const isPending = createContract.isPending || updateContract.isPending
 
@@ -98,8 +119,11 @@ export function ContractFormDialog({
     resolver: zodResolver(contractSchema) as never,
     defaultValues: {
       customer_id: customerId,
-      status: (contract?.status as ContractFormValues['status']) ?? 'pending_processing',
-      incident_reason: contract?.status === 'incident' ? contract.incident_reason ?? '' : '',
+      status:
+        contract?.status === 'active' && contract.renewal_followup_status === 'expired'
+          ? activeExpiredFilter
+          : ((contract?.status as ContractFormValues['status']) ?? 'pending_processing'),
+      incident_reason: contract?.status === 'incident' ? (contract.incident_reason ?? '') : '',
       // dates are never copied on renewal — they must be set fresh
       cups: source?.cups ?? '',
       provider: source?.provider ?? '',
@@ -123,6 +147,7 @@ export function ContractFormDialog({
       supply_postal_code: source?.supply_postal_code ?? '',
       starts_at: contract?.starts_at?.slice(0, 10) ?? '',
       ends_at: contract?.ends_at?.slice(0, 10) ?? '',
+      renewal_ends_at: contract?.renewal_ends_at ?? '',
       terminated_at: contract?.terminated_at?.slice(0, 10) ?? '',
       settlement_status: contract?.settlement_status ?? (isEditing ? '' : 'pending'),
       settlement_date: contract?.settlement_date ?? '',
@@ -135,7 +160,15 @@ export function ContractFormDialog({
   function onSubmit(values: ContractFormValues) {
     const payload = {
       customer_id: customerId,
-      status: values.status,
+      status: values.status === activeExpiredFilter ? ('active' as const) : values.status,
+      ...(values.status === activeExpiredFilter
+        ? {
+            renewal_followup_status: 'expired' as const,
+            renewal_ends_at: values.renewal_ends_at || null,
+          }
+        : contract?.renewal_followup_status === 'expired'
+          ? { renewal_followup_status: null, renewal_ends_at: null }
+          : {}),
       ...(values.status === 'incident' ? { incident_reason: values.incident_reason?.trim() } : {}),
       cups: values.cups || null,
       provider: values.provider || null,
@@ -152,7 +185,11 @@ export function ContractFormDialog({
       power_price_p5_eur: numOrNull(values.power_price_p5_eur),
       power_price_p6_eur: numOrNull(values.power_price_p6_eur),
       ...(showCompanyCommission || !isEditing
-        ? { commission_company_eur: showCompanyCommission ? values.commission_company_eur ?? 0 : source?.commission_company_eur ?? 0 }
+        ? {
+            commission_company_eur: showCompanyCommission
+              ? (values.commission_company_eur ?? 0)
+              : (source?.commission_company_eur ?? 0),
+          }
         : {}),
       commission_commercial_eur: values.commission_commercial_eur ?? 0,
       supply_address: values.supply_address || null,
@@ -162,10 +199,12 @@ export function ContractFormDialog({
       starts_at: values.starts_at || null,
       ends_at: values.ends_at || null,
       terminated_at: values.terminated_at || null,
-      ...(showCompanyCommission && isEditing ? {
-        settlement_status: values.settlement_status || null,
-        settlement_date: values.settlement_status ? values.settlement_date || null : null,
-      } : {}),
+      ...(showCompanyCommission && isEditing
+        ? {
+            settlement_status: values.settlement_status || null,
+            settlement_date: values.settlement_status ? values.settlement_date || null : null,
+          }
+        : {}),
       notes: values.notes || null,
     }
     const done = {
@@ -204,11 +243,20 @@ export function ContractFormDialog({
       title={isEditing ? 'Editar contrato' : prefillFrom ? 'Renovar contrato' : 'Nuevo contrato'}
       trigger={
         controlledOpen !== undefined ? undefined : isEditing ? (
-          <Button variant="secondary" size="sm"><Pencil className="h-4 w-4" />Editar</Button>
+          <Button variant="secondary" size="sm">
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Button>
         ) : prefillFrom ? (
-          <Button size="sm" variant="default"><RefreshCw className="h-4 w-4" />Renovar</Button>
+          <Button size="sm" variant="default">
+            <RefreshCw className="h-4 w-4" />
+            Renovar
+          </Button>
         ) : (
-          <Button size="sm"><Plus className="h-4 w-4" />Nuevo contrato</Button>
+          <Button size="sm">
+            <Plus className="h-4 w-4" />
+            Nuevo contrato
+          </Button>
         )
       }
     >
@@ -220,14 +268,30 @@ export function ContractFormDialog({
           <Field label="Estado" error={errors.status?.message} required>
             <Select {...register('status')}>
               {Object.entries(contractStatusLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value}>
+                  {label}
+                </option>
               ))}
+              <option value={activeExpiredFilter}>{renewalFollowupLabels.expired}</option>
             </Select>
           </Field>
 
+          {contractStatus === activeExpiredFilter && (
+            <Field
+              label="Fecha final de renovación"
+              error={errors.renewal_ends_at?.message}
+              required
+            >
+              <Input type="date" {...register('renewal_ends_at')} />
+            </Field>
+          )}
+
           {contractStatus === 'incident' && (
             <Field label="Motivo de la incidencia" error={errors.incident_reason?.message} required>
-              <Textarea {...register('incident_reason')} placeholder="Describe el motivo de la incidencia…" />
+              <Textarea
+                {...register('incident_reason')}
+                placeholder="Describe el motivo de la incidencia…"
+              />
             </Field>
           )}
 
@@ -245,8 +309,12 @@ export function ContractFormDialog({
           <div className="col-span-full border-t pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dirección de suministro</p>
-                <p className="mt-0.5 text-xs text-muted-foreground/70">Dirección física del punto de suministro</p>
+                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                  Dirección de suministro
+                </p>
+                <p className="text-muted-foreground/70 mt-0.5 text-xs">
+                  Dirección física del punto de suministro
+                </p>
               </div>
               {customerAddress && (
                 <button
@@ -257,7 +325,7 @@ export function ContractFormDialog({
                     setValue('supply_city', customerAddress.city)
                     setValue('supply_province', customerAddress.province)
                   }}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="border-border bg-background text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
                 >
                   <CopyCheck className="h-3.5 w-3.5" />
                   Copiar del cliente
@@ -272,7 +340,10 @@ export function ContractFormDialog({
             </InputGroup>
           </Field>
 
-          <Field label="Código postal" error={(errors as Record<string, { message?: string }>).supply_postal_code?.message}>
+          <Field
+            label="Código postal"
+            error={(errors as Record<string, { message?: string }>).supply_postal_code?.message}
+          >
             <Input inputMode="numeric" {...register('supply_postal_code')} placeholder="28001" />
           </Field>
 
@@ -294,7 +365,10 @@ export function ContractFormDialog({
           </Field>
 
           <Field label="Canal de venta" error={errors.sales_channel?.message}>
-            <Input {...register('sales_channel')} placeholder="Ej. Puerta fría, Referido, Online…" />
+            <Input
+              {...register('sales_channel')}
+              placeholder="Ej. Puerta fría, Referido, Online…"
+            />
           </Field>
 
           <Field label="Producto / oferta" error={errors.product?.message}>
@@ -314,15 +388,35 @@ export function ContractFormDialog({
         <div className="grid items-start gap-4 md:grid-cols-2">
           <SectionHeader title="Datos técnicos" />
 
-          <Field label="Potencia contratada" error={errors.power_kw?.message} hint="Kilovatios (kW)">
+          <Field
+            label="Potencia contratada"
+            error={errors.power_kw?.message}
+            hint="Kilovatios (kW)"
+          >
             <EnergyInput>
-              <Input type="number" step="any" min={0} {...register('power_kw')} placeholder="4.60" />
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                {...register('power_kw')}
+                placeholder="4.60"
+              />
             </EnergyInput>
           </Field>
 
-          <Field label="Consumo anual estimado" error={errors.annual_consumption_kwh?.message} hint="Kilovatios-hora (kWh)">
+          <Field
+            label="Consumo anual estimado"
+            error={errors.annual_consumption_kwh?.message}
+            hint="Kilovatios-hora (kWh)"
+          >
             <EnergyInput>
-              <Input type="number" step="any" min={0} {...register('annual_consumption_kwh')} placeholder="3500" />
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                {...register('annual_consumption_kwh')}
+                placeholder="3500"
+              />
             </EnergyInput>
           </Field>
         </div>
@@ -331,21 +425,44 @@ export function ContractFormDialog({
         <div className="grid items-start gap-4 md:grid-cols-2">
           <SectionHeader title="Precios y comisión" />
 
-          <Field label="Precio energía" error={errors.energy_price_eur?.message} hint="€ por kWh consumido">
+          <Field
+            label="Precio energía"
+            error={errors.energy_price_eur?.message}
+            hint="€ por kWh consumido"
+          >
             <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('energy_price_eur')} placeholder="0.1200" />
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                {...register('energy_price_eur')}
+                placeholder="0.1200"
+              />
             </MoneyInput>
           </Field>
 
           <div className="col-span-full">
-            <p className="mb-2 text-sm font-medium text-foreground">Precio potencia por tramo <span className="text-xs font-normal text-muted-foreground">(€/kW·año)</span></p>
+            <p className="text-foreground mb-2 text-sm font-medium">
+              Precio potencia por tramo{' '}
+              <span className="text-muted-foreground text-xs font-normal">(€/kW·año)</span>
+            </p>
             <div className="grid grid-cols-3 gap-3">
               {([1, 2, 3, 4, 5, 6] as const).map((p) => {
                 const key = `power_price_p${p}_eur` as const
                 return (
-                  <Field key={key} label={`P${p}`} error={(errors as Record<string, { message?: string }>)[key]?.message}>
+                  <Field
+                    key={key}
+                    label={`P${p}`}
+                    error={(errors as Record<string, { message?: string }>)[key]?.message}
+                  >
                     <MoneyInput>
-                      <Input type="number" step="any" min={0} {...register(key)} placeholder="0.00" />
+                      <Input
+                        type="number"
+                        step="any"
+                        min={0}
+                        {...register(key)}
+                        placeholder="0.00"
+                      />
                     </MoneyInput>
                   </Field>
                 )
@@ -356,14 +473,26 @@ export function ContractFormDialog({
           {showCompanyCommission && (
             <Field label="Comisión empresa" error={errors.commission_company_eur?.message}>
               <MoneyInput>
-                <Input type="number" step="any" min={0} {...register('commission_company_eur')} placeholder="0.00" />
+                <Input
+                  type="number"
+                  step="any"
+                  min={0}
+                  {...register('commission_company_eur')}
+                  placeholder="0.00"
+                />
               </MoneyInput>
             </Field>
           )}
 
           <Field label="Comisión comercial" error={errors.commission_commercial_eur?.message}>
             <MoneyInput>
-              <Input type="number" step="any" min={0} {...register('commission_commercial_eur')} placeholder="0.00" />
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                {...register('commission_commercial_eur')}
+                placeholder="0.00"
+              />
             </MoneyInput>
           </Field>
         </div>
@@ -379,10 +508,14 @@ export function ContractFormDialog({
                 onChange: (event) => {
                   const value = event.target.value
                   if (value && !getValues('ends_at')) {
-                    setValue('ends_at', format(addYears(new Date(`${value}T00:00:00`), 1), 'yyyy-MM-dd'), {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
+                    setValue(
+                      'ends_at',
+                      format(addYears(new Date(`${value}T00:00:00`), 1), 'yyyy-MM-dd'),
+                      {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      },
+                    )
                   }
                 },
               })}
@@ -408,15 +541,26 @@ export function ContractFormDialog({
                 <option value="paid">Liquidado</option>
               </Select>
             </Field>
-            <Field label="Fecha de liquidación" error={errors.settlement_date?.message} required={settlementStatus === 'paid'}>
+            <Field
+              label="Fecha de liquidación"
+              error={errors.settlement_date?.message}
+              required={settlementStatus === 'paid'}
+            >
               <Input type="date" {...register('settlement_date')} disabled={!settlementStatus} />
             </Field>
           </div>
         )}
 
         {/* ── Notas ── */}
-        <Field label="Notas" error={errors.notes?.message} hint="Condiciones especiales, observaciones u otras anotaciones relevantes">
-          <Textarea {...register('notes')} placeholder="Añade cualquier observación relevante sobre este contrato…" />
+        <Field
+          label="Notas"
+          error={errors.notes?.message}
+          hint="Condiciones especiales, observaciones u otras anotaciones relevantes"
+        >
+          <Textarea
+            {...register('notes')}
+            placeholder="Añade cualquier observación relevante sobre este contrato…"
+          />
         </Field>
 
         <div className="flex items-center gap-2">
@@ -438,8 +582,8 @@ export function ContractFormDialog({
           )}
 
           {isEditing && confirmDelete && (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
-              <span className="text-sm text-destructive">¿Eliminar contrato?</span>
+            <div className="border-destructive/40 bg-destructive/5 flex items-center gap-2 rounded-lg border px-3 py-2">
+              <span className="text-destructive text-sm">¿Eliminar contrato?</span>
               <Button
                 type="button"
                 variant="destructive"
@@ -447,7 +591,11 @@ export function ContractFormDialog({
                 onClick={handleDelete}
                 disabled={deleteContract.isPending}
               >
-                {deleteContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sí, eliminar'}
+                {deleteContract.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Sí, eliminar'
+                )}
               </Button>
               <Button
                 type="button"
